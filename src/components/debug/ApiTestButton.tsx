@@ -34,7 +34,7 @@ export const ApiTestButton: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
 
   const addResult = (result: ApiTestResult) => {
-    setTestResults(prev => [result, ...prev]);
+    setTestResults((prev) => [result, ...prev]);
   };
 
   const runHealthCheck = async () => {
@@ -53,7 +53,9 @@ export const ApiTestButton: React.FC = () => {
       addResult({
         endpoint: '/health',
         status: isHealthy ? 'success' : 'error',
-        message: isHealthy ? 'Backend is healthy!' : 'Backend is not responding',
+        message: isHealthy
+          ? 'Backend is healthy!'
+          : 'Backend is not responding',
         data: healthData,
         timestamp: new Date().toISOString(),
       });
@@ -95,13 +97,15 @@ export const ApiTestButton: React.FC = () => {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      const status = error.status >= 400 && error.status < 500 ? 'success' : 'error';
+      const status =
+        error.status >= 400 && error.status < 500 ? 'success' : 'error';
       addResult({
         endpoint: '/api/auth/register',
         status,
-        message: status === 'success'
-          ? `Endpoint working (got expected ${error.status} response)`
-          : `Registration endpoint failed: ${error.message}`,
+        message:
+          status === 'success'
+            ? `Endpoint working (got expected ${error.status} response)`
+            : `Registration endpoint failed: ${error.message}`,
         data: error,
         timestamp: new Date().toISOString(),
       });
@@ -120,7 +124,7 @@ export const ApiTestButton: React.FC = () => {
     });
 
     await runHealthCheck();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Small delay
     await testRegistrationEndpoint();
 
     setIsRunning(false);
@@ -129,17 +133,19 @@ export const ApiTestButton: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle color="success" fontSize="small" />;
+        return <CheckCircle color='success' fontSize='small' />;
       case 'error':
-        return <Error color="error" fontSize="small" />;
+        return <Error color='error' fontSize='small' />;
       case 'loading':
         return <CircularProgress size={16} />;
       default:
-        return <NetworkCheck fontSize="small" />;
+        return <NetworkCheck fontSize='small' />;
     }
   };
 
-  const getStatusColor = (status: string): 'success' | 'error' | 'info' | 'warning' => {
+  const getStatusColor = (
+    status: string
+  ): 'success' | 'error' | 'info' | 'warning' => {
     switch (status) {
       case 'success':
         return 'success';
@@ -158,8 +164,8 @@ export const ApiTestButton: React.FC = () => {
       {import.meta.env.DEV && (
         <>
           <Button
-            variant="contained"
-            color="secondary"
+            variant='contained'
+            color='secondary'
             startIcon={<BugReport />}
             onClick={() => setIsOpen(!isOpen)}
             sx={{
@@ -184,20 +190,22 @@ export const ApiTestButton: React.FC = () => {
                 p: 2,
               }}
             >
-              <Typography variant="h6" gutterBottom>
+              <Typography variant='h6' gutterBottom>
                 API Debug Console
               </Typography>
 
-              <Alert severity="info" sx={{ mb: 2, fontSize: '0.8rem' }}>
+              <Alert severity='info' sx={{ mb: 2, fontSize: '0.8rem' }}>
                 Backend URL: {API_CONFIG.BASE_URL}
               </Alert>
 
               <Button
-                variant="outlined"
+                variant='outlined'
                 fullWidth
                 onClick={runAllTests}
                 disabled={isRunning}
-                startIcon={isRunning ? <CircularProgress size={16} /> : <NetworkCheck />}
+                startIcon={
+                  isRunning ? <CircularProgress size={16} /> : <NetworkCheck />
+                }
                 sx={{ mb: 2 }}
               >
                 {isRunning ? 'Testing APIs...' : 'Test All Endpoints'}
@@ -213,30 +221,34 @@ export const ApiTestButton: React.FC = () => {
                         '& .MuiAccordionSummary-content': {
                           alignItems: 'center',
                           gap: 1,
-                        }
+                        },
                       }}
                     >
                       {getStatusIcon(result.status)}
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Typography variant='body2' sx={{ fontWeight: 500 }}>
                         {result.endpoint}
                       </Typography>
                       <Chip
                         label={result.status}
-                        size="small"
+                        size='small'
                         color={getStatusColor(result.status)}
                         sx={{ ml: 'auto' }}
                       />
                     </AccordionSummary>
                     <AccordionDetails>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Typography
+                        variant='body2'
+                        color='text.secondary'
+                        gutterBottom
+                      >
                         {new Date(result.timestamp).toLocaleTimeString()}
                       </Typography>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
+                      <Typography variant='body2' sx={{ mb: 1 }}>
                         {result.message}
                       </Typography>
                       {result.data && (
                         <Box
-                          component="pre"
+                          component='pre'
                           sx={{
                             backgroundColor: '#f5f5f5',
                             p: 1,
@@ -254,13 +266,21 @@ export const ApiTestButton: React.FC = () => {
                 ))}
 
                 {testResults.length === 0 && !isRunning && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    textAlign='center'
+                  >
                     Click "Test All Endpoints" to start debugging
                   </Typography>
                 )}
               </Box>
 
-              <Typography variant="caption" display="block" sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography
+                variant='caption'
+                display='block'
+                sx={{ mt: 2, textAlign: 'center' }}
+              >
                 Debug mode - only visible in development
               </Typography>
             </Box>

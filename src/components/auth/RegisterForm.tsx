@@ -12,12 +12,6 @@ import {
   Divider,
   CircularProgress,
   Grid,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  FormHelperText,
 } from '@mui/material';
 import {
   Email,
@@ -28,8 +22,6 @@ import {
   Phone,
   PersonAdd,
   CardGiftcard,
-  Business,
-  People,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../common/Logo';
@@ -103,11 +95,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       errors.phone = 'Please enter a valid phone number';
     }
 
-    // User type validation
-    if (!formData.userType) {
-      errors.userType = 'Please select a user type';
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -152,7 +139,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         userType: formData.userType,
       });
       onClose();
-    } catch (err) {
+    } catch {
       // Error is handled by the auth context
     }
   };
@@ -163,21 +150,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   const handleToggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword((prev) => !prev);
-  };
-
-  const handleUserTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      userType: event.target.value,
-    }));
-
-    // Clear field error when user makes selection
-    if (formErrors.userType) {
-      setFormErrors((prev) => ({
-        ...prev,
-        userType: '',
-      }));
-    }
   };
 
   return (
@@ -213,7 +185,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       <Box component='form' onSubmit={handleSubmit}>
         <Grid container spacing={2}>
           {/* First Name */}
-          <Grid item xs={6}>
+          <Grid size={6}>
             <TextField
               fullWidth
               name='firstName'
@@ -235,7 +207,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </Grid>
 
           {/* Last Name */}
-          <Grid item xs={6}>
+          <Grid size={6}>
             <TextField
               fullWidth
               name='lastName'
@@ -249,61 +221,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             />
           </Grid>
         </Grid>
-
-        {/* User Type Selection */}
-        <FormControl
-          component='fieldset'
-          sx={{ mt: 2, mb: 1 }}
-          error={!!formErrors.userType}
-        >
-          <FormLabel component='legend' sx={{ mb: 1, fontWeight: 600 }}>
-            What type of user are you?
-          </FormLabel>
-          <RadioGroup
-            row
-            value={formData.userType}
-            onChange={handleUserTypeChange}
-            sx={{ gap: 2 }}
-          >
-            <FormControlLabel
-              value='customer'
-              control={<Radio />}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <People fontSize='small' />
-                  <Box>
-                    <Typography variant='body2' fontWeight={500}>
-                      Customer
-                    </Typography>
-                    <Typography variant='caption' color='text.secondary'>
-                      Browse and buy products
-                    </Typography>
-                  </Box>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              value='store_owner'
-              control={<Radio />}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Business fontSize='small' />
-                  <Box>
-                    <Typography variant='body2' fontWeight={500}>
-                      Store Owner
-                    </Typography>
-                    <Typography variant='caption' color='text.secondary'>
-                      Sell your products
-                    </Typography>
-                  </Box>
-                </Box>
-              }
-            />
-          </RadioGroup>
-          {formErrors.userType && (
-            <FormHelperText>{formErrors.userType}</FormHelperText>
-          )}
-        </FormControl>
 
         {/* Email */}
         <TextField

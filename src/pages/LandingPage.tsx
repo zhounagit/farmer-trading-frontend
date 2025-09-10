@@ -1,41 +1,17 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Stack,
-  Grid,
-  Card,
-  Divider,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import { CheckCircle, Email } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { Box, Typography, Stack, Grid, Divider } from '@mui/material';
+import { Email } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import HeroSection from '../components/layout/HeroSection';
 import AuthModal from '../components/auth/AuthModal';
 import ApiTestButton from '../components/debug/ApiTestButton';
-import { useAuth } from '../contexts/AuthContext';
-
-const MotionBox = motion(Box);
-const MotionCard = motion(Card);
 
 export const LandingPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const theme = useTheme();
-
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   const handleLoginClick = () => {
     setAuthMode('login');
-    setAuthModalOpen(true);
-  };
-
-  const handleRegisterClick = () => {
-    setAuthMode('register');
     setAuthModalOpen(true);
   };
 
@@ -65,7 +41,7 @@ export const LandingPage: React.FC = () => {
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: { xs: 4, md: 6 } }}>
         <Box sx={{ width: '100%', px: { xs: 3, md: 4 } }}>
           <Grid container spacing={{ xs: 3, md: 4 }}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Heartwood-Redig
               </Typography>
@@ -81,7 +57,7 @@ export const LandingPage: React.FC = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Features
               </Typography>
@@ -101,7 +77,7 @@ export const LandingPage: React.FC = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Business Model
               </Typography>
@@ -118,7 +94,7 @@ export const LandingPage: React.FC = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Join Our Ecosystem
               </Typography>
@@ -126,20 +102,6 @@ export const LandingPage: React.FC = () => {
                 Start earning through our referral system and experience
                 sophisticated marketplace features.
               </Typography>
-              <Button
-                variant='outlined'
-                size='small'
-                sx={{
-                  borderColor: 'grey.600',
-                  color: 'grey.400',
-                  '&:hover': {
-                    borderColor: 'white',
-                    color: 'white',
-                  },
-                }}
-              >
-                Get Started
-              </Button>
             </Grid>
           </Grid>
 

@@ -5,8 +5,6 @@ export interface User {
   lastName: string;
   userType: string;
   phone?: string;
-  referralCode?: string;
-  hasStore?: boolean;
 }
 
 export interface LoginRequest {
@@ -65,6 +63,4 @@ export interface AuthContextType {
   refreshToken: () => Promise<void>;
   error: string | null;
   clearError: () => void;
-  updateReferralCode: (referralCode: string) => void;
-  updateStoreStatus: (hasStore: boolean) => void;
 }

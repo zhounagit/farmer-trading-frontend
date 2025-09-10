@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authApi, handleApiError, tokenUtils } from '../utils/api';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
+
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +60,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         firstName: data.firstName,
         lastName: data.lastName,
         userType: data.userType,
+        referralCode: data.referralCode,
+        hasStore: data.hasStore,
       };
 
       // Store token and user data
@@ -71,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       toast.success('Welcome back!');
     } catch (err) {
-      const errorMessage = handleApiError(err);
+      const errorMessage = handleApiError(err, 'login');
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -93,6 +96,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         firstName: data.firstName,
         lastName: data.lastName,
         userType: 'User', // Default user type
+        referralCode: responseData.referralCode,
+        hasStore: false,
       };
 
       // Store token and user data
@@ -102,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       toast.success('Account created successfully!');
     } catch (err) {
-      const errorMessage = handleApiError(err);
+      const errorMessage = handleApiError(err, 'general');
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -159,6 +164,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   };
 
+  const updateReferralCode = (referralCode: string) => {
+    if (user) {
+      const updatedUser = { ...user, referralCode };
+      setUser(updatedUser);
+      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+    }
+  };
+
+  const updateStoreStatus = (hasStore: boolean) => {
+    if (user) {
+      const updatedUser = { ...user, hasStore };
+      setUser(updatedUser);
+      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -169,6 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshToken,
     error,
     clearError,
+    updateReferralCode,
+    updateStoreStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

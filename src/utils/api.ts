@@ -28,6 +28,14 @@ export const API_ENDPOINTS = {
   USERS: '/api/users',
   PRODUCTS: '/api/products',
   ORDERS: '/api/orders',
+  REFERRAL: {
+    GENERATE: '/api/users/generate-referral-code',
+    INFO: '/api/users/referral-info',
+  },
+  STORE: {
+    CREATE: '/api/stores/create',
+    STATUS: '/api/stores/my-store',
+  },
 };
 
 // HTTP status codes
@@ -228,8 +236,8 @@ export const authApi = {
       console.error('❌ Registration Failed:', error);
       console.log('🔍 Error Details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
-        status: (error as any).status,
-        data: (error as any).data,
+        status: (error as unknown as { status?: number }).status,
+        data: (error as unknown as { data?: unknown }).data,
       });
       throw error;
     }
@@ -248,11 +256,159 @@ export const authApi = {
   },
 };
 
-// Error handler utility
-export const handleApiError = (error: unknown): string => {
+// Referral code API methods
+export const referralApi = {
+  generate: async () => {
+    return api.post(API_ENDPOINTS.REFERRAL.GENERATE);
+  },
+
+  getInfo: async () => {
+    return api.get(API_ENDPOINTS.REFERRAL.INFO);
+  },
+};
+
+// Store API methods
+export const storeApi = {
+  // Get all stores (public)
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.category) queryParams.append('category', params.category);
+
+    const query = queryParams.toString();
+    return api.get(`/api/stores${query ? `?${query}` : ''}`);
+  },
+
+  // Get current user's stores (requires auth)
+  getMyStores: async () => {
+    return api.get('/api/stores/my-stores');
+  },
+
+  // Create new store
+  create: async (storeData: {
+    storeName: string;
+    description?: string;
+    openHours: any; // StoreOpenHours
+    acceptedPaymentMethods: string[];
+    deliveryRadiusKm: number;
+    businessAddress?: any;
+    pickupAddress?: any;
+    farmgateAddress?: any;
+  }) => {
+    console.log('🔍 DEBUG: Store creation API call starting...');
+    console.log('📤 Store creation URL:', `${API_CONFIG.BASE_URL}/api/stores`);
+    console.log('📤 Store Data:', {
+      storeName: storeData.storeName,
+      description: storeData.description || 'Not provided',
+      deliveryRadiusKm: storeData.deliveryRadiusKm,
+      acceptedPaymentMethods: storeData.acceptedPaymentMethods,
+      openHours: storeData.openHours,
+    });
+
+    try {
+      const response = await api.post('/api/stores', storeData);
+      console.log('✅ Store creation success:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Store creation failed:', error);
+      throw error;
+    }
+  },
+
+  // Get store by ID
+  getById: async (storeId: number) => {
+    return api.get(`/api/stores/${storeId}`);
+  },
+
+  // Check if user can access store
+  checkAccess: async (storeId: number) => {
+    return api.get(`/api/stores/${storeId}/can-access`);
+  },
+
+  // Update store
+  update: async (storeId: number, storeData: any) => {
+    console.log('🔍 DEBUG: Store update API call starting...');
+    console.log(
+      '📤 Store update URL:',
+      `${API_CONFIG.BASE_URL}/api/stores/${storeId}`
+    );
+
+    try {
+      const response = await api.put(`/api/stores/${storeId}`, storeData);
+      console.log('✅ Store update success:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Store update failed:', error);
+      throw error;
+    }
+  },
+
+  // Delete store (admin only)
+  delete: async (storeId: number) => {
+    return api.delete(`/api/stores/${storeId}`);
+  },
+
+  // Upload store images
+  uploadLogo: async (storeId: number, logoFile: File) => {
+    const formData = new FormData();
+    formData.append('logo', logoFile);
+
+    return api.post(`/api/stores/${storeId}/upload-logo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  uploadBanner: async (storeId: number, bannerFile: File) => {
+    const formData = new FormData();
+    formData.append('banner', bannerFile);
+
+    return api.post(`/api/stores/${storeId}/upload-banner`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  uploadFeaturedImages: async (storeId: number, imageFiles: File[]) => {
+    const formData = new FormData();
+    imageFiles.forEach((file, index) => {
+      formData.append(`featuredImage${index}`, file);
+    });
+
+    return api.post(`/api/stores/${storeId}/upload-featured-images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+};
+
+// Error handler utility with context awareness
+export const handleApiError = (
+  error: unknown,
+  context?: 'login' | 'auth' | 'general'
+): string => {
   if (error instanceof ApiErrorClass) {
+    // First, try to use the specific error message from the API
+    if (error.message && error.message !== `HTTP ${error.status}`) {
+      return error.message;
+    }
+
+    // Fall back to context-aware messages based on status code
     switch (error.status) {
       case HTTP_STATUS.UNAUTHORIZED:
+        if (context === 'login') {
+          return 'Incorrect username or password. Please try again.';
+        }
         return 'Please log in to continue';
       case HTTP_STATUS.FORBIDDEN:
         return 'You do not have permission to perform this action';
