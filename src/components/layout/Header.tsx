@@ -25,7 +25,6 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../common/Logo';
-import StoreCreationModal from '../user/StoreCreationModal';
 
 interface HeaderProps {
   onLoginClick: () => void;
@@ -34,7 +33,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
   const { user, isAuthenticated, logout, updateStoreStatus } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [storeModalOpen, setStoreModalOpen] = useState(false);
+
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -63,12 +62,8 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
   const isMenuOpen = Boolean(anchorEl);
 
   const handleOpenStoreClick = () => {
-    setStoreModalOpen(true);
+    navigate('/open-shop');
     handleProfileMenuClose();
-  };
-
-  const handleStoreCreated = () => {
-    updateStoreStatus(true);
   };
 
   return (
@@ -231,6 +226,16 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   Dashboard
                 </MenuItem>
 
+                <MenuItem
+                  onClick={() => {
+                    navigate('/my-stores');
+                    handleProfileMenuClose();
+                  }}
+                >
+                  <Store sx={{ mr: 2 }} />
+                  My Stores
+                </MenuItem>
+
                 <MenuItem onClick={handleProfileMenuClose}>
                   <Settings sx={{ mr: 2 }} />
                   Settings
@@ -297,13 +302,6 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
           )}
         </Box>
       </Toolbar>
-
-      {/* Modals */}
-      <StoreCreationModal
-        open={storeModalOpen}
-        onClose={() => setStoreModalOpen(false)}
-        onStoreCreated={handleStoreCreated}
-      />
     </AppBar>
   );
 };

@@ -7,6 +7,11 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import HowItWorksPage from './pages/HowItWorksPage';
+import StoreManagementPage from './pages/user/StoreManagementPage';
+import OpenShopPage from './pages/shop/OpenShopPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import UserDashboard from './pages/user/UserDashboard';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -110,6 +115,27 @@ function App() {
               <Routes>
                 <Route path='/' element={<LandingPage />} />
                 <Route path='/how-it-works' element={<HowItWorksPage />} />
+                <Route path='/login' element={<LoginPage />} />
+                <Route path='/register' element={<RegisterPage />} />
+                <Route path='/dashboard' element={<UserDashboard />} />
+                <Route path='/open-shop' element={<OpenShopPage />} />
+                <Route path='/my-stores' element={<StoreManagementPage />} />
+                <Route
+                  path='/stores/:storeId/dashboard'
+                  element={<StoreManagementPage />}
+                />
+                <Route
+                  path='/stores/:storeId/products'
+                  element={<StoreManagementPage />}
+                />
+                <Route
+                  path='/stores/:storeId/edit'
+                  element={<StoreManagementPage />}
+                />
+                <Route
+                  path='/stores/:storeId/settings'
+                  element={<StoreManagementPage />}
+                />
               </Routes>
 
               {/* Toast notifications */}

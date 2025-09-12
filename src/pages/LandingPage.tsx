@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { Box, Typography, Stack, Grid, Divider } from '@mui/material';
+import {
+  Box,
+  Container,
+  Typography,
+  Stack,
+  Grid,
+  Divider,
+  Button,
+} from '@mui/material';
 import { Email } from '@mui/icons-material';
 import Header from '../components/layout/Header';
 import HeroSection from '../components/layout/HeroSection';
 import AuthModal from '../components/auth/AuthModal';
-import ApiTestButton from '../components/debug/ApiTestButton';
 
 export const LandingPage: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -15,10 +22,18 @@ export const LandingPage: React.FC = () => {
     setAuthModalOpen(true);
   };
 
-  const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    // TODO: Implement search functionality - navigate to search results page
-    // This will show stores that have the searched category of items
+  const handleRegisterClick = () => {
+    setAuthMode('register');
+    setAuthModalOpen(true);
+  };
+
+  const handleGetStarted = () => {
+    handleRegisterClick();
+  };
+
+  const handleLearnMore = () => {
+    // Navigate to How It Works page
+    window.location.href = '/how-it-works';
   };
 
   const handleCloseAuthModal = () => {
@@ -32,76 +47,91 @@ export const LandingPage: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Header onLoginClick={handleLoginClick} />
+      <Header
+        onLoginClick={handleLoginClick}
+        onRegisterClick={handleRegisterClick}
+      />
 
       {/* Hero Section */}
-      <HeroSection onSearch={handleSearch} />
+      <HeroSection
+        onGetStarted={handleGetStarted}
+        onLearnMore={handleLearnMore}
+      />
 
       {/* Footer */}
-      <Box sx={{ bgcolor: 'grey.900', color: 'white', py: { xs: 4, md: 6 } }}>
-        <Box sx={{ width: '100%', px: { xs: 3, md: 4 } }}>
-          <Grid container spacing={{ xs: 3, md: 4 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
+      <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 6 }}>
+        <Container maxWidth='lg'>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Heartwood-Redig
+                Farm Connect
               </Typography>
               <Typography variant='body2' color='grey.400' sx={{ mb: 2 }}>
-                Sophisticated B2C marketplace with multi-store operations, price
-                negotiation, and referral rewards system.
+                Connecting farmers and consumers for a more sustainable future.
               </Typography>
               <Stack direction='row' spacing={1}>
                 <Email sx={{ fontSize: '1.2rem' }} />
                 <Typography variant='body2' color='grey.400'>
-                  hello@heartwood-redig.com
+                  hello@farmconnect.com
                 </Typography>
               </Stack>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid item xs={12} sm={6} md={2}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Features
+                Platform
               </Typography>
               <Stack spacing={1}>
                 <Typography variant='body2' color='grey.400'>
-                  Multi-Store Marketplace
+                  For Farmers
                 </Typography>
                 <Typography variant='body2' color='grey.400'>
-                  Price Negotiation
+                  For Consumers
                 </Typography>
                 <Typography variant='body2' color='grey.400'>
-                  Referral Rewards
-                </Typography>
-                <Typography variant='body2' color='grey.400'>
-                  Flexible Fulfillment
+                  Pricing
                 </Typography>
               </Stack>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid item xs={12} sm={6} md={2}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Business Model
+                Company
               </Typography>
               <Stack spacing={1}>
                 <Typography variant='body2' color='grey.400'>
-                  Commission System
+                  About Us
                 </Typography>
                 <Typography variant='body2' color='grey.400'>
-                  Store Tier Benefits
+                  Blog
                 </Typography>
                 <Typography variant='body2' color='grey.400'>
-                  Payout Management
+                  Careers
                 </Typography>
               </Stack>
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid item xs={12} md={4}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Join Our Ecosystem
+                Get Updates
               </Typography>
               <Typography variant='body2' color='grey.400' sx={{ mb: 2 }}>
-                Start earning through our referral system and experience
-                sophisticated marketplace features.
+                Subscribe to our newsletter for the latest updates and features.
               </Typography>
+              <Button
+                variant='outlined'
+                size='small'
+                sx={{
+                  borderColor: 'grey.600',
+                  color: 'grey.400',
+                  '&:hover': {
+                    borderColor: 'white',
+                    color: 'white',
+                  },
+                }}
+              >
+                Subscribe
+              </Button>
             </Grid>
           </Grid>
 
@@ -114,7 +144,7 @@ export const LandingPage: React.FC = () => {
             spacing={2}
           >
             <Typography variant='body2' color='grey.500'>
-              © 2025 Heartwood-Redig. All rights reserved.
+              © 2025 Farm Connect. All rights reserved.
             </Typography>
             <Stack direction='row' spacing={3}>
               <Typography variant='body2' color='grey.500'>
@@ -125,7 +155,7 @@ export const LandingPage: React.FC = () => {
               </Typography>
             </Stack>
           </Stack>
-        </Box>
+        </Container>
       </Box>
 
       {/* Auth Modal */}
@@ -135,9 +165,6 @@ export const LandingPage: React.FC = () => {
         mode={authMode}
         onSwitchMode={handleSwitchAuthMode}
       />
-
-      {/* API Debug Component (only in development) */}
-      <ApiTestButton />
     </Box>
   );
 };

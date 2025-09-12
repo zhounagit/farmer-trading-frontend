@@ -33,8 +33,13 @@ export const API_ENDPOINTS = {
     INFO: '/api/users/referral-info',
   },
   STORE: {
-    CREATE: '/api/stores/create',
-    STATUS: '/api/stores/my-store',
+    CREATE: '/api/stores',
+    MY_STORES: '/api/stores/my-stores',
+    BY_ID: '/api/stores',
+    ALL: '/api/stores',
+    DELETE: '/api/stores',
+    UPDATE: '/api/stores',
+    ACCESS_CHECK: '/api/stores',
   },
 };
 
@@ -293,24 +298,15 @@ export const storeApi = {
 
   // Create new store
   create: async (storeData: {
-    storeName: string;
-    description?: string;
-    openHours: any; // StoreOpenHours
-    acceptedPaymentMethods: string[];
-    deliveryRadiusKm: number;
-    businessAddress?: any;
-    pickupAddress?: any;
-    farmgateAddress?: any;
+    StoreName: string;
+    Description?: string;
+    OpenHours: string; // JSON string for JSONB column
+    AcceptedPaymentMethods: string[];
+    DeliveryRadiusKm: number;
   }) => {
     console.log('🔍 DEBUG: Store creation API call starting...');
     console.log('📤 Store creation URL:', `${API_CONFIG.BASE_URL}/api/stores`);
-    console.log('📤 Store Data:', {
-      storeName: storeData.storeName,
-      description: storeData.description || 'Not provided',
-      deliveryRadiusKm: storeData.deliveryRadiusKm,
-      acceptedPaymentMethods: storeData.acceptedPaymentMethods,
-      openHours: storeData.openHours,
-    });
+    console.log('📤 Store Data:', JSON.stringify(storeData, null, 2));
 
     try {
       const response = await api.post('/api/stores', storeData);
@@ -318,6 +314,18 @@ export const storeApi = {
       return response;
     } catch (error) {
       console.error('❌ Store creation failed:', error);
+      console.error(
+        '❌ Error details:',
+        JSON.stringify(
+          {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            status: (error as any)?.status,
+            data: (error as any)?.data,
+          },
+          null,
+          2
+        )
+      );
       throw error;
     }
   },
@@ -333,12 +341,13 @@ export const storeApi = {
   },
 
   // Update store
-  update: async (storeId: number, storeData: any) => {
+  update: async (storeId: number, storeData: Record<string, unknown>) => {
     console.log('🔍 DEBUG: Store update API call starting...');
     console.log(
       '📤 Store update URL:',
       `${API_CONFIG.BASE_URL}/api/stores/${storeId}`
     );
+    console.log('📤 Update Data:', JSON.stringify(storeData, null, 2));
 
     try {
       const response = await api.put(`/api/stores/${storeId}`, storeData);
@@ -346,6 +355,18 @@ export const storeApi = {
       return response;
     } catch (error) {
       console.error('❌ Store update failed:', error);
+      console.error(
+        '❌ Error details:',
+        JSON.stringify(
+          {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            status: (error as any)?.status,
+            data: (error as any)?.data,
+          },
+          null,
+          2
+        )
+      );
       throw error;
     }
   },

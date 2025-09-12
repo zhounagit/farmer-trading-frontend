@@ -28,10 +28,16 @@ const storedApiUrl = localStorage.getItem('TEMP_API_BASE_URL');
 const API_BASE_URL =
   storedApiUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5008';
 
+// Debug logging for API configuration
+console.log('=== API CONFIGURATION ===');
+console.log('Stored API URL:', storedApiUrl);
+console.log('Environment API URL:', import.meta.env.VITE_API_BASE_URL);
+console.log('Final API_BASE_URL:', API_BASE_URL);
+
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds for debugging
   headers: {
     'Content-Type': 'application/json',
   },
@@ -144,8 +150,33 @@ export const apiService = {
 
   // POST request
   post: async <T>(url: string, data?: any): Promise<T> => {
-    const response = await api.post(url, data);
-    return response.data;
+    console.log('=== API SERVICE POST ===');
+    console.log('URL:', url);
+    console.log('Data:', data);
+    console.log('Request start time:', new Date().toISOString());
+
+    try {
+      const response = await api.post(url, data);
+      console.log('=== API SERVICE SUCCESS ===');
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      console.log('Response data:', response.data);
+      console.log('Request end time:', new Date().toISOString());
+      return response.data;
+    } catch (error: any) {
+      console.error('=== API SERVICE ERROR ===');
+      console.error('Error in apiService.post:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error code:', error?.code);
+      console.error('Has response:', !!error?.response);
+      if (error?.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        console.error('Response headers:', error.response.headers);
+      }
+      console.error('Request failed time:', new Date().toISOString());
+      throw error;
+    }
   },
 
   // PUT request
