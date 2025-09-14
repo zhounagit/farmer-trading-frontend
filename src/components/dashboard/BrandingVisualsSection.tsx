@@ -1,9 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Box,
   Paper,
   Typography,
-  Grid,
   Card,
   CardContent,
   CardMedia,
@@ -19,7 +18,6 @@ import {
   ImageList,
   ImageListItem,
   ImageListItemBar,
-  Fade,
   Tooltip,
 } from '@mui/material';
 import {
@@ -31,21 +29,34 @@ import {
   Image,
   Collections,
   Visibility,
-  VisibilityOff,
   Close,
   CheckCircle,
   Warning,
   Store,
+  Palette,
 } from '@mui/icons-material';
-import { LoadingButton } from '@mui/lab';
+
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../services/open-shop.api';
+import StoreApiService, { type StoreImage } from '../../services/store.api';
 import { useAuth } from '../../contexts/AuthContext';
+import { handleAuthError, isAuthError } from '../../utils/authErrorHandler';
+
+// Import types for store submission
+interface StoreSubmissionRequest {
+  storeId: number;
+  agreedToTermsAt: string;
+  termsVersion: string;
+  submissionNotes?: string;
+}
 
 interface BrandingData {
   logoUrl?: string;
+  logoImage?: StoreImage;
   bannerUrl?: string;
-  galleryImages?: string[];
+  bannerImage?: StoreImage;
+  galleryImages?: StoreImage[];
   lastUpdated?: string;
 }
 
@@ -53,6 +64,7 @@ interface BrandingVisualsSectionProps {
   storeId?: number;
   initialData?: BrandingData;
   onUpdate?: (data: BrandingData) => void;
+  onError?: (error: unknown) => void;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -62,13 +74,16 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
   storeId,
   initialData = {},
   onUpdate,
+  onError,
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [brandingData, setBrandingData] = useState<BrandingData>(initialData);
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
   }>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewDialog, setPreviewDialog] = useState<{
     open: boolean;
     imageUrl?: string;
@@ -85,6 +100,62 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to build proper image URLs
+  const buildImageUrl = (filePath: string): string => {
+    const baseUrl = 'https://localhost:7008';
+    const normalizedPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+    return `${baseUrl}${normalizedPath}`;
+  };
+
+  // Load existing images when component mounts
+  useEffect(() => {
+    const loadExistingImages = async () => {
+      if (!storeId) return;
+
+      try {
+        console.log('🖼️ Loading existing store images for store:', storeId);
+        const images = await StoreApiService.getStoreImages(storeId);
+
+        const logoImage = images.find((img) => img.imageType === 'logo');
+        const bannerImage = images.find((img) => img.imageType === 'banner');
+        const galleryImages = images.filter(
+          (img) => img.imageType === 'gallery'
+        );
+
+        const updatedBrandingData: BrandingData = {
+          logoUrl: logoImage ? buildImageUrl(logoImage.filePath) : undefined,
+          logoImage: logoImage,
+          bannerUrl: bannerImage
+            ? buildImageUrl(bannerImage.filePath)
+            : undefined,
+          bannerImage: bannerImage,
+          galleryImages: galleryImages,
+          lastUpdated: new Date().toISOString(),
+        };
+
+        setBrandingData(updatedBrandingData);
+        onUpdate?.(updatedBrandingData);
+
+        console.log('✅ Store images loaded successfully:', {
+          logo: !!logoImage,
+          banner: !!bannerImage,
+          galleryCount: galleryImages.length,
+        });
+        console.log('🖼️ Image URLs generated:', {
+          logoUrl: updatedBrandingData.logoUrl,
+          bannerUrl: updatedBrandingData.bannerUrl,
+          galleryImages: updatedBrandingData.galleryImages,
+        });
+      } catch (error) {
+        console.error('❌ Failed to load existing images:', error);
+        onError?.(error);
+        // Don't show error toast for missing images as it's expected for new stores
+      }
+    };
+
+    loadExistingImages();
+  }, [storeId, onUpdate, onError]);
+
   const validateFile = useCallback((file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
       return 'File size must be less than 5MB';
@@ -99,8 +170,53 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
     event: React.ChangeEvent<HTMLInputElement>,
     type: 'logo' | 'banner' | 'gallery'
   ) => {
+    console.log('🚀 === UPLOAD STARTED ===');
+    console.log('Upload type:', type);
+    console.log('Event target:', event.target);
+    console.log('Files selected:', event.target.files?.length || 0);
+
     const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      console.log('❌ No files selected, returning early');
+      return;
+    }
+
+    console.log(
+      '📁 Files to process:',
+      files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
+    );
+
+    // Check authentication state before attempting upload
+    const token = localStorage.getItem('heartwood_access_token');
+    const refreshToken = localStorage.getItem('heartwood_refresh_token');
+
+    console.log('🔐 === AUTHENTICATION CHECK ===');
+    console.log('Access Token exists:', !!token);
+    console.log('Refresh Token exists:', !!refreshToken);
+    console.log('User authenticated:', !!user);
+    console.log('Store ID:', storeId);
+
+    // If user context shows authenticated but no tokens, this is likely a development scenario
+    if (!token && !refreshToken && !user) {
+      console.log('❌ No authentication tokens found and no user context');
+      toast.error('Please log in to upload images');
+      handleAuthError(new Error('No authentication token'), navigate);
+      return;
+    }
+
+    // Warning for missing tokens but authenticated user (common in development)
+    if (!token && !refreshToken && user) {
+      console.log(
+        '⚠️ User authenticated but tokens missing - proceeding anyway'
+      );
+      toast.error(
+        'Authentication tokens missing! Use the "Auth Debug" tab in the dashboard to set authentication tokens.',
+        {
+          duration: 5000,
+        }
+      );
+      return;
+    }
 
     const validFiles: File[] = [];
 
@@ -126,95 +242,170 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
       }
     }
 
+    console.log('✅ Validation passed, starting upload process');
     setIsUploading(true);
 
     try {
       if (!storeId) {
+        console.log('❌ Store ID missing:', storeId);
         toast.error('Store ID is required for upload');
         return;
       }
+
+      console.log('📤 Starting API upload for', validFiles.length, 'files');
 
       // Upload files using real API service
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
         const progressKey = `${type}_${i}`;
 
+        console.log(`📁 Processing file ${i + 1}/${validFiles.length}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploadType: type,
+          storeId: storeId,
+          progressKey: progressKey,
+        });
+
         try {
-          let result;
-
           switch (type) {
-            case 'logo':
-              result = await OpenShopApiService.uploadLogo(
+            case 'logo': {
+              console.log('🎨 Calling OpenShopApiService.uploadLogo...');
+              console.log('Parameters:', {
+                storeId,
+                fileName: file.name,
+                fileSize: file.size,
+              });
+
+              const result = await OpenShopApiService.uploadLogo(
                 storeId,
                 file,
-                (progress) =>
+                (progress) => {
+                  console.log(`📊 Upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
-                  }))
+                  }));
+                }
               );
+
+              console.log('✅ Logo upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
-                logoUrl: result.logoUrl,
+                logoUrl: result.filePath,
+                logoImage: result,
                 lastUpdated: new Date().toISOString(),
               }));
               break;
+            }
 
-            case 'banner':
-              result = await OpenShopApiService.uploadBanner(
+            case 'banner': {
+              console.log('🖼️ Calling OpenShopApiService.uploadBanner...');
+              const result = await OpenShopApiService.uploadBanner(
                 storeId,
                 file,
-                (progress) =>
+                (progress) => {
+                  console.log(`📊 Banner upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
-                  }))
+                  }));
+                }
               );
+              console.log('✅ Banner upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
-                bannerUrl: result.bannerUrl,
+                bannerUrl: result.filePath,
+                bannerImage: result,
                 lastUpdated: new Date().toISOString(),
               }));
               break;
+            }
 
-            case 'gallery':
-              result = await OpenShopApiService.uploadGalleryImages(
+            case 'gallery': {
+              console.log(
+                '🖼️ Calling OpenShopApiService.uploadGalleryImages...'
+              );
+              const result = await OpenShopApiService.uploadGalleryImages(
                 storeId,
                 [file],
-                (progress) =>
+                (progress) => {
+                  console.log(`📊 Gallery upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
-                  }))
+                  }));
+                }
               );
+              console.log('✅ Gallery upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
-                galleryImages: [
-                  ...(prev.galleryImages || []),
-                  ...result.imageUrls,
-                ],
+                galleryImages: [...(prev.galleryImages || []), ...result],
                 lastUpdated: new Date().toISOString(),
               }));
               break;
+            }
           }
-        } catch (uploadError: any) {
+        } catch (uploadError: unknown) {
+          console.error('❌ === UPLOAD ERROR ===');
           console.error(`${type} upload error:`, uploadError);
-          toast.error(
-            `Failed to upload ${type}: ${uploadError.message || 'Unknown error'}`
-          );
+          console.error('Error type:', typeof uploadError);
+          console.error('Error constructor:', uploadError?.constructor?.name);
+
+          if (uploadError instanceof Error) {
+            console.error('Error message:', uploadError.message);
+            console.error('Error stack:', uploadError.stack);
+          }
+
+          // Handle authentication errors specially
+          if (isAuthError(uploadError)) {
+            console.log('🔐 Authentication error detected, handling...');
+            onError?.(uploadError);
+            handleAuthError(uploadError, navigate);
+            return; // Stop the upload process
+          }
+
+          const errorMessage =
+            uploadError instanceof Error
+              ? uploadError.message
+              : 'Unknown error';
+          toast.error(`Failed to upload ${type}: ${errorMessage}`);
           continue;
         }
       }
 
+      console.log('🎉 All uploads completed successfully');
       setUploadProgress({});
       toast.success(`${type} uploaded successfully!`);
 
       // Notify parent component of updates
       onUpdate?.(brandingData);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('❌ === GENERAL UPLOAD ERROR ===');
       console.error('Upload error:', error);
-      toast.error(error.message || 'Upload failed. Please try again.');
+      console.error('Error type:', typeof error);
+
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+
+      // Handle authentication errors specially
+      if (isAuthError(error)) {
+        console.log('🔐 General authentication error, handling...');
+        onError?.(error);
+        handleAuthError(error, navigate);
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Upload failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
+      console.log('🔚 Upload process finished, cleaning up...');
       setIsUploading(false);
       // Clear the input
       if (event.target) {
@@ -235,18 +426,51 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
     try {
       setIsUploading(true);
 
-      // Note: In a real implementation, you would call delete APIs here
-      // For now, we'll just remove from local state as the APIs might not support deletion
+      let imageId: number | undefined;
 
+      // Get the image ID to delete
+      switch (type) {
+        case 'logo':
+          if (brandingData.logoImage) {
+            imageId = brandingData.logoImage.imageId;
+          }
+          break;
+        case 'banner':
+          if (brandingData.bannerImage) {
+            imageId = brandingData.bannerImage.imageId;
+          }
+          break;
+        case 'gallery':
+          if (
+            typeof index === 'number' &&
+            brandingData.galleryImages?.[index]
+          ) {
+            imageId = brandingData.galleryImages[index].imageId;
+          }
+          break;
+      }
+
+      if (!imageId) {
+        toast.error('Image ID not found for deletion');
+        return;
+      }
+
+      // Delete from backend
+      console.log(`🗑️ Deleting ${type} image with ID: ${imageId}`);
+      await StoreApiService.deleteStoreImage(storeId, imageId);
+
+      // Update local state only after successful backend deletion
       setBrandingData((prev) => {
         const newData = { ...prev };
 
         switch (type) {
           case 'logo':
             delete newData.logoUrl;
+            delete newData.logoImage;
             break;
           case 'banner':
             delete newData.bannerUrl;
+            delete newData.bannerImage;
             break;
           case 'gallery':
             if (typeof index === 'number' && newData.galleryImages) {
@@ -264,11 +488,21 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
 
       setDeleteDialog({ open: false });
       toast.success(`${type} removed successfully`);
-    } catch (error: any) {
+
+      console.log('✅ Image deleted successfully from both backend and UI');
+    } catch (error: unknown) {
       console.error('Delete error:', error);
-      toast.error(
-        `Failed to remove ${type}: ${error.message || 'Unknown error'}`
-      );
+
+      // Handle authentication errors specially
+      if (isAuthError(error)) {
+        onError?.(error);
+        handleAuthError(error, navigate);
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to remove ${type}: ${errorMessage}`);
     } finally {
       setIsUploading(false);
     }
@@ -286,12 +520,66 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
     setDeleteDialog({ open: true, type, imageUrl, index });
   };
 
+  const handleCompleteStoreSetup = async () => {
+    if (!storeId) {
+      toast.error('Store ID is required');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      console.log('=== COMPLETING STORE SETUP FROM DASHBOARD ===');
+      console.log('Store ID:', storeId);
+      console.log('Branding Data:', brandingData);
+
+      // Prepare submission request
+      const submissionRequest: StoreSubmissionRequest = {
+        storeId: storeId,
+        agreedToTermsAt: new Date().toISOString(),
+        termsVersion: '1.0.0',
+        submissionNotes:
+          'Store setup completed from dashboard - branding section',
+      };
+
+      // Submit store for review
+      const response =
+        await OpenShopApiService.submitStoreForReview(submissionRequest);
+
+      console.log('✅ Store submission completed:', response);
+      toast.success('Store submitted for review successfully!');
+
+      // Navigate to success or dashboard overview
+      setTimeout(() => {
+        navigate('/dashboard');
+        window.location.reload(); // Refresh to show updated status
+      }, 2000);
+    } catch (error: unknown) {
+      console.error('❌ Store submission failed:', error);
+
+      // Handle authentication errors
+      if (isAuthError(error)) {
+        onError?.(error);
+        handleAuthError(error, navigate);
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to submit store for review';
+
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderUploadCard = (
     type: 'logo' | 'banner' | 'gallery',
     title: string,
     description: string,
     icon: React.ReactNode,
-    inputRef: React.RefObject<HTMLInputElement>,
+    inputRef: React.RefObject<HTMLInputElement | null>,
     currentImage?: string,
     recommendations?: string[]
   ) => (
@@ -325,6 +613,13 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
               height={type === 'banner' ? 120 : 200}
               image={currentImage}
               alt={title}
+              onLoad={() =>
+                console.log(`✅ Image loaded successfully: ${currentImage}`)
+              }
+              onError={(e) => {
+                console.error(`❌ Image failed to load: ${currentImage}`, e);
+                console.error(`Error details:`, e.currentTarget);
+              }}
               sx={{
                 borderRadius: 2,
                 objectFit: 'cover',
@@ -468,6 +763,25 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             Create Your Store
           </Button>
         </Paper>
+
+        {/* Debug Info for Development */}
+        {process.env.NODE_ENV === 'development' && (
+          <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.100' }}>
+            <Typography variant='caption' color='text.secondary'>
+              Debug: Store ID: {storeId}, User: {user?.email || 'Not logged in'}
+              <br />
+              Access Token:{' '}
+              {localStorage.getItem('heartwood_access_token')
+                ? 'Present'
+                : 'Missing'}
+              <br />
+              Refresh Token:{' '}
+              {localStorage.getItem('heartwood_refresh_token')
+                ? 'Present'
+                : 'Missing'}
+            </Typography>
+          </Paper>
+        )}
       </Box>
     );
   }
@@ -493,9 +807,43 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
         )}
       </Box>
 
-      <Grid container spacing={3}>
+      {/* Debug info for development */}
+      {import.meta.env.DEV && (
+        <Alert severity='info' sx={{ mb: 3 }}>
+          <Typography variant='body2' component='div'>
+            <strong>Debug Info:</strong>
+            <br />
+            Logo URL: {brandingData.logoUrl || 'None'}
+            <br />
+            Banner URL: {brandingData.bannerUrl || 'None'}
+            <br />
+            Gallery Images: {brandingData.galleryImages?.length || 0}
+            <br />
+            Store ID: {storeId}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Authentication Warning */}
+      {!localStorage.getItem('heartwood_access_token') && (
+        <Alert severity='warning' sx={{ mb: 3 }}>
+          <Typography variant='body2'>
+            <strong>Upload Disabled:</strong> Authentication tokens missing. Use
+            the "Auth Debug" tab in the dashboard to set authentication tokens.
+          </Typography>
+        </Alert>
+      )}
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 3,
+          mb: 4,
+        }}
+      >
         {/* Logo Section */}
-        <Grid item xs={12} md={4}>
+        <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
           {renderUploadCard(
             'logo',
             'Store Logo',
@@ -505,15 +853,15 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             brandingData.logoUrl,
             [
               'Square aspect ratio (1:1)',
-              'Minimum 200x200px',
-              'Clear, simple design',
+              'Clear and simple design',
+              'High contrast colors',
               'Works well at small sizes',
             ]
           )}
-        </Grid>
+        </Box>
 
         {/* Banner Section */}
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: '2 1 500px', minWidth: '300px' }}>
           {renderUploadCard(
             'banner',
             'Store Banner',
@@ -523,150 +871,168 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             brandingData.bannerUrl,
             [
               'Wide aspect ratio (16:9 or 3:1)',
-              'Minimum 1200x400px',
-              'High quality, engaging image',
-              'Represents your farm/products',
+              'High-quality imagery',
+              'Showcases your farm/products',
+              'Represents your brand well',
             ]
           )}
-        </Grid>
+        </Box>
+      </Box>
 
-        {/* Gallery Section */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mb: 3,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Collections
-                    sx={{ fontSize: 32, color: 'primary.main', mr: 2 }}
-                  />
-                  <Box>
-                    <Typography variant='h6' gutterBottom>
-                      Gallery Images
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Showcase your products and farm (up to 6 images)
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Chip
-                    label={`${brandingData.galleryImages?.length || 0}/6`}
-                    variant='outlined'
-                    color={
-                      brandingData.galleryImages?.length ? 'primary' : 'default'
-                    }
-                  />
-                  <Button
-                    variant='outlined'
-                    startIcon={<Add />}
-                    onClick={() => galleryInputRef.current?.click()}
-                    disabled={
-                      isUploading ||
-                      (brandingData.galleryImages?.length || 0) >= 6
-                    }
-                  >
-                    Add Images
-                  </Button>
+      {/* Gallery Section */}
+      <Box sx={{ mb: 4 }}>
+        <Card>
+          <CardContent sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 3,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Collections
+                  sx={{ fontSize: 32, color: 'primary.main', mr: 2 }}
+                />
+                <Box>
+                  <Typography variant='h6' gutterBottom>
+                    Gallery Images
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    Showcase your products and farm (up to 6 images)
+                  </Typography>
                 </Box>
               </Box>
-
-              {brandingData.galleryImages &&
-              brandingData.galleryImages.length > 0 ? (
-                <ImageList cols={3} gap={16} sx={{ mb: 0 }}>
-                  {brandingData.galleryImages.map((image, index) => (
-                    <ImageListItem key={index}>
-                      <img
-                        src={image}
-                        alt={`Gallery image ${index + 1}`}
-                        loading='lazy'
-                        style={{
-                          height: 200,
-                          objectFit: 'cover',
-                          borderRadius: 8,
-                          cursor: 'pointer',
-                        }}
-                        onClick={() =>
-                          openPreview(image, `Gallery Image ${index + 1}`)
-                        }
-                      />
-                      <ImageListItemBar
-                        sx={{
-                          background:
-                            'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
-                          borderRadius: '8px 8px 0 0',
-                        }}
-                        position='top'
-                        actionIcon={
-                          <IconButton
-                            sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDeleteDialog('gallery', image, index);
-                            }}
-                          >
-                            <Delete />
-                          </IconButton>
-                        }
-                        actionPosition='right'
-                      />
-                    </ImageListItem>
-                  ))}
-                </ImageList>
-              ) : (
-                <Box
-                  sx={{
-                    border: '2px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    p: 6,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      bgcolor: 'action.hover',
-                    },
-                  }}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Chip
+                  label={`${brandingData.galleryImages?.length || 0}/6`}
+                  variant='outlined'
+                  color={
+                    brandingData.galleryImages?.length ? 'primary' : 'default'
+                  }
+                />
+                <Button
+                  variant='outlined'
+                  startIcon={<Add />}
                   onClick={() => galleryInputRef.current?.click()}
+                  disabled={
+                    isUploading ||
+                    (brandingData.galleryImages?.length || 0) >= 6
+                  }
                 >
-                  <Collections
-                    sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
-                  />
-                  <Typography variant='h6' gutterBottom>
-                    No gallery images yet
-                  </Typography>
-                  <Typography
-                    variant='body2'
-                    color='text.secondary'
-                    sx={{ mb: 2 }}
-                  >
-                    Upload images to showcase your products and farm
-                  </Typography>
-                  <Button variant='outlined' startIcon={<CloudUpload />}>
-                    Choose Images
-                  </Button>
-                </Box>
-              )}
+                  Add Images
+                </Button>
+              </Box>
+            </Box>
 
-              <input
-                ref={galleryInputRef}
-                type='file'
-                accept='image/*'
-                multiple
-                style={{ display: 'none' }}
-                onChange={(e) => handleFileSelect(e, 'gallery')}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            {brandingData.galleryImages &&
+            brandingData.galleryImages.length > 0 ? (
+              <ImageList cols={3} gap={16} sx={{ mb: 0 }}>
+                {brandingData.galleryImages.map((image, index) => (
+                  <ImageListItem key={index}>
+                    <img
+                      src={buildImageUrl(image.filePath)}
+                      alt={`Gallery image ${index + 1}`}
+                      loading='lazy'
+                      onLoad={() =>
+                        console.log(
+                          `✅ Gallery image loaded: ${buildImageUrl(image.filePath)}`
+                        )
+                      }
+                      onError={(e) => {
+                        console.error(
+                          `❌ Gallery image failed to load: ${buildImageUrl(image.filePath)}`,
+                          e
+                        );
+                      }}
+                      style={{
+                        height: 200,
+                        objectFit: 'cover',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() =>
+                        openPreview(
+                          buildImageUrl(image.filePath),
+                          `Gallery Image ${index + 1}`
+                        )
+                      }
+                    />
+                    <ImageListItemBar
+                      sx={{
+                        background:
+                          'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+                        borderRadius: '8px 8px 0 0',
+                      }}
+                      position='top'
+                      actionIcon={
+                        <IconButton
+                          sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(
+                              'gallery',
+                              buildImageUrl(image.filePath),
+                              index
+                            );
+                          }}
+                        >
+                          <Delete />
+                        </IconButton>
+                      }
+                      actionPosition='right'
+                    />
+                  </ImageListItem>
+                ))}
+              </ImageList>
+            ) : (
+              <Box
+                sx={{
+                  border: '2px dashed',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  p: 6,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'action.hover',
+                  },
+                }}
+                onClick={() => galleryInputRef.current?.click()}
+              >
+                <Collections
+                  sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
+                />
+                <Typography variant='h6' gutterBottom>
+                  No gallery images yet
+                </Typography>
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mb: 2 }}
+                >
+                  Upload images to showcase your products and farm
+                </Typography>
+                <Button variant='outlined' startIcon={<CloudUpload />}>
+                  Choose Images
+                </Button>
+              </Box>
+            )}
+
+            <input
+              ref={galleryInputRef}
+              type='file'
+              accept='image/*'
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => handleFileSelect(e, 'gallery')}
+            />
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Preview Dialog */}
       <Dialog
@@ -756,8 +1122,14 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
         >
           💡 Branding Tips
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+          }}
+        >
+          <Box sx={{ flex: 1 }}>
             <Typography variant='body2' fontWeight={600} gutterBottom>
               Logo Best Practices:
             </Typography>
@@ -765,35 +1137,139 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
               Keep it simple, memorable, and scalable. Your logo should work
               well at all sizes.
             </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </Box>
+          <Box sx={{ flex: 1 }}>
             <Typography variant='body2' fontWeight={600} gutterBottom>
               Banner Guidelines:
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Use high-quality images that tell your story and showcase your
-              products or farm.
+              Use high-quality images that represent your brand and create a
+              welcoming impression.
             </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </Box>
+          <Box sx={{ flex: 1 }}>
             <Typography variant='body2' fontWeight={600} gutterBottom>
               Gallery Strategy:
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Mix product shots, behind-the-scenes farm photos, and lifestyle
-              images.
+              Show your products, farm, and process. Tell your story through
+              compelling visuals.
             </Typography>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Debug Info for Development */}
         {process.env.NODE_ENV === 'development' && (
           <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
             <Typography variant='caption' color='text.secondary'>
-              Debug: Store ID: {storeId}, User: {user?.email}
+              Debug: Store ID: {storeId}, User: {user?.email || 'Not logged in'}
+              <br />
+              Access Token:{' '}
+              {localStorage.getItem('heartwood_access_token')
+                ? 'Present'
+                : 'Missing'}
+              <br />
+              Refresh Token:{' '}
+              {localStorage.getItem('heartwood_refresh_token')
+                ? 'Present'
+                : 'Missing'}
             </Typography>
+
+            {/* Debug Info - Development Only */}
+            {import.meta.env.NODE_ENV === 'development' && (
+              <Box
+                sx={{
+                  mt: 3,
+                  p: 2,
+                  bgcolor: 'info.50',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'info.200',
+                }}
+              >
+                <Typography variant='body2' color='info.main' gutterBottom>
+                  <strong>Development Mode:</strong> Need authentication tokens
+                  or debugging tools?
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Visit the <strong>"Auth Debug"</strong> tab in the dashboard
+                  for:
+                  <br />
+                  • Set mock authentication tokens
+                  <br />
+                  • Test API connections
+                  <br />
+                  • Debug authentication state
+                  <br />• Network troubleshooting tools
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
+
+        {/* Review & Submit Section */}
+        <Paper
+          elevation={3}
+          sx={{
+            mt: 4,
+            p: 4,
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant='h5' fontWeight={600} gutterBottom>
+            Complete Your Store Setup
+          </Typography>
+          <Typography variant='body1' color='text.secondary' sx={{ mb: 3 }}>
+            Ready to submit your store for review? Your branding images have
+            been saved. Click below to complete your store setup and submit for
+            approval.
+          </Typography>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant='body2' color='text.secondary'>
+              ✓ Store information configured
+              <br />
+              {brandingData.logoUrl && '✓ Logo uploaded'}
+              <br />
+              {brandingData.bannerUrl && '✓ Banner uploaded'}
+              <br />
+              {brandingData.galleryImages &&
+                brandingData.galleryImages.length > 0 &&
+                `✓ ${brandingData.galleryImages.length} gallery image(s) uploaded`}
+            </Typography>
+          </Box>
+
+          <Button
+            variant='contained'
+            size='large'
+            onClick={handleCompleteStoreSetup}
+            disabled={isSubmitting}
+            sx={{
+              px: 6,
+              py: 2,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #1976D2 30%, #0288D1 90%)',
+              },
+            }}
+          >
+            {isSubmitting ? 'Submitting...' : 'Review & Submit Store'}
+          </Button>
+
+          <Typography
+            variant='caption'
+            color='text.secondary'
+            sx={{ mt: 2, display: 'block' }}
+          >
+            Your store will be reviewed within 1-2 business days
+          </Typography>
+        </Paper>
       </Paper>
     </Box>
   );

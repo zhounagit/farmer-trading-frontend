@@ -4,62 +4,55 @@ import {
   Paper,
   Typography,
   Grid,
-  Card,
-  CardContent,
   Button,
   LinearProgress,
   Chip,
   Alert,
   List,
-  ListItem,
   ListItemIcon,
   ListItemText,
   ListItemButton,
   Divider,
   Stack,
-  IconButton,
-  Tooltip,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Store,
-  CheckCircle,
-  Warning,
-  Edit,
-  Add,
-  Visibility,
-  Business,
+  LocationOn,
   Schedule,
   Payment,
   Palette,
-  LocationOn,
+  Edit,
+  ArrowForward,
+  CheckCircle,
+  RadioButtonUnchecked,
+  Business,
   Phone,
   Email,
-  ArrowForward,
-  Settings,
+  Inventory,
+  ErrorOutline,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useUserStore } from '../../hooks/useUserStore';
+import StoreApiService from '../../services/store.api';
+import type {
+  ComprehensiveStoreData,
+  StoreAddress,
+  StoreOpenHours,
+  StoreImage,
+} from '../../services/store.api';
+import toast from 'react-hot-toast';
 
-interface StoreData {
-  id: number;
-  name: string;
+interface SetupStep {
+  id: string;
+  title: string;
   description: string;
-  status: 'draft' | 'pending' | 'active' | 'suspended';
-  completionPercentage: number;
-  createdAt: string;
-  address?: {
-    streetLine: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  hasLogo: boolean;
-  hasBanner: boolean;
-  galleryImageCount: number;
-  openHoursSet: boolean;
-  paymentMethodsSet: boolean;
-  sellingMethods: string[];
-  lastUpdated: string;
+  completed: boolean;
+  route: string;
+  icon: React.ReactNode;
+  priority: 'high' | 'medium' | 'low';
 }
 
 interface StoreOverviewSectionProps {
@@ -69,126 +62,217 @@ interface StoreOverviewSectionProps {
 const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   onNavigateToBranding,
 }) => {
-  const { user } = useAuth();
+  // Auth context available if needed
+  useAuth();
   const navigate = useNavigate();
-  const [storeData, setStoreData] = useState<StoreData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    primaryStore,
+    isLoading: storesLoading,
+    error: storesError,
+  } = useUserStore();
 
-  // Mock data - replace with actual API call
+  const [comprehensiveStoreData, setComprehensiveStoreData] =
+    useState<ComprehensiveStoreData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch comprehensive store data when primary store is available
   useEffect(() => {
-    const fetchStoreData = async () => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock store data based on user having a store
-      if (user?.hasStore) {
-        setStoreData({
-          id: 1,
-          name: "Green Valley Farm",
-          description: "Organic vegetables and seasonal produce",
-          status: 'draft',
-          completionPercentage: 65,
-          createdAt: new Date().toISOString(),
-          address: {
-            streetLine: "123 Farm Road",
-            city: "Green Valley",
-            state: "CA",
-            zipCode: "95123"
-          },
-          hasLogo: false,
-          hasBanner: false,
-          galleryImageCount: 0,
-          openHoursSet: true,
-          paymentMethodsSet: true,
-          sellingMethods: ['on-farm-pickup', 'local-delivery'],
-          lastUpdated: new Date().toISOString(),
-        });
+    const fetchComprehensiveStoreData = async () => {
+      if (!primaryStore?.storeId) {
+        return;
       }
-      setLoading(false);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await StoreApiService.getComprehensiveStoreDetails(
+          primaryStore.storeId
+        );
+        setComprehensiveStoreData(data);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load store details';
+        setError(errorMessage);
+        toast.error(`Failed to load store details: ${errorMessage}`);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    fetchStoreData();
-  }, [user]);
+    fetchComprehensiveStoreData();
+  }, [primaryStore?.storeId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'pending': return 'warning';
-      case 'suspended': return 'error';
-      default: return 'default';
+      case 'approved':
+        return 'success';
+      case 'pending':
+      case 'under_review':
+        return 'warning';
+      case 'rejected':
+      case 'suspended':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return 'Active';
-      case 'pending': return 'Pending Review';
-      case 'suspended': return 'Suspended';
-      default: return 'Draft';
+      case 'approved':
+        return 'Live & Active';
+      case 'pending':
+        return 'Pending Review';
+      case 'under_review':
+        return 'Under Review';
+      case 'rejected':
+        return 'Rejected';
+      case 'suspended':
+        return 'Suspended';
+      default:
+        return 'Draft';
     }
   };
 
-  const getMissingSteps = (store: StoreData) => {
-    const steps = [];
+  const formatBusinessHours = (
+    openHours: StoreOpenHours[]
+  ): { [key: string]: string } => {
+    if (!openHours || openHours.length === 0) return {};
 
-    if (!store.hasLogo) {
-      steps.push({
-        title: 'Upload Store Logo',
-        description: 'Add a professional logo to build trust with customers',
-        action: 'Upload Logo',
-        icon: <Palette />,
-        severity: 'medium' as const,
-      });
-    }
+    const daysMap = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
+    const formatted: { [key: string]: string } = {};
 
-    if (!store.hasBanner) {
-      steps.push({
-        title: 'Add Store Banner',
-        description: 'Showcase your farm with a beautiful header image',
-        action: 'Add Banner',
-        icon: <Palette />,
-        severity: 'medium' as const,
-      });
-    }
+    openHours.forEach((hour) => {
+      const dayName = daysMap[hour.dayOfWeek];
+      if (hour.isClosed) {
+        formatted[dayName] = 'Closed';
+      } else if (hour.openTime && hour.closeTime) {
+        formatted[dayName] = `${hour.openTime} - ${hour.closeTime}`;
+      }
+    });
 
-    if (store.galleryImageCount === 0) {
-      steps.push({
-        title: 'Add Gallery Images',
-        description: 'Show customers your products and farm',
-        action: 'Add Images',
-        icon: <Palette />,
-        severity: 'high' as const,
-      });
-    }
-
-    return steps;
+    return formatted;
   };
 
-  const handleCompleteSetup = () => {
-    onNavigateToBranding?.();
+  const getPrimaryAddress = (
+    addresses: StoreAddress[]
+  ): StoreAddress | null => {
+    if (!addresses || addresses.length === 0) return null;
+
+    // Priority: business address > pickup address > first address
+    const businessAddress = addresses.find(
+      (addr) => addr.addressType === 'business'
+    );
+    const pickupAddress = addresses.find(
+      (addr) => addr.addressType === 'pickup'
+    );
+    const primaryAddress = addresses.find((addr) => addr.isPrimary);
+
+    return businessAddress || pickupAddress || primaryAddress || addresses[0];
   };
 
-  const handleViewStore = () => {
-    if (storeData) {
-      navigate(`/stores/${storeData.id}`);
+  const getImageCounts = (
+    images: StoreImage[]
+  ): { hasLogo: boolean; hasBanner: boolean; galleryImageCount: number } => {
+    if (!images || images.length === 0) {
+      return { hasLogo: false, hasBanner: false, galleryImageCount: 0 };
+    }
+
+    const activeImages = images.filter((img) => img.isActive);
+    const hasLogo = activeImages.some((img) => img.imageType === 'logo');
+    const hasBanner = activeImages.some((img) => img.imageType === 'banner');
+    const galleryImageCount = activeImages.filter(
+      (img) => img.imageType === 'gallery'
+    ).length;
+
+    return { hasLogo, hasBanner, galleryImageCount };
+  };
+
+  const getSetupSteps = (storeData: ComprehensiveStoreData): SetupStep[] => {
+    const primaryAddress = getPrimaryAddress(storeData.addresses);
+    const businessHours = formatBusinessHours(storeData.openHours);
+    const { hasLogo, hasBanner, galleryImageCount } = getImageCounts(
+      storeData.images
+    );
+
+    return [
+      {
+        id: 'basics',
+        title: 'Store Basics',
+        description: 'Name, description, and categories',
+        completed: !!(
+          storeData.storeName &&
+          storeData.description &&
+          storeData.categories?.length
+        ),
+        route: '/open-shop/basics',
+        icon: <Store />,
+        priority: 'high',
+      },
+      {
+        id: 'location',
+        title: 'Location & Logistics',
+        description: 'Address, selling methods, delivery settings',
+        completed: !!(primaryAddress && primaryAddress.streetLine),
+        route: '/open-shop/location',
+        icon: <LocationOn />,
+        priority: 'high',
+      },
+      {
+        id: 'policies',
+        title: 'Store Policies',
+        description: 'Business hours and payment methods',
+        completed: !!(
+          Object.keys(businessHours).length > 0 &&
+          storeData.paymentMethods?.length > 0
+        ),
+        route: '/open-shop/policies',
+        icon: <Schedule />,
+        priority: 'high',
+      },
+      {
+        id: 'branding',
+        title: 'Branding & Visuals',
+        description: 'Logo, banner, and gallery images',
+        completed: hasLogo && hasBanner && galleryImageCount > 0,
+        route: '/dashboard/branding',
+        icon: <Palette />,
+        priority: 'medium',
+      },
+    ];
+  };
+
+  const handleStepClick = (step: SetupStep) => {
+    if (step.id === 'branding') {
+      onNavigateToBranding?.();
+    } else {
+      navigate(step.route);
     }
   };
 
   const handleEditStore = () => {
-    if (storeData) {
-      navigate(`/stores/${storeData.id}/edit`);
-    }
+    navigate('/open-shop?edit=true');
   };
 
-  if (loading) {
+  // Loading state
+  if (storesLoading || isLoading) {
     return (
       <Box>
-        <Typography variant="h5" fontWeight={600} gutterBottom>
+        <Typography variant='h5' fontWeight={600} gutterBottom>
           Store Overview
         </Typography>
         <Paper sx={{ p: 3 }}>
           <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
             Loading store information...
           </Typography>
         </Paper>
@@ -196,250 +280,474 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
     );
   }
 
-  if (!storeData) {
+  // Error state
+  if (storesError || error) {
     return (
       <Box>
-        <Typography variant="h5" fontWeight={600} gutterBottom>
+        <Typography variant='h5' fontWeight={600} gutterBottom>
           Store Overview
         </Typography>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Store sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            No Store Found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            It looks like you haven't created a store yet, or there was an issue loading your store data.
-          </Typography>
+        <Paper sx={{ p: 3 }}>
+          <Alert severity='error' sx={{ mb: 2 }}>
+            <Typography variant='body2'>{storesError || error}</Typography>
+          </Alert>
           <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/open-shop')}
+            variant='outlined'
+            onClick={() => window.location.reload()}
+            startIcon={<ErrorOutline />}
           >
-            Create Your Store
+            Retry
           </Button>
         </Paper>
       </Box>
     );
   }
 
-  const missingSteps = getMissingSteps(storeData);
+  // No store state
+  if (!primaryStore || !comprehensiveStoreData) {
+    return (
+      <Box>
+        <Typography variant='h5' fontWeight={600} gutterBottom>
+          Store Overview
+        </Typography>
+        <Paper sx={{ p: 3 }}>
+          <Alert severity='info' sx={{ mb: 2 }}>
+            <Typography variant='body2'>
+              You don't have a store yet. Create your first store to get
+              started!
+            </Typography>
+          </Alert>
+          <Button
+            variant='contained'
+            onClick={() => navigate('/open-shop')}
+            startIcon={<Store />}
+          >
+            Open Your Shop
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  const storeData = comprehensiveStoreData;
+  const setupSteps = getSetupSteps(storeData);
+  const completedSteps = setupSteps.filter((step) => step.completed).length;
+  const totalSteps = setupSteps.length;
+  const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+  const primaryAddress = getPrimaryAddress(storeData.addresses);
+  const businessHours = formatBusinessHours(storeData.openHours);
+  const { hasLogo, hasBanner, galleryImageCount } = getImageCounts(
+    storeData.images
+  );
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3,
+        }}
+      >
+        <Typography variant='h5' fontWeight={600}>
           Store Overview
         </Typography>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<Visibility />}
-            onClick={handleViewStore}
-            size="small"
-          >
-            View Store
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Settings />}
-            onClick={handleEditStore}
-            size="small"
-          >
-            Settings
-          </Button>
-        </Stack>
+        <Button
+          variant='outlined'
+          startIcon={<Edit />}
+          onClick={handleEditStore}
+          size='small'
+        >
+          Edit Store
+        </Button>
       </Box>
 
       <Grid container spacing={3}>
         {/* Store Info Card */}
-        <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3, height: 'fit-content' }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Business sx={{ fontSize: 40, color: 'primary.main' }} />
-                <Box>
-                  <Typography variant="h6" fontWeight={600}>
-                    {storeData.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {storeData.description}
-                  </Typography>
-                  <Chip
-                    label={getStatusText(storeData.status)}
-                    color={getStatusColor(storeData.status)}
-                    size="small"
-                  />
-                </Box>
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            {/* Store Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <Business sx={{ fontSize: 40, color: 'primary.main' }} />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant='h6' fontWeight={600}>
+                  {storeData.storeName}
+                </Typography>
+                <Typography variant='body2' color='text.secondary' gutterBottom>
+                  {storeData.description || 'No description provided'}
+                </Typography>
+                <Chip
+                  label={getStatusText(storeData.approvalStatus)}
+                  color={getStatusColor(storeData.approvalStatus)}
+                  size='small'
+                />
               </Box>
-              <IconButton onClick={handleEditStore} size="small">
-                <Edit />
-              </IconButton>
             </Box>
 
-            {/* Completion Progress */}
+            {/* Setup Progress */}
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="body2" fontWeight={600}>
-                  Store Setup Progress
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 1,
+                }}
+              >
+                <Typography variant='body2' fontWeight={600}>
+                  Setup Progress
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {storeData.completionPercentage}% Complete
+                <Typography variant='body2' color='text.secondary'>
+                  {completedSteps} of {totalSteps} steps completed (
+                  {completionPercentage}%)
                 </Typography>
               </Box>
               <LinearProgress
-                variant="determinate"
-                value={storeData.completionPercentage}
+                variant='determinate'
+                value={completionPercentage}
                 sx={{ height: 8, borderRadius: 4 }}
               />
             </Box>
 
-            {/* Store Details */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  <LocationOn sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                  Address
-                </Typography>
-                {storeData.address ? (
-                  <Typography variant="body2" color="text.secondary">
-                    {storeData.address.streetLine}<br />
-                    {storeData.address.city}, {storeData.address.state} {storeData.address.zipCode}
-                  </Typography>
-                ) : (
-                  <Typography variant="body2" color="error.main">
-                    No address set
-                  </Typography>
-                )}
+            {/* Store Information Grid */}
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <LocationOn
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Location & Contact
+                    </Typography>
+                    {primaryAddress ? (
+                      <Box>
+                        <Typography variant='body2' color='text.secondary'>
+                          {primaryAddress.streetLine}
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary'>
+                          {primaryAddress.city}, {primaryAddress.state}{' '}
+                          {primaryAddress.zipCode}
+                        </Typography>
+                        {primaryAddress.contactPhone && (
+                          <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{ mt: 1 }}
+                          >
+                            <Phone
+                              sx={{
+                                fontSize: 14,
+                                mr: 0.5,
+                                verticalAlign: 'middle',
+                              }}
+                            />
+                            {primaryAddress.contactPhone}
+                          </Typography>
+                        )}
+                        {storeData.contactEmail && (
+                          <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{ mt: 0.5 }}
+                          >
+                            <Email
+                              sx={{
+                                fontSize: 14,
+                                mr: 0.5,
+                                verticalAlign: 'middle',
+                              }}
+                            />
+                            {storeData.contactEmail}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography variant='body2' color='error.main'>
+                        Address not set
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  Selling Methods
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  {storeData.sellingMethods.map((method) => (
-                    <Chip
-                      key={method}
-                      label={method.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      variant="outlined"
-                      size="small"
-                    />
-                  ))}
-                </Stack>
-              </Grid>
-            </Grid>
 
-            {/* Quick Stats */}
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={6} sm={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                  <Schedule sx={{ color: 'primary.main', mb: 1 }} />
-                  <Typography variant="body2" fontWeight={600}>
-                    {storeData.openHoursSet ? 'Hours Set' : 'Hours Missing'}
-                  </Typography>
-                </Box>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <Inventory
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Products
+                    </Typography>
+                    <Box>
+                      <Typography variant='caption' color='text.secondary'>
+                        Categories:
+                      </Typography>
+                      <Stack
+                        direction='row'
+                        spacing={0.5}
+                        sx={{ mt: 0.5 }}
+                        flexWrap='wrap'
+                      >
+                        {storeData.categories &&
+                        storeData.categories.length > 0 ? (
+                          storeData.categories.map((category, index) => {
+                            const categoryName =
+                              category?.name || `Category ${index + 1}`;
+                            const categoryKey = category?.categoryId || index;
+
+                            return (
+                              <Chip
+                                key={categoryKey}
+                                label={categoryName}
+                                size='small'
+                                variant='outlined'
+                                color='primary'
+                              />
+                            );
+                          })
+                        ) : storeData.categories === null ||
+                          storeData.categories === undefined ? (
+                          <Typography variant='body2' color='text.secondary'>
+                            Loading categories...
+                          </Typography>
+                        ) : (
+                          <Typography variant='body2' color='error.main'>
+                            No categories set
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                  <Payment sx={{ color: 'primary.main', mb: 1 }} />
-                  <Typography variant="body2" fontWeight={600}>
-                    {storeData.paymentMethodsSet ? 'Payment Set' : 'Payment Missing'}
-                  </Typography>
-                </Box>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <Schedule
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Business Hours
+                    </Typography>
+                    {Object.keys(businessHours).length > 0 ? (
+                      <Box>
+                        {Object.entries(businessHours).map(([day, hours]) => (
+                          <Box
+                            key={day}
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              mb: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant='caption'
+                              sx={{ textTransform: 'capitalize' }}
+                            >
+                              {day}:
+                            </Typography>
+                            <Typography
+                              variant='caption'
+                              color='text.secondary'
+                            >
+                              {hours}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant='body2' color='error.main'>
+                        Hours not set
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                  <Palette sx={{ color: storeData.hasLogo ? 'success.main' : 'error.main', mb: 1 }} />
-                  <Typography variant="body2" fontWeight={600}>
-                    {storeData.hasLogo ? 'Logo Added' : 'No Logo'}
-                  </Typography>
-                </Box>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <Payment
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Payment Methods
+                    </Typography>
+                    <Box>
+                      <Typography variant='caption' color='text.secondary'>
+                        Accepted Methods:
+                      </Typography>
+                      <Stack
+                        direction='row'
+                        spacing={0.5}
+                        sx={{ mt: 0.5 }}
+                        flexWrap='wrap'
+                      >
+                        {storeData.paymentMethods?.length > 0 ? (
+                          storeData.paymentMethods.map((payment) => (
+                            <Chip
+                              key={payment.methodId}
+                              label={payment.paymentMethod.methodName}
+                              size='small'
+                              variant='outlined'
+                              color='info'
+                            />
+                          ))
+                        ) : (
+                          <Typography variant='body2' color='error.main'>
+                            No payment methods set
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                  <Palette sx={{ color: storeData.galleryImageCount > 0 ? 'success.main' : 'error.main', mb: 1 }} />
-                  <Typography variant="body2" fontWeight={600}>
-                    {storeData.galleryImageCount} Images
-                  </Typography>
-                </Box>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <LocationOn
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Delivery Options
+                    </Typography>
+                    {storeData.deliveryRadiusMi ? (
+                      <Box>
+                        <Typography variant='body2' color='success.main'>
+                          Delivery Available
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary'>
+                          Radius: {storeData.deliveryRadiusMi} miles
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Typography variant='body2' color='text.secondary'>
+                          No delivery service
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary'>
+                          Pickup only
+                        </Typography>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant='outlined' sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant='body2' fontWeight={600} gutterBottom>
+                      <Palette
+                        sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }}
+                      />
+                      Branding
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={hasLogo ? 'Logo ✓' : 'No Logo'}
+                        size='small'
+                        color={hasLogo ? 'success' : 'default'}
+                        variant='outlined'
+                      />
+                      <Chip
+                        label={hasBanner ? 'Banner ✓' : 'No Banner'}
+                        size='small'
+                        color={hasBanner ? 'success' : 'default'}
+                        variant='outlined'
+                      />
+                      <Chip
+                        label={`${galleryImageCount} Images`}
+                        size='small'
+                        color={galleryImageCount > 0 ? 'success' : 'default'}
+                        variant='outlined'
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
           </Paper>
         </Grid>
 
-        {/* Missing Steps Card */}
-        <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3, height: 'fit-content' }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Complete Your Setup
+        {/* Setup Steps Card */}
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant='h6' fontWeight={600} gutterBottom>
+              Setup Steps
             </Typography>
 
-            {missingSteps.length === 0 ? (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  🎉 Your store setup is complete!
+            {completedSteps === totalSteps ? (
+              <Alert severity='success' sx={{ mb: 2 }}>
+                <Typography variant='body2'>
+                  🎉 Store setup complete! Ready to submit for approval.
                 </Typography>
               </Alert>
             ) : (
-              <>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Complete these steps to improve your store's visibility and attract more customers.
-                </Typography>
-
-                <List disablePadding>
-                  {missingSteps.map((step, index) => (
-                    <React.Fragment key={index}>
-                      <ListItemButton
-                        onClick={handleCompleteSetup}
-                        sx={{
-                          borderRadius: 2,
-                          mb: 1,
-                          border: '1px solid',
-                          borderColor: step.severity === 'high' ? 'error.main' : 'warning.main',
-                          '&:hover': {
-                            bgcolor: step.severity === 'high' ? 'error.50' : 'warning.50',
-                          }
-                        }}
-                      >
-                        <ListItemIcon>
-                          {step.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" fontWeight={600}>
-                                {step.title}
-                              </Typography>
-                              <Chip
-                                label={step.severity === 'high' ? 'Important' : 'Recommended'}
-                                color={step.severity === 'high' ? 'error' : 'warning'}
-                                size="small"
-                              />
-                            </Box>
-                          }
-                          secondary={step.description}
-                        />
-                        <ArrowForward sx={{ color: 'text.secondary' }} />
-                      </ListItemButton>
-                    </React.Fragment>
-                  ))}
-                </List>
-
-                <Button
-                  variant="contained"
-                  fullWidth
-                  startIcon={<Palette />}
-                  onClick={handleCompleteSetup}
-                  sx={{ mt: 2 }}
-                >
-                  Complete Branding Setup
-                </Button>
-              </>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                Complete the remaining steps to finish your store setup.
+              </Typography>
             )}
+
+            <List disablePadding>
+              {setupSteps.map((step) => (
+                <ListItemButton
+                  key={step.id}
+                  onClick={() => handleStepClick(step)}
+                  sx={{
+                    borderRadius: 2,
+                    mb: 1,
+                    border: '1px solid',
+                    borderColor: step.completed
+                      ? 'success.main'
+                      : step.priority === 'high'
+                        ? 'warning.main'
+                        : 'grey.300',
+                    bgcolor: step.completed ? 'success.50' : 'transparent',
+                    '&:hover': {
+                      bgcolor: step.completed ? 'success.100' : 'grey.50',
+                    },
+                  }}
+                >
+                  <ListItemIcon>
+                    {step.completed ? (
+                      <CheckCircle color='success' />
+                    ) : (
+                      <RadioButtonUnchecked color='disabled' />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <Typography variant='body2' fontWeight={600}>
+                          {step.title}
+                        </Typography>
+                        {!step.completed && step.priority === 'high' && (
+                          <Chip label='Required' color='warning' size='small' />
+                        )}
+                      </Box>
+                    }
+                    secondary={step.description}
+                  />
+                  <ArrowForward sx={{ color: 'text.secondary' }} />
+                </ListItemButton>
+              ))}
+            </List>
 
             <Divider sx={{ my: 2 }} />
 
-            <Typography variant="body2" color="text.secondary">
-              <strong>Last updated:</strong> {new Date(storeData.lastUpdated).toLocaleDateString()}
+            <Typography variant='body2' color='text.secondary'>
+              <strong>Last updated:</strong>{' '}
+              {new Date(storeData.updatedAt).toLocaleDateString()}
             </Typography>
           </Paper>
         </Grid>

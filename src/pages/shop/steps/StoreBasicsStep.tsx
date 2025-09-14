@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -6,15 +6,25 @@ import {
   Alert,
   Paper,
   InputAdornment,
+  Chip,
+  Button,
+  Autocomplete,
+  Checkbox,
+  ListItemText,
 } from '@mui/material';
 import {
   Store as StoreIcon,
   Description as DescriptionIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
 import { type StepProps } from '../../../types/open-shop.types';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
+import StoreApiService, {
+  type StoreCategory,
+} from '../../../services/store.api';
 import toast from 'react-hot-toast';
 
 const StoreBasicsStep: React.FC<StepProps> = ({
@@ -22,9 +32,30 @@ const StoreBasicsStep: React.FC<StepProps> = ({
   updateFormState,
   onNext,
 }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // Load categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const apiCategories = await StoreApiService.getAllStoreCategories();
+        setCategories(apiCategories);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+        toast.error('Failed to load categories. Please refresh the page.');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -37,11 +68,18 @@ const StoreBasicsStep: React.FC<StepProps> = ({
       newErrors.description = 'Description is required';
     }
 
+    if (
+      !formState.storeBasics.categories ||
+      formState.storeBasics.categories.length === 0
+    ) {
+      newErrors.categories = 'At least one category is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     updateFormState({
       storeBasics: {
         ...formState.storeBasics,
@@ -68,7 +106,7 @@ const StoreBasicsStep: React.FC<StepProps> = ({
 
     if (!userEmail) {
       toast.error('User email not found. Please log in again.');
-      console.error('User object missing email:', user);
+
       return;
     }
 
@@ -78,40 +116,17 @@ const StoreBasicsStep: React.FC<StepProps> = ({
       const payload = {
         storeName: formState.storeBasics.storeName.trim(),
         description: formState.storeBasics.description.trim(),
-        categoryIds: [], // Empty array for now, can be added later
+        categories: formState.storeBasics.categories,
         storeCreatorEmail: userEmail,
         createdAt: new Date().toISOString(),
       };
 
-      console.log('=== SENDING API REQUEST ===');
-      console.log('Store creation payload:', payload);
-      console.log('API URL:', '/api/stores');
-      console.log('Request time:', new Date().toISOString());
-
       const response = await OpenShopApiService.createStore(payload);
 
-      console.log('=== API RESPONSE SUCCESS ===');
-      console.log('Store creation response:', response);
-      console.log('Response time:', new Date().toISOString());
-      console.log('Response type:', typeof response);
-      console.log('Response keys:', Object.keys(response || {}));
-      console.log('Store ID from response:', response?.store_id);
-      console.log('Store ID type:', typeof response?.store_id);
-
       // Check for different possible response structures
-      if (response?.store_id) {
-        console.log('✅ Found store_id:', response.store_id);
-      } else if (response?.storeId) {
-        console.log('✅ Found storeId:', response.storeId);
-      } else if (response?.id) {
-        console.log('✅ Found id:', response.id);
-      } else {
-        console.log('❌ No store ID found in response');
-      }
 
       // Extract store ID with fallback options
       const storeId = response?.store_id || response?.storeId || response?.id;
-      console.log('Final extracted storeId:', storeId);
 
       if (!storeId) {
         throw new Error('No store ID returned from server');
@@ -129,22 +144,11 @@ const StoreBasicsStep: React.FC<StepProps> = ({
         onNext();
       }, 100);
     } catch (error: any) {
-      console.error('=== API ERROR ===');
-      console.error('Full error object:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error message:', error?.message);
-      console.error('Error code:', error?.code);
-      console.error('Has response:', !!error?.response);
-      console.error('Response status:', error?.response?.status);
-      console.error('Response data:', error?.response?.data);
-      console.error('Original error:', error?.originalError);
-
       // Better error handling
       let errorMessage = 'Failed to create store. Please try again.';
 
       if (error?.response?.data) {
         const errorData = error.response.data;
-        console.error('API Error Details:', errorData);
 
         if (errorData.errors) {
           // Handle validation errors
@@ -182,7 +186,7 @@ const StoreBasicsStep: React.FC<StepProps> = ({
           mb: 2,
         }}
       >
-        Store Basics - Step 1 ONLY (Name & Description)
+        Store Basics - Step 1
       </Typography>
 
       <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
@@ -250,6 +254,96 @@ const StoreBasicsStep: React.FC<StepProps> = ({
               },
             }}
           />
+
+          {/* Categories Selection */}
+          <Box sx={{ mb: 2 }}>
+            <Autocomplete
+              multiple
+              options={categories.map((cat) => cat.name)}
+              value={formState.storeBasics.categories || []}
+              onChange={(_, newValue) => {
+                handleInputChange('categories', newValue);
+              }}
+              loading={categoriesLoading}
+              disabled={categoriesLoading}
+              disableCloseOnSelect={true}
+              limitTags={3}
+              getLimitTagsText={(more) => `+${more} more`}
+              renderOption={(props, option, { selected }) => (
+                <li {...props}>
+                  <Checkbox
+                    style={{ marginRight: 8 }}
+                    checked={selected}
+                    color='primary'
+                  />
+                  <ListItemText primary={option} />
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label='What do you sell? *'
+                  placeholder={
+                    categoriesLoading
+                      ? 'Loading categories...'
+                      : 'Choose all categories that apply to your store'
+                  }
+                  error={!!errors.categories}
+                  helperText={
+                    errors.categories ||
+                    'Select multiple categories - dropdown stays open for easy selection'
+                  }
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <InputAdornment position='start'>
+                          <CategoryIcon color='action' />
+                        </InputAdornment>
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1.5,
+                    },
+                  }}
+                />
+              )}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={option}
+                    label={option}
+                    size='small'
+                    icon={<CategoryIcon />}
+                    color='primary'
+                    variant='outlined'
+                    sx={{ m: 0.25 }}
+                  />
+                ))
+              }
+              ChipProps={{
+                size: 'small',
+                color: 'primary',
+                variant: 'outlined',
+              }}
+              sx={{
+                '& .MuiAutocomplete-tag': {
+                  margin: '2px',
+                  maxWidth: 'calc(100% - 6px)',
+                },
+                '& .MuiAutocomplete-inputRoot': {
+                  flexWrap: 'wrap',
+                  '& .MuiAutocomplete-input': {
+                    minWidth: '120px',
+                  },
+                },
+              }}
+            />
+          </Box>
         </Box>
       </Paper>
 
@@ -259,7 +353,27 @@ const StoreBasicsStep: React.FC<StepProps> = ({
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+        }}
+      >
+        <Button
+          variant='text'
+          onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+          sx={{
+            textTransform: 'none',
+            color: 'text.secondary',
+            order: { xs: 2, sm: 1 },
+          }}
+        >
+          Save & Exit Later
+        </Button>
+
         <LoadingButton
           variant='contained'
           onClick={handleSubmit}
@@ -272,10 +386,14 @@ const StoreBasicsStep: React.FC<StepProps> = ({
             textTransform: 'none',
             fontSize: '1.1rem',
             fontWeight: 600,
+            order: { xs: 1, sm: 2 },
           }}
           disabled={
             !formState.storeBasics.storeName.trim() ||
-            !formState.storeBasics.description.trim()
+            !formState.storeBasics.description.trim() ||
+            !formState.storeBasics.categories ||
+            formState.storeBasics.categories.length === 0 ||
+            categoriesLoading
           }
         >
           Continue to Locations

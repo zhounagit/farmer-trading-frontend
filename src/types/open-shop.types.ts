@@ -16,6 +16,7 @@ export interface AddressCreationRequest {
   addressType: string;
   locationName: string;
   contactPhone: string;
+  contactEmail: string;
   streetLine: string;
   city: string;
   state: string;
@@ -51,11 +52,13 @@ export interface PaymentMethodsRequest {
 export interface StoreBasicsFormData {
   storeName: string;
   description: string;
+  categories: string[];
 }
 
 export interface AddressFormData {
   locationName: string;
   contactPhone: string;
+  contactEmail: string;
   streetLine: string;
   city: string;
   state: string;
@@ -85,10 +88,71 @@ export interface PaymentMethodsFormData {
   selectedMethods: string[];
 }
 
+export interface StoreImage {
+  imageId: number;
+  storeId: number;
+  imageType: string;
+  filePath: string;
+  fileUrl: string;
+  fileName: string;
+  originalFileName: string;
+  fileSize: number;
+  mimeType: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BrandingFormData {
   logoFile?: File;
   bannerFile?: File;
   galleryFiles?: File[];
+}
+
+// Store Submission Types
+export interface StoreSubmissionRequest {
+  storeId: number;
+  agreedToTermsAt: string;
+  submissionNotes?: string;
+  termsVersion: string;
+}
+
+export interface ApplicationStatusHistory {
+  status: string;
+  timestamp: string;
+  updatedBy: number;
+  notes?: string;
+}
+
+export interface StoreSubmissionResponse {
+  submissionId: string;
+  storeId: number;
+  status: 'submitted' | 'under_review' | 'approved' | 'rejected';
+  submittedAt: string;
+  estimatedReviewTime: string;
+  reviewerAssignedAt?: string;
+  reviewerId?: number;
+  statusHistory: ApplicationStatusHistory[];
+}
+
+export interface ApplicationStatusResponse {
+  submissionId: string;
+  storeId: number;
+  currentStatus:
+    | 'draft'
+    | 'submitted'
+    | 'under_review'
+    | 'approved'
+    | 'rejected'
+    | 'needs_revision';
+  submittedAt?: string;
+  reviewStartedAt?: string;
+  completedAt?: string;
+  estimatedCompletionDate?: string;
+  reviewerNotes?: string;
+  requiredActions?: string[];
+  statusHistory: ApplicationStatusHistory[];
 }
 
 // Combined form state
@@ -101,6 +165,10 @@ export interface OpenShopFormState {
   paymentMethods: PaymentMethodsFormData;
   branding: BrandingFormData;
   agreedToTerms: boolean;
+  // Submission tracking
+  submissionId?: string;
+  submissionStatus?: string;
+  submittedAt?: string;
 }
 
 // Enums and constants

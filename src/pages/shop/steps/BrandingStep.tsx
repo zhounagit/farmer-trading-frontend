@@ -4,7 +4,6 @@ import {
   Typography,
   Button,
   Alert,
-  Grid,
   Paper,
   IconButton,
   LinearProgress,
@@ -22,6 +21,8 @@ import {
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
 import { type StepProps } from '../../../types/open-shop.types';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
 import toast from 'react-hot-toast';
 
@@ -34,6 +35,8 @@ const BrandingStep: React.FC<StepProps> = ({
   onNext,
   onPrevious,
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
   }>({});
@@ -51,13 +54,13 @@ const BrandingStep: React.FC<StepProps> = ({
   const validateFile = (
     file: File,
     type: 'logo' | 'banner' | 'gallery'
-  ): string | null => {
+  ): Promise<string | null> => {
     if (file.size > MAX_FILE_SIZE) {
-      return 'File size must be less than 5MB';
+      return Promise.resolve('File size must be less than 5MB');
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'Only JPEG, PNG, and WebP images are allowed';
+      return Promise.resolve('Only JPEG, PNG, and WebP images are allowed');
     }
 
     // Additional validation for logo (should be square-ish)
@@ -74,10 +77,10 @@ const BrandingStep: React.FC<StepProps> = ({
         };
         img.onerror = () => resolve('Invalid image file');
         img.src = URL.createObjectURL(file);
-      }) as any;
+      });
     }
 
-    return null;
+    return Promise.resolve(null);
   };
 
   const createPreviewUrl = (file: File): string => {
@@ -255,7 +258,7 @@ const BrandingStep: React.FC<StepProps> = ({
       }
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload error:', error);
       toast.error('Failed to upload images. Please try again.');
       return false;
@@ -289,7 +292,7 @@ const BrandingStep: React.FC<StepProps> = ({
       console.log('Calling onNext()...');
       onNext();
       console.log('onNext() called successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in handleSkip:', error);
       toast.error('Failed to proceed to next step. Please try again.');
     }
@@ -390,9 +393,15 @@ const BrandingStep: React.FC<StepProps> = ({
         </Typography>
       </Alert>
 
-      <Grid container spacing={4}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 4,
+        }}
+      >
         {/* Logo Upload */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 50%' } }}>
           <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Store Logo
           </Typography>
@@ -431,13 +440,13 @@ const BrandingStep: React.FC<StepProps> = ({
               'Upload Logo',
               'Your store logo (square format recommended)',
               <PhotoIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-              logoInputRef
+              logoInputRef as React.RefObject<HTMLInputElement>
             )
           )}
-        </Grid>
+        </Box>
 
         {/* Banner Upload */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 50%' } }}>
           <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Store Banner
           </Typography>
@@ -478,111 +487,132 @@ const BrandingStep: React.FC<StepProps> = ({
               'Upload Banner',
               'Header image for your store page',
               <ImageIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-              bannerInputRef
+              bannerInputRef as React.RefObject<HTMLInputElement>
             )
           )}
-        </Grid>
+        </Box>
+      </Box>
 
-        {/* Gallery Upload */}
-        <Grid item xs={12}>
-          <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Store Gallery
-          </Typography>
+      {/* Gallery Upload */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+          Store Gallery
+        </Typography>
 
-          {previewUrls.gallery && previewUrls.gallery.length > 0 ? (
-            <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
+        {previewUrls.gallery && previewUrls.gallery.length > 0 ? (
+          <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 2,
+              }}
+            >
+              <Typography variant='body1' sx={{ fontWeight: 500 }}>
+                Gallery Images ({previewUrls.gallery.length}/6)
+              </Typography>
+              <Button
+                startIcon={<UploadIcon />}
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={previewUrls.gallery.length >= 6}
+                size='small'
               >
-                <Typography variant='body1' sx={{ fontWeight: 500 }}>
-                  Gallery Images ({previewUrls.gallery.length}/6)
-                </Typography>
-                <Button
-                  startIcon={<UploadIcon />}
-                  onClick={() => galleryInputRef.current?.click()}
-                  disabled={previewUrls.gallery.length >= 6}
-                  size='small'
-                >
-                  Add More
-                </Button>
-              </Box>
+                Add More
+              </Button>
+            </Box>
 
-              <ImageList cols={3} rowHeight={164} gap={8}>
-                {previewUrls.gallery.map((url, index) => (
-                  <ImageListItem key={index}>
-                    <img
-                      src={url}
-                      alt={`Gallery image ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: 4,
-                      }}
-                    />
-                    <ImageListItemBar
-                      actionIcon={
-                        <IconButton
-                          sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
-                          onClick={() => handleRemoveFile('gallery', index)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      }
-                    />
-                  </ImageListItem>
-                ))}
-              </ImageList>
+            <ImageList cols={3} rowHeight={164} gap={8}>
+              {previewUrls.gallery.map((url, index) => (
+                <ImageListItem key={index}>
+                  <img
+                    src={url}
+                    alt={`Gallery image ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                    }}
+                  />
+                  <ImageListItemBar
+                    actionIcon={
+                      <IconButton
+                        sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+                        onClick={() => handleRemoveFile('gallery', index)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    }
+                  />
+                </ImageListItem>
+              ))}
+            </ImageList>
 
-              <input
-                ref={galleryInputRef}
-                type='file'
-                accept='image/*'
-                multiple
-                style={{ display: 'none' }}
-                onChange={(e) => handleFileSelect(e, 'gallery')}
-              />
-            </Paper>
-          ) : (
-            renderUploadArea(
-              'gallery',
-              'Upload Gallery Images',
-              'Showcase your products and farm (up to 6 images)',
-              <GalleryIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-              galleryInputRef,
-              'image/*',
-              true
-            )
-          )}
-        </Grid>
-      </Grid>
+            <input
+              ref={galleryInputRef}
+              type='file'
+              accept='image/*'
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => handleFileSelect(e, 'gallery')}
+            />
+          </Paper>
+        ) : (
+          renderUploadArea(
+            'gallery',
+            'Upload Gallery Images',
+            'Showcase your products and farm (up to 6 images)',
+            <GalleryIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
+            galleryInputRef as React.RefObject<HTMLInputElement>,
+            'image/*',
+            true
+          )
+        )}
+      </Box>
 
       {/* Action Buttons */}
       <Box
-        sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 6 }}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          mt: 6,
+        }}
       >
-        <Button
-          variant='outlined'
-          onClick={onPrevious}
-          size='large'
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-          }}
-        >
-          Back to Policies
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, order: { xs: 2, sm: 1 } }}>
+          <Button
+            variant='outlined'
+            onClick={onPrevious}
+            size='large'
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+            }}
+          >
+            Back to Policies
+          </Button>
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant='text'
+            onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              px: 2,
+            }}
+          >
+            Save & Exit Later
+          </Button>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, order: { xs: 1, sm: 2 } }}>
           <Button
             variant='outlined'
             onClick={handleSkip}
@@ -597,22 +627,6 @@ const BrandingStep: React.FC<StepProps> = ({
             }}
           >
             Skip for Now
-          </Button>
-
-          {/* TEST BUTTON - REMOVE AFTER DEBUGGING */}
-          <Button
-            variant='contained'
-            color='secondary'
-            onClick={() => {
-              console.log('TEST BUTTON CLICKED - This should work!');
-              alert(
-                'Test button clicked! If this works but Skip doesnt, there is an issue with handleSkip'
-              );
-              handleSkip();
-            }}
-            size='small'
-          >
-            TEST SKIP
           </Button>
 
           <LoadingButton

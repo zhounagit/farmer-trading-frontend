@@ -12,6 +12,7 @@ import {
   Grid,
   Switch,
   Chip,
+  Button,
 } from '@mui/material';
 import {
   Schedule as ScheduleIcon,
@@ -23,6 +24,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LoadingButton } from '@mui/lab';
 import { type StepProps } from '../../../types/open-shop.types';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
 import toast from 'react-hot-toast';
 import { parse, format } from 'date-fns';
@@ -50,6 +53,8 @@ const StorePoliciesStep: React.FC<StepProps> = ({
   onNext,
   onPrevious,
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -494,23 +499,45 @@ const StorePoliciesStep: React.FC<StepProps> = ({
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <LoadingButton
-          variant='outlined'
-          onClick={onPrevious}
-          disabled={isLoading}
-          size='large'
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-          }}
-        >
-          Back to Location
-        </LoadingButton>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', gap: 2, order: { xs: 2, sm: 1 } }}>
+          <LoadingButton
+            variant='outlined'
+            onClick={onPrevious}
+            disabled={isLoading}
+            size='large'
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+            }}
+          >
+            Back to Location
+          </LoadingButton>
+
+          <Button
+            variant='text'
+            onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              px: 2,
+            }}
+          >
+            Save & Exit Later
+          </Button>
+        </Box>
 
         <LoadingButton
           variant='contained'
@@ -524,8 +551,8 @@ const StorePoliciesStep: React.FC<StepProps> = ({
             textTransform: 'none',
             fontSize: '1.1rem',
             fontWeight: 600,
+            order: { xs: 1, sm: 2 },
           }}
-          disabled={Object.keys(errors).length > 0}
         >
           Continue to Branding
         </LoadingButton>

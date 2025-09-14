@@ -66,6 +66,10 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
     handleProfileMenuClose();
   };
 
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+
   return (
     <AppBar
       position='static'
@@ -86,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
         }}
       >
         {/* Logo Section */}
-        <Logo size='medium' />
+        <Logo size='medium' onClick={handleLogoClick} />
 
         {/* Navigation Links */}
         <Box

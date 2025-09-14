@@ -379,7 +379,8 @@ export const storeApi = {
   // Upload store images
   uploadLogo: async (storeId: number, logoFile: File) => {
     const formData = new FormData();
-    formData.append('logo', logoFile);
+    formData.append('storeId', storeId.toString());
+    formData.append('file', logoFile);
 
     return api.post(`/api/stores/${storeId}/upload-logo`, formData, {
       headers: {
@@ -390,7 +391,8 @@ export const storeApi = {
 
   uploadBanner: async (storeId: number, bannerFile: File) => {
     const formData = new FormData();
-    formData.append('banner', bannerFile);
+    formData.append('storeId', storeId.toString());
+    formData.append('file', bannerFile);
 
     return api.post(`/api/stores/${storeId}/upload-banner`, formData, {
       headers: {
@@ -399,13 +401,14 @@ export const storeApi = {
     });
   },
 
-  uploadFeaturedImages: async (storeId: number, imageFiles: File[]) => {
+  uploadGalleryImages: async (storeId: number, imageFiles: File[]) => {
     const formData = new FormData();
-    imageFiles.forEach((file, index) => {
-      formData.append(`featuredImage${index}`, file);
+    formData.append('storeId', storeId.toString());
+    imageFiles.forEach((file) => {
+      formData.append('files', file);
     });
 
-    return api.post(`/api/stores/${storeId}/upload-featured-images`, formData, {
+    return api.post(`/api/stores/${storeId}/upload-gallery`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

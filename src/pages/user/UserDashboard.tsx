@@ -6,13 +6,13 @@ import {
   Paper,
   Tabs,
   Tab,
-  Grid,
   Card,
   CardContent,
   Avatar,
   Chip,
-  Divider,
   Button,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Dashboard,
@@ -20,15 +20,23 @@ import {
   CardGiftcard,
   Store,
   ShoppingCart,
-  TrendingUp,
   Settings,
   Palette,
+  Home,
+  Favorite,
+  MonetizationOn,
+  Star,
+  Paid,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import ReferralProgramPage from './ReferralProgramPage';
 import BrandingVisualsSection from '../../components/dashboard/BrandingVisualsSection';
+import { useUserStore } from '../../hooks/useUserStore';
+import { useComprehensiveStore } from '../../hooks/useComprehensiveStore';
 import StoreOverviewSection from '../../components/dashboard/StoreOverviewSection';
 import StoreSetupProgress from '../../components/dashboard/StoreSetupProgress';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -60,16 +68,44 @@ function a11yProps(index: number) {
 }
 
 const UserDashboard: React.FC = () => {
-  const { user, updateStoreStatus } = useAuth();
+  const { user, handleAuthenticationError } = useAuth();
+
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  // Fetch user store data
+  const {
+    primaryStore,
+    isLoading: storeLoading,
+    error: storeError,
+  } = useUserStore();
+
+  // Use comprehensive store hook for detailed store data
+  const { storeData: comprehensiveStoreData, getCompletionPercentage } =
+    useComprehensiveStore({
+      storeId: primaryStore?.storeId,
+      autoFetch: !!primaryStore?.storeId,
+    });
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
+
+  // Debug: Validate store type
+  React.useEffect(() => {
+    if (primaryStore) {
+      console.log('✅ Store type validation:', {
+        storeId: primaryStore.storeId,
+        storeName: primaryStore.storeName,
+        isActive: primaryStore.isActive,
+        type: typeof primaryStore,
+      });
+    }
+  }, [primaryStore]);
 
   if (!user) {
     return (
@@ -105,47 +141,38 @@ const UserDashboard: React.FC = () => {
               <Typography variant='body1' color='text.secondary'>
                 {user.email}
               </Typography>
-              <Chip
-                label={user.userType}
-                color='primary'
-                variant='outlined'
-                size='small'
-              />
-              {user.hasStore && (
+              {user.hasStore ? (
                 <Chip
                   label='Store Owner'
                   color='success'
                   variant='outlined'
                   size='small'
                 />
+              ) : (
+                <Chip
+                  label={user.userType}
+                  color='primary'
+                  variant='outlined'
+                  size='small'
+                />
               )}
-              {/* DEBUG: Show store status */}
-              <Chip
-                label={`hasStore: ${user.hasStore}`}
-                color={user.hasStore ? 'success' : 'error'}
-                variant='outlined'
-                size='small'
-              />
             </Box>
           </Box>
           <Box display='flex' gap={1}>
+            <Button
+              variant='outlined'
+              startIcon={<Home />}
+              onClick={() => navigate('/')}
+              sx={{ textTransform: 'none' }}
+            >
+              Back to Homepage
+            </Button>
             <Button
               variant='outlined'
               startIcon={<Settings />}
               sx={{ textTransform: 'none' }}
             >
               Account Settings
-            </Button>
-            {/* DEBUG: Test button to toggle store status */}
-            <Button
-              variant='outlined'
-              color='secondary'
-              onClick={() => {
-                updateStoreStatus(!user.hasStore);
-              }}
-              size='small'
-            >
-              Toggle Store
             </Button>
           </Box>
         </Box>
@@ -154,8 +181,15 @@ const UserDashboard: React.FC = () => {
       {/* Quick Stats */}
       {user.hasStore ? (
         // Store owner stats
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 3,
+            mb: 3,
+          }}
+        >
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
@@ -171,87 +205,111 @@ const UserDashboard: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
-                  <ShoppingCart color='success' />
+                  <Dashboard color='success' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
                       24
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Orders Received
+                      Products Listed
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
-                  <TrendingUp color='success' />
+                  <ShoppingCart color='warning' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
-                      $1,240.50
+                      8
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Total Revenue
+                      Orders Today
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
-                  <Person color='secondary' />
+                  <Paid color='info' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
-                      18
+                      $1,248
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Regular Customers
+                      Revenue
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       ) : (
         // Regular customer stats
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 3,
+            mb: 3,
+          }}
+        >
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
                   <ShoppingCart color='primary' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
-                      12
+                      3
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Orders Placed
+                      Orders This Month
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
-                  <TrendingUp color='success' />
+                  <Favorite color='error' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
-                      $240.50
+                      12
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Favorite Items
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+            <Card>
+              <CardContent>
+                <Box display='flex' alignItems='center' gap={2}>
+                  <MonetizationOn color='success' />
+                  <Box>
+                    <Typography variant='h6' fontWeight={600}>
+                      $234
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
                       Total Spent
@@ -260,42 +318,25 @@ const UserDashboard: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
                 <Box display='flex' alignItems='center' gap={2}>
-                  <CardGiftcard color='primary' />
+                  <Star color='warning' />
                   <Box>
                     <Typography variant='h6' fontWeight={600}>
-                      $25.00
+                      4.8
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Available Credits
+                      Average Rating
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Person color='secondary' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      5
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Friends Referred
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       )}
 
       {/* Main Dashboard Content */}
@@ -316,23 +357,20 @@ const UserDashboard: React.FC = () => {
               sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
               {...a11yProps(0)}
             />
-            {/* Always show store tabs for testing - remove hasStore condition temporarily */}
-            <>
-              <Tab
-                icon={<Store />}
-                label='Store Overview'
-                iconPosition='start'
-                sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-                {...a11yProps(1)}
-              />
-              <Tab
-                icon={<Palette />}
-                label='Branding & Visuals'
-                iconPosition='start'
-                sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-                {...a11yProps(2)}
-              />
-            </>
+            <Tab
+              icon={<Store />}
+              label='Store Overview'
+              iconPosition='start'
+              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
+              {...a11yProps(1)}
+            />
+            <Tab
+              icon={<Palette />}
+              label='Branding & Visuals'
+              iconPosition='start'
+              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
+              {...a11yProps(2)}
+            />
             <Tab
               icon={<ShoppingCart />}
               label='My Orders'
@@ -362,9 +400,11 @@ const UserDashboard: React.FC = () => {
           <Box sx={{ p: 3 }}>
             {user.hasStore ? (
               <StoreSetupProgress
-                storeId={1}
-                storeName='Green Valley Farm'
-                completionPercentage={65}
+                storeId={primaryStore?.storeId || 0}
+                storeName={primaryStore?.storeName || 'Your Store'}
+                completionPercentage={getCompletionPercentage()}
+                storeData={comprehensiveStoreData}
+                approvalStatus={comprehensiveStoreData?.approvalStatus}
                 onNavigateToStep={(step) => {
                   if (step === 'branding') {
                     setTabValue(2);
@@ -386,8 +426,8 @@ const UserDashboard: React.FC = () => {
                   track orders, and explore our referral program.
                 </Typography>
 
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                  <Box sx={{ flex: '1 1 300px' }}>
                     <Card variant='outlined'>
                       <CardContent>
                         <Typography variant='h6' gutterBottom>
@@ -398,8 +438,8 @@ const UserDashboard: React.FC = () => {
                         </Typography>
                       </CardContent>
                     </Card>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
+                  </Box>
+                  <Box sx={{ flex: '1 1 300px' }}>
                     <Card variant='outlined'>
                       <CardContent>
                         <Typography variant='h6' gutterBottom>
@@ -435,35 +475,62 @@ const UserDashboard: React.FC = () => {
                         </Box>
                       </CardContent>
                     </Card>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
               </>
             )}
           </Box>
         </TabPanel>
 
-        {/* Always show store tabs for testing */}
-        <>
-          <TabPanel value={tabValue} index={1}>
-            <Box sx={{ p: 3 }}>
-              <StoreOverviewSection
-                onNavigateToBranding={() => setTabValue(2)}
-              />
-            </Box>
-          </TabPanel>
+        <TabPanel value={tabValue} index={1}>
+          <Box sx={{ p: 3 }}>
+            <StoreOverviewSection onNavigateToBranding={() => setTabValue(2)} />
+          </Box>
+        </TabPanel>
 
-          <TabPanel value={tabValue} index={2}>
-            <Box sx={{ p: 3 }}>
+        <TabPanel value={tabValue} index={2}>
+          <Box sx={{ p: 3 }}>
+            {storeLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+                <Typography variant='body2' sx={{ ml: 2 }}>
+                  Loading store data...
+                </Typography>
+              </Box>
+            ) : storeError ? (
+              <Alert severity='error' sx={{ mb: 2 }}>
+                Store Error: {storeError}
+                <br />
+                <Button
+                  size='small'
+                  onClick={() => window.location.reload()}
+                  sx={{ mt: 1 }}
+                >
+                  Reload Page
+                </Button>
+              </Alert>
+            ) : !primaryStore ? (
+              <Alert severity='warning' sx={{ mb: 2 }}>
+                No store found. Please create a store first to manage branding.
+              </Alert>
+            ) : (
               <BrandingVisualsSection
-                storeId={1} // TODO: Replace with actual store ID from user data
-                onUpdate={(data) => {
+                storeId={primaryStore.storeId}
+                onUpdate={(data: unknown) => {
                   console.log('Branding data updated:', data);
                   // TODO: Save to backend or update local state
                 }}
+                onError={(error: unknown) => {
+                  // Handle authentication errors
+                  if (!handleAuthenticationError(error, navigate)) {
+                    // If not an auth error, show generic error
+                    console.error('Branding section error:', error);
+                  }
+                }}
               />
-            </Box>
-          </TabPanel>
-        </>
+            )}
+          </Box>
+        </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
           <Box sx={{ p: 3 }}>
@@ -497,4 +564,12 @@ const UserDashboard: React.FC = () => {
   );
 };
 
-export default UserDashboard;
+const WrappedUserDashboard: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <UserDashboard />
+    </ErrorBoundary>
+  );
+};
+
+export default WrappedUserDashboard;

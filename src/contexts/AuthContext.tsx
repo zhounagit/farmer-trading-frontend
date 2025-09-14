@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authApi, handleApiError, tokenUtils } from '../utils/api';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
+import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
 
 import toast from 'react-hot-toast';
 
@@ -180,6 +181,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const handleAuthenticationError = (
+    error: unknown,
+    navigate?: (path: string) => void
+  ) => {
+    if (isAuthError(error)) {
+      // Clear user state
+      setUser(null);
+      setError('Your session has expired. Please log in again.');
+
+      // Use centralized auth error handler
+      handleAuthError(error, navigate);
+      return true;
+    }
+    return false;
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -192,6 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError,
     updateReferralCode,
     updateStoreStatus,
+    handleAuthenticationError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

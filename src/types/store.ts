@@ -179,6 +179,14 @@ export const STORE_CATEGORIES = [
   'Beverages',
   'Seeds & Plants',
   'Farm Equipment',
+  'Baked Goods',
+  'Preserved Foods',
+  'Honey & Bee Products',
+  'Nuts & Dried Fruits',
+  'Flowers & Plants',
+  'Farm Tours & Experiences',
+  'Handmade Crafts',
+  'Pet & Animal Feed',
   'Other',
 ] as const;
 
@@ -201,6 +209,6 @@ export const DAYS_OF_WEEK = [
   { key: 'sunday', label: 'Sunday' },
 ] as const;
 
-export type PaymentMethod = typeof PAYMENT_METHODS[number];
-export type StoreCategory = typeof STORE_CATEGORIES[number];
-export type DayOfWeek = typeof DAYS_OF_WEEK[number]['key'];
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type StoreCategory = (typeof STORE_CATEGORIES)[number];
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number]['key'];

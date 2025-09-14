@@ -119,6 +119,7 @@ function App() {
                 <Route path='/register' element={<RegisterPage />} />
                 <Route path='/dashboard' element={<UserDashboard />} />
                 <Route path='/open-shop' element={<OpenShopPage />} />
+                {/* /open-shop?edit=true - Edit existing store mode */}
                 <Route path='/my-stores' element={<StoreManagementPage />} />
                 <Route
                   path='/stores/:storeId/dashboard'

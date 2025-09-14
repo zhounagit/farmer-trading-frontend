@@ -67,4 +67,8 @@ export interface AuthContextType {
   clearError: () => void;
   updateReferralCode: (referralCode: string) => void;
   updateStoreStatus: (hasStore: boolean) => void;
+  handleAuthenticationError: (
+    error: unknown,
+    navigate?: (path: string) => void
+  ) => boolean;
 }

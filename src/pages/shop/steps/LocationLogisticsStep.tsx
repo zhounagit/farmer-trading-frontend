@@ -13,10 +13,12 @@ import {
   Collapse,
   Card,
   CardContent,
+  Button,
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Phone as PhoneIcon,
+  Email as EmailIcon,
   Business as BusinessIcon,
   LocalShipping as DeliveryIcon,
   Store as StoreIcon,
@@ -24,6 +26,8 @@ import {
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
 import { type StepProps } from '../../../types/open-shop.types';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
 import toast from 'react-hot-toast';
 
@@ -35,8 +39,34 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
   onNext,
   onPrevious,
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper function to format phone numbers for database constraint
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+
+    // Remove all non-numeric characters
+    const digitsOnly = phone.replace(/\D/g, '');
+
+    // Database constraint: ^\+?[0-9]{10,15}$
+    if (digitsOnly.length >= 10 && digitsOnly.length <= 15) {
+      // Add +1 for US numbers if it's exactly 10 digits
+      if (digitsOnly.length === 10) {
+        return `+1${digitsOnly}`;
+      }
+      // Add + prefix for international numbers (11+ digits)
+      if (digitsOnly.length >= 11) {
+        return `+${digitsOnly}`;
+      }
+    }
+
+    // If it doesn't meet the constraint, return as-is and let backend validate
+    console.warn('Phone number may not meet database constraint:', phone);
+    return digitsOnly;
+  };
 
   const validateBusinessAddress = () => {
     const newErrors: { [key: string]: string } = {};
@@ -47,6 +77,9 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
     }
     if (!address.contactPhone.trim()) {
       newErrors.contactPhone = 'Contact phone is required';
+    }
+    if (!address.contactEmail.trim()) {
+      newErrors.contactEmail = 'Contact email is required';
     }
     if (!address.streetLine.trim()) {
       newErrors.streetLine = 'Street address is required';
@@ -169,6 +202,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           : {
               locationName: '',
               contactPhone: '',
+              contactEmail: '',
               streetLine: '',
               city: '',
               state: '',
@@ -198,20 +232,35 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
 
     setIsLoading(true);
     try {
+      console.log('=== Creating Business Address ===');
+      const businessAddressData = {
+        AddressType: 'business',
+        LocationName:
+          formState.locationLogistics.businessAddress.locationName ||
+          'Business Address',
+        ContactPhone: formatPhoneNumber(
+          formState.locationLogistics.businessAddress.contactPhone
+        ),
+        ContactEmail: formState.locationLogistics.businessAddress.contactEmail,
+        StreetLine: formState.locationLogistics.businessAddress.streetLine,
+        City: formState.locationLogistics.businessAddress.city,
+        State: formState.locationLogistics.businessAddress.state,
+        ZipCode: formState.locationLogistics.businessAddress.zipCode,
+        Country: formState.locationLogistics.businessAddress.country || 'US',
+        IsPrimary: true,
+        IsActive: true,
+      };
+
+      console.log(
+        'Business address payload:',
+        JSON.stringify(businessAddressData, null, 2)
+      );
+
       // 1. Create business address
-      await OpenShopApiService.createStoreAddress(formState.storeId, {
-        addressType: 'business',
-        locationName: formState.locationLogistics.businessAddress.locationName,
-        contactPhone: formState.locationLogistics.businessAddress.contactPhone,
-        streetLine: formState.locationLogistics.businessAddress.streetLine,
-        city: formState.locationLogistics.businessAddress.city,
-        state: formState.locationLogistics.businessAddress.state,
-        zipCode: formState.locationLogistics.businessAddress.zipCode,
-        country: formState.locationLogistics.businessAddress.country,
-        isPrimary: true,
-        createdAt: new Date().toISOString(),
-        isActive: true,
-      });
+      await OpenShopApiService.createStoreAddress(
+        formState.storeId,
+        businessAddressData
+      );
 
       // 2. Handle conditional addresses based on selling methods
       const sellingMethods = formState.locationLogistics.sellingMethods;
@@ -220,21 +269,22 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
       if (sellingMethods.includes('on-farm-pickup')) {
         if (!formState.locationLogistics.farmgateSameAsBusinessAddress) {
           await OpenShopApiService.createStoreAddress(formState.storeId, {
-            addressType: 'farmgate',
-            locationName:
-              formState.locationLogistics.farmgateAddress?.locationName || '',
-            contactPhone:
-              formState.locationLogistics.farmgateAddress?.contactPhone || '',
-            streetLine:
+            AddressType: 'farm_location',
+            LocationName:
+              formState.locationLogistics.farmgateAddress?.locationName ||
+              'Farm Location',
+            ContactPhone: formatPhoneNumber(
+              formState.locationLogistics.farmgateAddress?.contactPhone || ''
+            ),
+            StreetLine:
               formState.locationLogistics.farmgateAddress?.streetLine || '',
-            city: formState.locationLogistics.farmgateAddress?.city || '',
-            state: formState.locationLogistics.farmgateAddress?.state || '',
-            zipCode: formState.locationLogistics.farmgateAddress?.zipCode || '',
-            country:
+            City: formState.locationLogistics.farmgateAddress?.city || '',
+            State: formState.locationLogistics.farmgateAddress?.state || '',
+            ZipCode: formState.locationLogistics.farmgateAddress?.zipCode || '',
+            Country:
               formState.locationLogistics.farmgateAddress?.country || 'US',
-            isPrimary: false,
-            createdAt: new Date().toISOString(),
-            isActive: true,
+            IsPrimary: false,
+            IsActive: true,
           });
         }
       }
@@ -252,22 +302,23 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
       // Create pickup point address if farmers market is selected
       if (sellingMethods.includes('farmers-market')) {
         await OpenShopApiService.createStoreAddress(formState.storeId, {
-          addressType: 'pickup',
-          locationName:
-            formState.locationLogistics.pickupPointAddress?.locationName || '',
-          contactPhone:
-            formState.locationLogistics.pickupPointAddress?.contactPhone || '',
-          streetLine:
+          AddressType: 'pickup_location',
+          LocationName:
+            formState.locationLogistics.pickupPointAddress?.locationName ||
+            'Pickup Location',
+          ContactPhone: formatPhoneNumber(
+            formState.locationLogistics.pickupPointAddress?.contactPhone || ''
+          ),
+          StreetLine:
             formState.locationLogistics.pickupPointAddress?.streetLine || '',
-          city: formState.locationLogistics.pickupPointAddress?.city || '',
-          state: formState.locationLogistics.pickupPointAddress?.state || '',
-          zipCode:
+          City: formState.locationLogistics.pickupPointAddress?.city || '',
+          State: formState.locationLogistics.pickupPointAddress?.state || '',
+          ZipCode:
             formState.locationLogistics.pickupPointAddress?.zipCode || '',
-          country:
+          Country:
             formState.locationLogistics.pickupPointAddress?.country || 'US',
-          isPrimary: false,
-          createdAt: new Date().toISOString(),
-          isActive: true,
+          IsPrimary: false,
+          IsActive: true,
         });
       }
 
@@ -369,6 +420,27 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           />
 
           <TextField
+            label='Contact Email'
+            placeholder='e.g., store@farm.com'
+            value={formState.locationLogistics.businessAddress.contactEmail}
+            onChange={(e) =>
+              handleBusinessAddressChange('contactEmail', e.target.value)
+            }
+            error={!!errors.contactEmail}
+            helperText={errors.contactEmail}
+            fullWidth
+            required
+            type='email'
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position='start'>
+                  <EmailIcon color='action' />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <TextField
             label='Street Address'
             placeholder='e.g., 123 Farm Road'
             value={formState.locationLogistics.businessAddress.streetLine}
@@ -416,6 +488,21 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
               helperText={errors.zipCode}
               required
               sx={{ flex: 1 }}
+            />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label='Country'
+              value={
+                formState.locationLogistics.businessAddress.country || 'US'
+              }
+              onChange={(e) =>
+                handleBusinessAddressChange('country', e.target.value)
+              }
+              required
+              fullWidth
+              placeholder='US'
             />
           </Box>
         </Box>
@@ -742,23 +829,45 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <LoadingButton
-          variant='outlined'
-          onClick={onPrevious}
-          disabled={isLoading}
-          size='large'
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-          }}
-        >
-          Back to Store Basics
-        </LoadingButton>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', gap: 2, order: { xs: 2, sm: 1 } }}>
+          <LoadingButton
+            variant='outlined'
+            onClick={onPrevious}
+            disabled={isLoading}
+            size='large'
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+            }}
+          >
+            Back to Store Basics
+          </LoadingButton>
+
+          <Button
+            variant='text'
+            onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              px: 2,
+            }}
+          >
+            Save & Exit Later
+          </Button>
+        </Box>
 
         <LoadingButton
           variant='contained'
@@ -772,6 +881,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             textTransform: 'none',
             fontSize: '1.1rem',
             fontWeight: 600,
+            order: { xs: 1, sm: 2 },
           }}
         >
           Continue to Policies

@@ -3,14 +3,11 @@ import {
   Box,
   Typography,
   Button,
-  Alert,
-  Grid,
   Paper,
   Card,
   CardContent,
   Divider,
   Chip,
-  Avatar,
   FormControlLabel,
   Checkbox,
   List,
@@ -30,11 +27,14 @@ import {
   Agriculture as FarmIcon,
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   type StepProps,
   SELLING_METHODS,
-  PAYMENT_METHODS_OPTIONS,
+  type StoreSubmissionRequest,
 } from '../../../types/open-shop.types';
+import OpenShopApiService from '../../../services/open-shop.api';
 import toast from 'react-hot-toast';
 
 interface ReviewSubmitStepProps extends StepProps {
@@ -57,6 +57,8 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
   onPrevious,
   onComplete,
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleTermsChange = (checked: boolean) => {
@@ -71,17 +73,47 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
       return;
     }
 
+    if (!formState.storeId) {
+      toast.error('Store ID not found. Please complete previous steps.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // All API calls have been made in previous steps
-      // This is just for final submission confirmation
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
+      console.log('=== SUBMITTING STORE FOR REVIEW ===');
+      console.log('Store ID:', formState.storeId);
+      console.log('Form State:', formState);
+
+      // Prepare submission request
+      const submissionRequest: StoreSubmissionRequest = {
+        storeId: formState.storeId,
+        agreedToTermsAt: new Date().toISOString(),
+        termsVersion: '1.0.0',
+        submissionNotes: `Store application for ${formState.storeBasics.storeName}`,
+      };
+
+      // Submit store for review
+      const response =
+        await OpenShopApiService.submitStoreForReview(submissionRequest);
+
+      console.log('✅ Store submitted successfully:', response);
+
+      // Update form state with submission details
+      updateFormState({
+        submissionId: response.submissionId,
+        submissionStatus: response.status,
+        submittedAt: response.submittedAt,
+      });
 
       toast.success('Store application submitted successfully!');
       onComplete();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Submission error:', error);
-      toast.error('Failed to submit application. Please try again.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to submit application. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -111,32 +143,32 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
             <Typography variant='body2' color='text.secondary'>
               Store Name
             </Typography>
             <Typography variant='body1' sx={{ fontWeight: 500 }}>
               {formState.storeBasics.storeName}
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
+          </Box>
+          <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
             <Typography variant='body2' color='text.secondary'>
               Store ID
             </Typography>
             <Typography variant='body1' sx={{ fontWeight: 500 }}>
               #{formState.storeId}
             </Typography>
-          </Grid>
-          <Grid item xs={12}>
+          </Box>
+          <Box sx={{ width: '100%', mt: 2 }}>
             <Typography variant='body2' color='text.secondary'>
               Description
             </Typography>
             <Typography variant='body1' sx={{ fontWeight: 500 }}>
               {formState.storeBasics.description}
             </Typography>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -285,9 +317,15 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
 
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+          }}
+        >
           {/* Store Hours */}
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: 1 }}>
             <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 1 }}>
               Store Hours
             </Typography>
@@ -329,10 +367,10 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 );
               })}
             </List>
-          </Grid>
+          </Box>
 
           {/* Payment Methods */}
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: 1 }}>
             <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 1 }}>
               Accepted Payment Methods
             </Typography>
@@ -348,8 +386,8 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 />
               ))}
             </Box>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -365,8 +403,8 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: '200px' }}>
             <Typography variant='body2' color='text.secondary' gutterBottom>
               Store Logo
             </Typography>
@@ -380,9 +418,9 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 Not provided
               </Typography>
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={4}>
+          <Box sx={{ flex: '1 1 250px', minWidth: '200px' }}>
             <Typography variant='body2' color='text.secondary' gutterBottom>
               Store Banner
             </Typography>
@@ -396,9 +434,9 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 Not provided
               </Typography>
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={4}>
+          <Box sx={{ flex: '1 1 250px', minWidth: '200px' }}>
             <Typography variant='body2' color='text.secondary' gutterBottom>
               Gallery Images
             </Typography>
@@ -415,8 +453,8 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 Not provided
               </Typography>
             )}
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -545,34 +583,51 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
           Ready to Submit?
         </Typography>
         <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-          Your store application will be reviewed by our team. You'll be
-          notified once it's approved.
+          Your store application will be reviewed by our team within 1-2
+          business days. You'll receive an email notification once it's
+          approved.
         </Typography>
 
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
+            alignItems: 'center',
+            flexDirection: { xs: 'column', sm: 'row' },
             gap: 2,
-            maxWidth: 400,
+            maxWidth: 600,
             mx: 'auto',
           }}
         >
-          <Button
-            variant='outlined'
-            onClick={onPrevious}
-            size='large'
-            sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-            }}
-          >
-            Back to Branding
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, order: { xs: 2, sm: 1 } }}>
+            <Button
+              variant='outlined'
+              onClick={onPrevious}
+              size='large'
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+              }}
+            >
+              Back to Branding
+            </Button>
+
+            <Button
+              variant='text'
+              onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+              sx={{
+                textTransform: 'none',
+                color: 'text.secondary',
+                px: 2,
+              }}
+            >
+              Save & Exit Later
+            </Button>
+          </Box>
 
           <LoadingButton
             variant='contained'
@@ -591,6 +646,7 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
               '&:hover': {
                 background: 'linear-gradient(45deg, #1976D2 30%, #0288D1 90%)',
               },
+              order: { xs: 1, sm: 2 },
             }}
           >
             Submit for Review
