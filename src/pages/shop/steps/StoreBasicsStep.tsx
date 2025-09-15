@@ -20,6 +20,7 @@ import {
 import { LoadingButton } from '@mui/lab';
 import { type StepProps } from '../../../types/open-shop.types';
 import { useAuth } from '../../../contexts/AuthContext';
+import { tokenUtils } from '../../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
 import StoreApiService, {
@@ -130,6 +131,30 @@ const StoreBasicsStep: React.FC<StepProps> = ({
 
       if (!storeId) {
         throw new Error('No store ID returned from server');
+      }
+
+      // Handle new JWT token if provided (user role updated to Store Owner)
+      if (response?.accessToken) {
+        // Update stored token with new role claims
+        tokenUtils.setAccessToken(response.accessToken);
+
+        // Update user data in localStorage if userType is provided
+        if (response.userType) {
+          const storedUserData = localStorage.getItem('heartwood_user_data');
+          if (storedUserData) {
+            try {
+              const userData = JSON.parse(storedUserData);
+              userData.userType = response.userType;
+              userData.hasStore = true;
+              localStorage.setItem(
+                'heartwood_user_data',
+                JSON.stringify(userData)
+              );
+            } catch (error) {
+              console.warn('Failed to update stored user data:', error);
+            }
+          }
+        }
       }
 
       // Update form state with store ID for next steps

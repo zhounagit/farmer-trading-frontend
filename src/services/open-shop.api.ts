@@ -11,7 +11,11 @@ interface StoreCreationRequest {
 }
 
 interface StoreCreationResponse {
-  store_id: number;
+  storeId: number;
+  store_id?: number; // Legacy support
+  accessToken?: string;
+  userType?: string;
+  expires?: string;
 }
 
 // Store Submission Types

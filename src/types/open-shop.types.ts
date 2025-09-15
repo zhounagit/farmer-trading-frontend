@@ -9,6 +9,10 @@ export interface StoreCreationRequest {
 
 export interface StoreCreationResponse {
   store_id: number;
+  storeId?: number; // Alias for consistency
+  accessToken?: string;
+  userType?: string;
+  expires?: string;
 }
 
 export interface AddressCreationRequest {
