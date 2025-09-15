@@ -70,6 +70,26 @@ export interface AddressFormData {
   country: string;
 }
 
+export interface ShippingServiceFormData {
+  serviceId: number;
+  serviceType: string;
+  serviceName: string;
+  description?: string;
+  baseCost: number;
+  costPerMile: number;
+  maxRadiusMiles?: number;
+  estimatedDeliveryHours: number;
+  minimumOrderValue: number;
+  maxWeightLbs?: number;
+  isEnabled: boolean;
+  platformFeeRate: number;
+  platformFeeFixed: number;
+  availableDays?: number[];
+  earliestPickupTime?: string;
+  latestPickupTime?: string;
+  specialInstructions?: string;
+}
+
 export interface LocationLogisticsFormData {
   businessAddress: AddressFormData;
   sellingMethods: SellingMethod[];
@@ -78,6 +98,8 @@ export interface LocationLogisticsFormData {
   deliveryRadiusMi?: number;
   pickupPointAddress?: AddressFormData;
   pickupPointNickname?: string;
+  shippingServices?: ShippingServiceFormData[];
+  enablePlatformShipping?: boolean;
 }
 
 export interface StoreHoursFormData {
@@ -202,6 +224,43 @@ export const SELLING_METHODS: Array<{
     description: 'Market or pickup point sales',
   },
 ];
+
+export const SHIPPING_SERVICE_TYPES = [
+  {
+    value: 'standard',
+    label: 'Standard Shipping',
+    description: 'Regular delivery service (1-3 days)',
+    defaultHours: 48,
+  },
+  {
+    value: 'express',
+    label: 'Express Shipping',
+    description: 'Faster delivery service (next day)',
+    defaultHours: 24,
+  },
+  {
+    value: 'local_courier',
+    label: 'Local Courier',
+    description: 'Same-day local delivery',
+    defaultHours: 4,
+  },
+  {
+    value: 'overnight',
+    label: 'Overnight Delivery',
+    description: 'Next morning delivery',
+    defaultHours: 16,
+  },
+] as const;
+
+export const DAYS_OF_WEEK = [
+  { value: 0, label: 'Sunday', short: 'Sun' },
+  { value: 1, label: 'Monday', short: 'Mon' },
+  { value: 2, label: 'Tuesday', short: 'Tue' },
+  { value: 3, label: 'Wednesday', short: 'Wed' },
+  { value: 4, label: 'Thursday', short: 'Thu' },
+  { value: 5, label: 'Friday', short: 'Fri' },
+  { value: 6, label: 'Saturday', short: 'Sat' },
+] as const;
 
 export const PAYMENT_METHODS_OPTIONS = [
   'Cash',

@@ -23,9 +23,16 @@ import {
   LocalShipping as DeliveryIcon,
   Store as StoreIcon,
   Agriculture as FarmIcon,
+  LocalShipping,
+  Schedule as TimeIcon,
+  AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
-import { type StepProps } from '../../../types/open-shop.types';
+import {
+  type StepProps,
+  type ShippingServiceFormData,
+  DAYS_OF_WEEK,
+} from '../../../types/open-shop.types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
@@ -160,11 +167,23 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
   };
 
   const handleFarmgateAddressChange = (field: string, value: string) => {
+    const currentFarmgateAddress = formState.locationLogistics
+      .farmgateAddress || {
+      locationName: '',
+      contactPhone: '',
+      contactEmail: '',
+      streetLine: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US',
+    };
+
     updateFormState({
       locationLogistics: {
         ...formState.locationLogistics,
         farmgateAddress: {
-          ...formState.locationLogistics.farmgateAddress,
+          ...currentFarmgateAddress,
           [field]: value,
         },
       },
@@ -172,11 +191,23 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
   };
 
   const handlePickupPointAddressChange = (field: string, value: string) => {
+    const currentPickupAddress = formState.locationLogistics
+      .pickupPointAddress || {
+      locationName: '',
+      contactPhone: '',
+      contactEmail: '',
+      streetLine: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US',
+    };
+
     updateFormState({
       locationLogistics: {
         ...formState.locationLogistics,
         pickupPointAddress: {
-          ...formState.locationLogistics.pickupPointAddress,
+          ...currentPickupAddress,
           [field]: value,
         },
       },
@@ -209,6 +240,51 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
               zipCode: '',
               country: 'US',
             },
+      },
+    });
+  };
+
+  const handleShippingServiceToggle = (enabled: boolean) => {
+    updateFormState({
+      locationLogistics: {
+        ...formState.locationLogistics,
+        enablePlatformShipping: enabled,
+        shippingServices: enabled
+          ? [
+              {
+                serviceId: 0,
+                serviceType: 'standard',
+                serviceName: 'Standard Shipping',
+                description: 'Regular delivery service (1-3 days)',
+                baseCost: 5.99,
+                costPerMile: 0.5,
+                maxRadiusMiles: 25,
+                estimatedDeliveryHours: 48,
+                minimumOrderValue: 0,
+                maxWeightLbs: 50,
+                isEnabled: true,
+                platformFeeRate: 0.05,
+                platformFeeFixed: 1.0,
+                availableDays: [1, 2, 3, 4, 5], // Monday-Friday
+              },
+            ]
+          : [],
+      },
+    });
+  };
+
+  const handleShippingServiceUpdate = (
+    index: number,
+    updates: Partial<ShippingServiceFormData>
+  ) => {
+    const currentServices = formState.locationLogistics.shippingServices || [];
+    const updatedServices = [...currentServices];
+    updatedServices[index] = { ...updatedServices[index], ...updates };
+
+    updateFormState({
+      locationLogistics: {
+        ...formState.locationLogistics,
+        shippingServices: updatedServices,
       },
     });
   };
@@ -720,6 +796,259 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             valueLabelDisplay='auto'
             sx={{ mt: 2 }}
           />
+        </Paper>
+      </Collapse>
+
+      {/* Platform Shipping Services - appears when Local Delivery is selected */}
+      <Collapse in={isLocalDeliverySelected}>
+        <Paper elevation={1} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              fontWeight: 600,
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <LocalShipping color='primary' />
+            Platform Shipping Services
+          </Typography>
+
+          <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+            Let our platform handle shipping logistics for you. We'll manage
+            delivery and charge a small service fee in addition to regular
+            commission.
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={
+                  formState.locationLogistics.enablePlatformShipping || false
+                }
+                onChange={(e) => handleShippingServiceToggle(e.target.checked)}
+                color='primary'
+              />
+            }
+            label='Enable Platform Shipping Services'
+            sx={{ mb: 3 }}
+          />
+
+          <Collapse in={formState.locationLogistics.enablePlatformShipping}>
+            <Alert severity='info' sx={{ mb: 3 }}>
+              Platform shipping includes a 5% service fee + $1.00 per shipment
+              on top of regular store commission. This covers logistics
+              management, customer support, and delivery tracking.
+            </Alert>
+
+            {formState.locationLogistics.shippingServices?.map(
+              (service, index) => (
+                <Card
+                  key={index}
+                  sx={{
+                    mb: 3,
+                    border: '1px solid',
+                    borderColor: 'primary.light',
+                  }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant='h6'
+                      sx={{
+                        mb: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <MoneyIcon color='primary' />
+                      {service.serviceName}
+                    </Typography>
+
+                    <Box
+                      sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                    >
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                        <TextField
+                          label='Base Cost ($)'
+                          type='number'
+                          value={service.baseCost}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              baseCost: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position='start'>
+                                $
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{ minWidth: 120 }}
+                        />
+
+                        <TextField
+                          label='Cost per Mile ($)'
+                          type='number'
+                          value={service.costPerMile}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              costPerMile: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position='start'>
+                                $
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{ minWidth: 120 }}
+                        />
+
+                        <TextField
+                          label='Max Radius (miles)'
+                          type='number'
+                          value={service.maxRadiusMiles || ''}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              maxRadiusMiles:
+                                parseInt(e.target.value) || undefined,
+                            })
+                          }
+                          sx={{ minWidth: 120 }}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                        <TextField
+                          label='Min Order Value ($)'
+                          type='number'
+                          value={service.minimumOrderValue}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              minimumOrderValue:
+                                parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position='start'>
+                                $
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{ minWidth: 120 }}
+                        />
+
+                        <TextField
+                          label='Max Weight (lbs)'
+                          type='number'
+                          value={service.maxWeightLbs || ''}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              maxWeightLbs:
+                                parseFloat(e.target.value) || undefined,
+                            })
+                          }
+                          sx={{ minWidth: 120 }}
+                        />
+
+                        <TextField
+                          label='Delivery Hours'
+                          type='number'
+                          value={service.estimatedDeliveryHours}
+                          onChange={(e) =>
+                            handleShippingServiceUpdate(index, {
+                              estimatedDeliveryHours:
+                                parseInt(e.target.value) || 24,
+                            })
+                          }
+                          sx={{ minWidth: 120 }}
+                        />
+                      </Box>
+
+                      <TextField
+                        label='Special Instructions'
+                        multiline
+                        rows={2}
+                        value={service.specialInstructions || ''}
+                        onChange={(e) =>
+                          handleShippingServiceUpdate(index, {
+                            specialInstructions: e.target.value,
+                          })
+                        }
+                        placeholder='Any special handling requirements or delivery notes...'
+                        fullWidth
+                      />
+
+                      <Box>
+                        <Typography
+                          variant='subtitle2'
+                          sx={{
+                            mb: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <TimeIcon fontSize='small' />
+                          Available Days
+                        </Typography>
+                        <FormGroup row>
+                          {DAYS_OF_WEEK.map((day) => (
+                            <FormControlLabel
+                              key={day.value}
+                              control={
+                                <Checkbox
+                                  size='small'
+                                  checked={
+                                    service.availableDays?.includes(
+                                      day.value
+                                    ) || false
+                                  }
+                                  onChange={(e) => {
+                                    const currentDays =
+                                      service.availableDays || [];
+                                    const newDays = e.target.checked
+                                      ? [...currentDays, day.value]
+                                      : currentDays.filter(
+                                          (d) => d !== day.value
+                                        );
+                                    handleShippingServiceUpdate(index, {
+                                      availableDays: newDays,
+                                    });
+                                  }}
+                                />
+                              }
+                              label={day.short}
+                            />
+                          ))}
+                        </FormGroup>
+                      </Box>
+
+                      <Typography
+                        variant='caption'
+                        color='text.secondary'
+                        sx={{
+                          mt: 1,
+                          p: 2,
+                          bgcolor: 'grey.50',
+                          borderRadius: 1,
+                        }}
+                      >
+                        Platform Fee: 5% of shipping cost + $1.00 per shipment =
+                        ${(service.baseCost * 0.05 + 1.0).toFixed(2)} base fee
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              )
+            )}
+          </Collapse>
         </Paper>
       </Collapse>
 
