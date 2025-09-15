@@ -195,6 +195,9 @@ export interface OpenShopFormState {
   submissionId?: string;
   submissionStatus?: string;
   submittedAt?: string;
+  // Security and metadata fields for draft management
+  userId?: number | string;
+  savedAt?: string;
 }
 
 // Enums and constants

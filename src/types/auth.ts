@@ -3,10 +3,11 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  userType: string;
+  userType: 'customer' | 'store_owner' | 'admin';
   phone?: string;
   referralCode?: string;
   hasStore?: boolean;
+  profilePictureUrl?: string;
 }
 
 export interface LoginRequest {
@@ -31,7 +32,7 @@ export interface RegisterRequest {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  userType: string;
+  userType: 'customer' | 'store_owner';
   phone?: string;
   referralCode?: string;
 }
@@ -50,7 +51,7 @@ export interface RegisterData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  userType: string;
+  userType: 'customer' | 'store_owner';
   phone?: string;
   referralCode?: string;
 }
@@ -67,6 +68,8 @@ export interface AuthContextType {
   clearError: () => void;
   updateReferralCode: (referralCode: string) => void;
   updateStoreStatus: (hasStore: boolean) => void;
+  updateProfile: (updates: Partial<User>) => void;
+  refreshUserProfile: () => Promise<void>;
   handleAuthenticationError: (
     error: unknown,
     navigate?: (path: string) => void

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -8,11 +8,11 @@ import {
   Tab,
   Card,
   CardContent,
-  Avatar,
   Chip,
   Button,
   CircularProgress,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   Dashboard,
@@ -24,9 +24,10 @@ import {
   Palette,
   Home,
   Favorite,
-  MonetizationOn,
   Star,
   Paid,
+  TrendingUp,
+  AccountBalanceWallet,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +38,14 @@ import { useComprehensiveStore } from '../../hooks/useComprehensiveStore';
 import StoreOverviewSection from '../../components/dashboard/StoreOverviewSection';
 import StoreSetupProgress from '../../components/dashboard/StoreSetupProgress';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import ProfilePictureUpload from '../../components/user/ProfilePictureUpload';
+import {
+  canAccessStoreFeatures,
+  debugUserType,
+  getUserRoleDisplayName,
+  getUserRoleBadgeColor,
+  getDashboardMetricLabels,
+} from '../../utils/userTypeUtils';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -68,10 +77,57 @@ function a11yProps(index: number) {
 }
 
 const UserDashboard: React.FC = () => {
-  const { user, handleAuthenticationError } = useAuth();
+  const { user, handleAuthenticationError, refreshUserProfile } = useAuth();
 
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
+
+  // Define tab configuration based on user type
+  const getTabConfig = () => {
+    // Debug user type for troubleshooting
+    debugUserType(user?.userType, user?.hasStore, 'Dashboard');
+
+    const canAccessStore = canAccessStoreFeatures(
+      user?.userType,
+      user?.hasStore
+    );
+
+    if (canAccessStore) {
+      console.log('✅ Loading STORE OWNER dashboard tabs (6 tabs)');
+      return [
+        { key: 'overview', label: 'Overview', icon: <Dashboard /> },
+        { key: 'store', label: 'Store Overview', icon: <Store /> },
+        { key: 'branding', label: 'Branding & Visuals', icon: <Palette /> },
+        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
+        { key: 'profile', label: 'Profile', icon: <Person /> },
+      ];
+    } else {
+      console.log('✅ Loading CUSTOMER dashboard tabs (4 tabs)');
+      return [
+        { key: 'overview', label: 'Overview', icon: <Dashboard /> },
+        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
+        { key: 'profile', label: 'Profile', icon: <Person /> },
+      ];
+    }
+  };
+
+  const tabConfig = getTabConfig();
+
+  // Get dynamic metric labels based on user type
+  // - Store Owners: "Total Transactions" (transaction volume from their store)
+  // - Customers: "Total Referral Credit" (credits earned from referrals)
+  // - Admins: "Total Spent" (default platform spending)
+  const metricLabels = getDashboardMetricLabels(user?.userType, user?.hasStore);
+
+  // Debug logging for metric labels
+  console.log('📊 Dashboard metrics for user:', {
+    userType: user?.userType,
+    hasStore: user?.hasStore,
+    metricLabels,
+    isStoreOwner: canAccessStoreFeatures(user?.userType, user?.hasStore),
+  });
 
   // Fetch user store data
   const {
@@ -87,12 +143,15 @@ const UserDashboard: React.FC = () => {
       autoFetch: !!primaryStore?.storeId,
     });
 
+  // Temporarily disabled to reduce API calls during login
+  // useEffect(() => {
+  //   if (user?.userId) {
+  //     refreshUserProfile();
+  //   }
+  // }, []);
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   // Debug: Validate store type
@@ -122,17 +181,19 @@ const UserDashboard: React.FC = () => {
       {/* User Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box display='flex' alignItems='center' gap={3}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              bgcolor: 'primary.main',
-              fontSize: '1.5rem',
-              fontWeight: 600,
-            }}
-          >
-            {getInitials(user.firstName, user.lastName)}
-          </Avatar>
+          {/* Profile Picture Upload - Always Editable */}
+          <Box>
+            <ProfilePictureUpload
+              size='large'
+              editable={true}
+              onUploadSuccess={(url) => {
+                // Profile picture updated successfully
+              }}
+              onUploadError={(error) => {
+                console.error('Profile picture upload failed:', error);
+              }}
+            />
+          </Box>
           <Box flex={1}>
             <Typography variant='h4' fontWeight={600} gutterBottom>
               Welcome, {user.firstName}!
@@ -141,21 +202,38 @@ const UserDashboard: React.FC = () => {
               <Typography variant='body1' color='text.secondary'>
                 {user.email}
               </Typography>
-              {user.hasStore ? (
-                <Chip
-                  label='Store Owner'
-                  color='success'
-                  variant='outlined'
-                  size='small'
-                />
-              ) : (
-                <Chip
-                  label={user.userType}
-                  color='primary'
-                  variant='outlined'
-                  size='small'
-                />
-              )}
+              <Chip
+                label={getUserRoleDisplayName(user.userType, user.hasStore)}
+                variant='filled'
+                size='small'
+                sx={{
+                  fontWeight: 600,
+                  backgroundColor: getUserRoleBadgeColor(
+                    user.userType,
+                    user.hasStore
+                  ),
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: (() => {
+                      const baseColor = getUserRoleBadgeColor(
+                        user.userType,
+                        user.hasStore
+                      );
+                      // Darken the color for hover effect
+                      switch (baseColor) {
+                        case '#1976d2':
+                          return '#1565c0'; // Blue -> Darker Blue
+                        case '#2e7d32':
+                          return '#1b5e20'; // Green -> Darker Green
+                        case '#d32f2f':
+                          return '#c62828'; // Red -> Darker Red
+                        default:
+                          return '#555';
+                      }
+                    })(),
+                  },
+                }}
+              />
             </Box>
           </Box>
           <Box display='flex' gap={1}>
@@ -305,17 +383,32 @@ const UserDashboard: React.FC = () => {
           <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <Card>
               <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <MonetizationOn color='success' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      $234
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Total Spent
-                    </Typography>
+                <Tooltip title={metricLabels.spentDescription} arrow>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    {/* Dynamic icon based on user type:
+                        - Store Owners: TrendingUp (for transaction volume)
+                        - Customers: AccountBalanceWallet (for referral credits) */}
+                    {canAccessStoreFeatures(user?.userType, user?.hasStore) ? (
+                      <TrendingUp color='success' />
+                    ) : (
+                      <AccountBalanceWallet color='success' />
+                    )}
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {/* Dynamic values:
+                            - Store Owners: Higher transaction volume ($2,340)
+                            - Customers: Referral credit amount ($45) */}
+                        {canAccessStoreFeatures(user?.userType, user?.hasStore)
+                          ? '$2,340'
+                          : '$45'}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        {/* Dynamic label from getDashboardMetricLabels utility */}
+                        {metricLabels.spentLabel}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
+                </Tooltip>
               </CardContent>
             </Card>
           </Box>
@@ -350,215 +443,225 @@ const UserDashboard: React.FC = () => {
             scrollButtons='auto'
             sx={{ px: 3 }}
           >
-            <Tab
-              icon={<Dashboard />}
-              label='Overview'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(0)}
-            />
-            <Tab
-              icon={<Store />}
-              label='Store Overview'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(1)}
-            />
-            <Tab
-              icon={<Palette />}
-              label='Branding & Visuals'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(2)}
-            />
-            <Tab
-              icon={<ShoppingCart />}
-              label='My Orders'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(3)}
-            />
-            <Tab
-              icon={<CardGiftcard />}
-              label='Referral Program'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(4)}
-            />
-            <Tab
-              icon={<Person />}
-              label='Profile'
-              iconPosition='start'
-              sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-              {...a11yProps(5)}
-            />
+            {tabConfig.map((tab, index) => (
+              <Tab
+                key={tab.key}
+                icon={tab.icon}
+                label={tab.label}
+                iconPosition='start'
+                sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
+                {...a11yProps(index)}
+              />
+            ))}
           </Tabs>
         </Box>
 
         {/* Tab Panels */}
-        <TabPanel value={tabValue} index={0}>
-          <Box sx={{ p: 3 }}>
-            {user.hasStore ? (
-              <StoreSetupProgress
-                storeId={primaryStore?.storeId || 0}
-                storeName={primaryStore?.storeName || 'Your Store'}
-                completionPercentage={getCompletionPercentage()}
-                storeData={comprehensiveStoreData}
-                approvalStatus={comprehensiveStoreData?.approvalStatus}
-                onNavigateToStep={(step) => {
-                  if (step === 'branding') {
-                    setTabValue(2);
-                  }
-                }}
-                onCompleteSetup={() => console.log('Complete setup')}
-              />
-            ) : (
-              <>
+        {tabConfig.map((tab, index) => (
+          <TabPanel key={tab.key} value={tabValue} index={index}>
+            {tab.key === 'overview' && (
+              <Box sx={{ p: 3 }}>
+                {user.hasStore ? (
+                  <StoreSetupProgress
+                    storeId={primaryStore?.storeId || 0}
+                    storeName={primaryStore?.storeName || 'Your Store'}
+                    completionPercentage={getCompletionPercentage()}
+                    storeData={comprehensiveStoreData}
+                    approvalStatus={comprehensiveStoreData?.approvalStatus}
+                    onNavigateToStep={(step) => {
+                      if (step === 'branding') {
+                        const brandingIndex = tabConfig.findIndex(
+                          (t) => t.key === 'branding'
+                        );
+                        if (brandingIndex !== -1) setTabValue(brandingIndex);
+                      }
+                    }}
+                    onCompleteSetup={() => console.log('Complete setup')}
+                  />
+                ) : (
+                  <>
+                    <Typography variant='h6' gutterBottom>
+                      Dashboard Overview
+                    </Typography>
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      sx={{ mb: 3 }}
+                    >
+                      Welcome to your dashboard! Here you can manage your
+                      account, track orders, and explore our referral program.
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                      <Box sx={{ flex: '1 1 300px' }}>
+                        <Card variant='outlined'>
+                          <CardContent>
+                            <Typography variant='h6' gutterBottom>
+                              Recent Activity
+                            </Typography>
+                            <Typography variant='body2' color='text.secondary'>
+                              Your recent orders and activities will appear
+                              here.
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                      <Box sx={{ flex: '1 1 300px' }}>
+                        <Card variant='outlined'>
+                          <CardContent>
+                            <Typography variant='h6' gutterBottom>
+                              Quick Actions
+                            </Typography>
+                            <Box
+                              display='flex'
+                              flexDirection='column'
+                              gap={1}
+                              sx={{ mt: 2 }}
+                            >
+                              <Button
+                                variant='outlined'
+                                size='small'
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Browse Products
+                              </Button>
+                              <Button
+                                variant='outlined'
+                                size='small'
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Track an Order
+                              </Button>
+                              <Button
+                                variant='outlined'
+                                size='small'
+                                sx={{ textTransform: 'none' }}
+                                onClick={() => {
+                                  const profileIndex = tabConfig.findIndex(
+                                    (t) => t.key === 'profile'
+                                  );
+                                  if (profileIndex !== -1)
+                                    setTabValue(profileIndex);
+                                }}
+                              >
+                                Update Profile
+                              </Button>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {tab.key === 'store' && (
+              <Box sx={{ p: 3 }}>
+                <StoreOverviewSection
+                  onNavigateToBranding={() => {
+                    const brandingIndex = tabConfig.findIndex(
+                      (t) => t.key === 'branding'
+                    );
+                    if (brandingIndex !== -1) setTabValue(brandingIndex);
+                  }}
+                />
+              </Box>
+            )}
+
+            {tab.key === 'branding' && (
+              <Box sx={{ p: 3 }}>
+                {storeLoading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
+                  >
+                    <CircularProgress />
+                    <Typography variant='body2' sx={{ ml: 2 }}>
+                      Loading store data...
+                    </Typography>
+                  </Box>
+                ) : storeError ? (
+                  <Alert severity='error' sx={{ mb: 2 }}>
+                    Store Error: {storeError}
+                    <br />
+                    <Button
+                      size='small'
+                      onClick={() => window.location.reload()}
+                      sx={{ mt: 1 }}
+                    >
+                      Reload Page
+                    </Button>
+                  </Alert>
+                ) : !primaryStore ? (
+                  <Alert severity='warning' sx={{ mb: 2 }}>
+                    No store found. Please create a store first to manage
+                    branding.
+                  </Alert>
+                ) : (
+                  <BrandingVisualsSection
+                    storeId={primaryStore.storeId}
+                    onUpdate={(data: unknown) => {
+                      console.log('Branding data updated:', data);
+                      // TODO: Save to backend or update local state
+                    }}
+                    onError={(error: unknown) => {
+                      // Handle authentication errors
+                      if (!handleAuthenticationError(error, navigate)) {
+                        // If not an auth error, show generic error
+                        console.error('Branding section error:', error);
+                      }
+                    }}
+                  />
+                )}
+              </Box>
+            )}
+
+            {tab.key === 'orders' && (
+              <Box sx={{ p: 3 }}>
                 <Typography variant='h6' gutterBottom>
-                  Dashboard Overview
+                  My Orders
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Your order history and current orders will be displayed here.
+                </Typography>
+              </Box>
+            )}
+
+            {tab.key === 'referral' && (
+              <Box sx={{ p: 0 }}>
+                <ReferralProgramPage />
+              </Box>
+            )}
+
+            {tab.key === 'profile' && (
+              <Box sx={{ p: 3 }}>
+                <Typography variant='h6' gutterBottom>
+                  Profile Settings
                 </Typography>
                 <Typography
                   variant='body2'
                   color='text.secondary'
                   sx={{ mb: 3 }}
                 >
-                  Welcome to your dashboard! Here you can manage your account,
-                  track orders, and explore our referral program.
+                  Update your personal information and account preferences.
                 </Typography>
 
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                  <Box sx={{ flex: '1 1 300px' }}>
-                    <Card variant='outlined'>
-                      <CardContent>
-                        <Typography variant='h6' gutterBottom>
-                          Recent Activity
-                        </Typography>
-                        <Typography variant='body2' color='text.secondary'>
-                          Your recent orders and activities will appear here.
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Box>
-                  <Box sx={{ flex: '1 1 300px' }}>
-                    <Card variant='outlined'>
-                      <CardContent>
-                        <Typography variant='h6' gutterBottom>
-                          Quick Actions
-                        </Typography>
-                        <Box
-                          display='flex'
-                          flexDirection='column'
-                          gap={1}
-                          sx={{ mt: 2 }}
-                        >
-                          <Button
-                            variant='outlined'
-                            size='small'
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Browse Products
-                          </Button>
-                          <Button
-                            variant='outlined'
-                            size='small'
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Track an Order
-                          </Button>
-                          <Button
-                            variant='outlined'
-                            size='small'
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Update Profile
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Box>
+                {/* Profile Picture Section */}
+
+                {/* Additional profile settings can be added here */}
+                <Box sx={{ mt: 4 }}>
+                  <Typography variant='h6' gutterBottom>
+                    Account Information
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    Additional profile settings and account management options
+                    will be available here.
+                  </Typography>
                 </Box>
-              </>
-            )}
-          </Box>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Box sx={{ p: 3 }}>
-            <StoreOverviewSection onNavigateToBranding={() => setTabValue(2)} />
-          </Box>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Box sx={{ p: 3 }}>
-            {storeLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-                <Typography variant='body2' sx={{ ml: 2 }}>
-                  Loading store data...
-                </Typography>
               </Box>
-            ) : storeError ? (
-              <Alert severity='error' sx={{ mb: 2 }}>
-                Store Error: {storeError}
-                <br />
-                <Button
-                  size='small'
-                  onClick={() => window.location.reload()}
-                  sx={{ mt: 1 }}
-                >
-                  Reload Page
-                </Button>
-              </Alert>
-            ) : !primaryStore ? (
-              <Alert severity='warning' sx={{ mb: 2 }}>
-                No store found. Please create a store first to manage branding.
-              </Alert>
-            ) : (
-              <BrandingVisualsSection
-                storeId={primaryStore.storeId}
-                onUpdate={(data: unknown) => {
-                  console.log('Branding data updated:', data);
-                  // TODO: Save to backend or update local state
-                }}
-                onError={(error: unknown) => {
-                  // Handle authentication errors
-                  if (!handleAuthenticationError(error, navigate)) {
-                    // If not an auth error, show generic error
-                    console.error('Branding section error:', error);
-                  }
-                }}
-              />
             )}
-          </Box>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={3}>
-          <Box sx={{ p: 3 }}>
-            <Typography variant='h6' gutterBottom>
-              My Orders
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Your order history and current orders will be displayed here.
-            </Typography>
-          </Box>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={4}>
-          <Box sx={{ p: 0 }}>
-            <ReferralProgramPage />
-          </Box>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={5}>
-          <Box sx={{ p: 3 }}>
-            <Typography variant='h6' gutterBottom>
-              Profile Settings
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Update your personal information and account preferences.
-            </Typography>
-          </Box>
-        </TabPanel>
+          </TabPanel>
+        ))}
       </Paper>
     </Container>
   );

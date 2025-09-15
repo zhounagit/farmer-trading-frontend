@@ -14,6 +14,7 @@ export interface User {
   referralCode?: string;
   shippingAddressId?: number;
   billingAddressId?: number;
+  profilePictureUrl?: string;
 }
 
 export interface LoginRequest {
@@ -72,13 +73,18 @@ export interface UpdateProfileRequest {
   title?: string;
   suffix?: string;
   workPhone?: string;
+  profilePictureUrl?: string;
 }
 
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean
+  ) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
@@ -164,6 +170,7 @@ export interface ProfileFormData {
   title: string;
   suffix: string;
   workPhone: string;
+  profilePictureUrl: string;
 }
 
 // Two-factor authentication types (for future use)

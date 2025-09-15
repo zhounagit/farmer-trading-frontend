@@ -279,21 +279,18 @@ export const useUserStore = (): UseUserStoreReturn => {
   }, [fetchStores]);
 
   // Auto-fetch stores when authentication state changes (only once per auth state)
+  // Add delay to prevent rate limiting during login
   useEffect(() => {
     if (!hasInitializedRef.current && isAuthenticated && user?.email) {
-      fetchStores();
+      const timer = setTimeout(() => {
+        fetchStores();
+      }, 1000); // 1 second delay
+
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, user?.email, fetchStores]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🏪 === useUserStore State Update ===');
-    console.log('Stores count:', stores.length);
-    console.log('Primary store:', primaryStore?.storeId || 'None');
-    console.log('Is loading:', isLoading);
-    console.log('Error:', error);
-    console.log('Is authenticated:', isAuthenticated);
-  }, [stores, primaryStore, isLoading, error, isAuthenticated]);
+  // Removed debug logging to reduce console output and improve performance
 
   return {
     stores,

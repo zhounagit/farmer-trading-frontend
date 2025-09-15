@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authApi, handleApiError, tokenUtils } from '../utils/api';
+import { authApi, handleApiError, tokenUtils, userApi } from '../utils/api';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
+import { initializeProfilePicture } from '../utils/profilePictureStorage';
 
 import toast from 'react-hot-toast';
 
@@ -39,6 +40,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         const parsedUser = JSON.parse(userData);
+
+        // Always initialize profile picture from localStorage if available
+        const storedProfilePicture = initializeProfilePicture(
+          parsedUser.userId
+        );
+        if (storedProfilePicture) {
+          parsedUser.profilePictureUrl = storedProfilePicture;
+        }
+
         setUser(parsedUser);
       } catch (error) {
         // If parsing fails, clear the invalid data
@@ -64,6 +74,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         referralCode: data.referralCode,
         hasStore: data.hasStore,
       };
+
+      // Always initialize profile picture from localStorage if available
+      const storedProfilePicture = initializeProfilePicture(userData.userId);
+      if (storedProfilePicture) {
+        userData.profilePictureUrl = storedProfilePicture;
+      }
 
       // Store token and user data
       tokenUtils.setAccessToken(data.accessToken);
@@ -181,6 +197,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateProfile = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (!user) return;
+
+    try {
+      // Only check localStorage for profile picture - don't make API calls
+      const storedProfilePicture = initializeProfilePicture(user.userId);
+
+      // Only update if there's actually a stored profile picture that's different
+      if (
+        storedProfilePicture &&
+        storedProfilePicture !== user.profilePictureUrl
+      ) {
+        const refreshedUser: User = {
+          ...user,
+          profilePictureUrl: storedProfilePicture,
+        };
+
+        // Update both context and localStorage
+        setUser(refreshedUser);
+        localStorage.setItem(
+          'heartwood_user_data',
+          JSON.stringify(refreshedUser)
+        );
+      }
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error);
+      // Don't throw error - just log it, we don't want to break the UI
+    }
+  };
+
   const handleAuthenticationError = (
     error: unknown,
     navigate?: (path: string) => void
@@ -209,6 +263,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError,
     updateReferralCode,
     updateStoreStatus,
+    updateProfile,
+    refreshUserProfile,
     handleAuthenticationError,
   };
 

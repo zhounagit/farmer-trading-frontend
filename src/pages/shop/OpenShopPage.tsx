@@ -20,6 +20,7 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -47,6 +48,107 @@ import StoreApiService from '../../services/store.api';
 
 import { useUserStore } from '../../hooks/useUserStore';
 
+// Type for draft data that includes metadata
+interface SavedDraftData extends OpenShopFormState {
+  userId: number | string;
+  savedAt: string;
+}
+
+// Utility functions for safe draft operations with user validation
+const DraftUtils = {
+  /**
+   * Safely get user-specific draft from localStorage
+   */
+  getUserDraft: (userId: number | string) => {
+    try {
+      const draftStr = localStorage.getItem('openShop_draft');
+      if (!draftStr) return null;
+
+      const draft = JSON.parse(draftStr);
+
+      // Validate that draft belongs to current user
+      if (draft.userId && draft.userId.toString() === userId.toString()) {
+        return draft;
+      }
+
+      console.log('Draft user mismatch:', {
+        draftUserId: draft.userId,
+        currentUserId: userId,
+      });
+      return null;
+    } catch (error) {
+      console.error('Error reading user draft:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Save draft with user validation
+   */
+  saveUserDraft: (userId: number | string, draftData: any) => {
+    try {
+      const draftWithUser = {
+        ...draftData,
+        userId: userId,
+        savedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem('openShop_draft', JSON.stringify(draftWithUser));
+      localStorage.setItem(
+        'openShop_draft_lastSaved',
+        JSON.stringify({
+          lastSaved: new Date().toISOString(),
+          userId: userId,
+        })
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error saving user draft:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Clean up all draft data for security
+   */
+  clearAllDrafts: () => {
+    try {
+      localStorage.removeItem('openShop_draft');
+      localStorage.removeItem('openShop_draft_lastSaved');
+      console.log('All drafts cleared');
+    } catch (error) {
+      console.error('Error clearing drafts:', error);
+    }
+  },
+
+  /**
+   * Validate draft age and cleanup old drafts
+   */
+  validateDraftAge: (maxDays: number = 7) => {
+    try {
+      const lastSavedStr = localStorage.getItem('openShop_draft_lastSaved');
+      if (!lastSavedStr) return false;
+
+      const lastSavedData = JSON.parse(lastSavedStr);
+      const lastSaved = new Date(lastSavedData.lastSaved);
+      const daysSince =
+        (Date.now() - lastSaved.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysSince > maxDays) {
+        DraftUtils.clearAllDrafts();
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating draft age:', error);
+      DraftUtils.clearAllDrafts();
+      return false;
+    }
+  },
+};
+
 const OpenShopPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -66,13 +168,43 @@ const OpenShopPage: React.FC = () => {
   const [isLoadingStoreData, setIsLoadingStoreData] = useState(false);
   const [storeLoadError, setStoreLoadError] = useState<string | null>(null);
 
+  // User validation - redirect if no user
+  useEffect(() => {
+    if (!user?.userId) {
+      console.warn('No user found, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    // Clean up any drafts that don't belong to current user on component mount
+    const cleanupInvalidDrafts = () => {
+      try {
+        const draftStr = localStorage.getItem('openShop_draft');
+        if (draftStr) {
+          const draft = JSON.parse(draftStr);
+          if (draft.userId && draft.userId !== user.userId) {
+            console.log(
+              '🧹 Cleaning up draft from different user on component mount'
+            );
+            DraftUtils.clearAllDrafts();
+          }
+        }
+      } catch (error) {
+        console.error('Error during draft cleanup:', error);
+        DraftUtils.clearAllDrafts();
+      }
+    };
+
+    cleanupInvalidDrafts();
+  }, [user?.userId, navigate]);
+
   // Initialize form state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle');
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
-  const [savedDraft, setSavedDraft] = useState<OpenShopFormState | null>(null);
+  const [savedDraft, setSavedDraft] = useState<SavedDraftData | null>(null);
 
   // Browser navigation handling
   useEffect(() => {
@@ -91,35 +223,58 @@ const OpenShopPage: React.FC = () => {
   // Check for saved draft on component mount
   useEffect(() => {
     const checkForSavedDraft = () => {
-      try {
-        const draftStr = localStorage.getItem('openShop_draft');
-        if (draftStr) {
-          const draft = JSON.parse(draftStr);
-          // Check if we have lastSaved info
-          const lastSavedStr = localStorage.getItem('openShop_draft_lastSaved');
-          const lastSavedData = lastSavedStr ? JSON.parse(lastSavedStr) : null;
-          const lastSaved = lastSavedData
-            ? new Date(lastSavedData.lastSaved)
-            : new Date();
-          const daysSinceLastSave =
-            (Date.now() - lastSaved.getTime()) / (1000 * 60 * 60 * 24);
+      if (!user?.userId) {
+        console.log('No user available, skipping draft check');
+        return;
+      }
 
-          if (daysSinceLastSave <= 7 && draft.storeId) {
-            setSavedDraft(draft);
-            setShowDraftRecovery(true);
-          } else {
-            // Clean up old drafts
-            localStorage.removeItem('openShop_draft');
+      try {
+        // Use utility function for safe draft retrieval
+        const draft = DraftUtils.getUserDraft(user.userId);
+
+        if (draft) {
+          // Validate draft age and cleanup if too old
+          if (DraftUtils.validateDraftAge(7)) {
+            if (draft.storeId) {
+              console.log('✅ Valid draft found for current user', {
+                userId: draft.userId,
+                savedAt: draft.savedAt,
+              });
+              setSavedDraft(draft);
+              setShowDraftRecovery(true);
+            }
+          }
+        } else {
+          // Clean up any invalid drafts that might exist
+          const draftStr = localStorage.getItem('openShop_draft');
+          if (draftStr) {
+            console.log('🧹 Cleaning up invalid draft data');
+            DraftUtils.clearAllDrafts();
           }
         }
       } catch (error) {
-        console.error('Error checking for saved draft:', error);
-        localStorage.removeItem('openShop_draft');
+        console.error('❌ Error checking for saved draft:', error);
+        DraftUtils.clearAllDrafts();
       }
     };
 
     checkForSavedDraft();
-  }, []);
+  }, [user?.userId]);
+
+  // Cleanup effect for user changes and component unmount
+  useEffect(() => {
+    return () => {
+      // Clean up drafts when component unmounts or user changes
+      // This prevents drafts from persisting across user sessions
+      if (user?.userId) {
+        const currentDraft = DraftUtils.getUserDraft(user.userId);
+        if (!currentDraft) {
+          // If no valid draft for current user, clean up any existing drafts
+          DraftUtils.clearAllDrafts();
+        }
+      }
+    };
+  }, [user?.userId]);
 
   const [formState, setFormState] = useState<OpenShopFormState>({
     currentStep: 0,
@@ -319,27 +474,22 @@ const OpenShopPage: React.FC = () => {
 
     setAutoSaveStatus('saving');
     try {
-      // Save to localStorage as backup
-      localStorage.setItem(
-        'openShop_draft',
-        JSON.stringify({
-          ...stateToSave,
-        })
-      );
+      if (!user?.userId) {
+        throw new Error('No user ID available for draft saving');
+      }
 
-      // Store the lastSaved separately if needed for UI
-      localStorage.setItem(
-        'openShop_draft_lastSaved',
-        JSON.stringify({
-          lastSaved: new Date().toISOString(),
-        })
-      );
+      // Use utility function for safe draft saving
+      const saveSuccess = DraftUtils.saveUserDraft(user.userId, stateToSave);
 
-      setAutoSaveStatus('saved');
-      console.log('✅ Auto-save completed');
+      if (saveSuccess) {
+        setAutoSaveStatus('saved');
+        console.log('✅ Auto-save completed for user:', user.userId);
 
-      // Clear saved status after 3 seconds
-      setTimeout(() => setAutoSaveStatus('idle'), 3000);
+        // Clear saved status after 3 seconds
+        setTimeout(() => setAutoSaveStatus('idle'), 3000);
+      } else {
+        throw new Error('Failed to save draft');
+      }
     } catch (error) {
       console.error('❌ Auto-save failed:', error);
       setAutoSaveStatus('error');
@@ -398,6 +548,13 @@ const OpenShopPage: React.FC = () => {
     }
   };
 
+  const handleStepClick = (stepIndex: number) => {
+    // Only allow navigation to previous steps (completed steps)
+    if (stepIndex < formState.currentStep) {
+      updateFormState({ currentStep: stepIndex });
+    }
+  };
+
   const handleComplete = () => {
     // Update user's store status when store creation is completed
     updateStoreStatus(true);
@@ -434,9 +591,10 @@ const OpenShopPage: React.FC = () => {
   };
 
   const handleDiscardDraft = () => {
-    localStorage.removeItem('openShop_draft');
+    DraftUtils.clearAllDrafts();
     setShowDraftRecovery(false);
     setSavedDraft(null);
+    console.log('✅ Draft discarded by user');
     toast('Draft discarded');
   };
 
@@ -652,29 +810,89 @@ const OpenShopPage: React.FC = () => {
               alternativeLabel={!isMobile}
               orientation={isMobile ? 'vertical' : 'horizontal'}
               sx={{
-                '& .MuiStepLabel-label': {
-                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                '& .MuiStepConnector-line': {
+                  transition: 'border-color 0.2s ease-in-out',
                 },
+                '& .MuiStepConnector-root.Mui-completed .MuiStepConnector-line':
+                  {
+                    borderColor: theme.palette.success.main,
+                  },
               }}
             >
-              {STEP_NAMES.map((label) => (
-                <Step key={label}>
-                  <StepLabel
-                    sx={{
-                      '& .MuiStepLabel-label.Mui-active': {
-                        color: theme.palette.primary.main,
-                        fontWeight: 600,
-                      },
-                      '& .MuiStepLabel-label.Mui-completed': {
-                        color: theme.palette.success.main,
-                        fontWeight: 500,
-                      },
-                    }}
-                  >
-                    {label}
-                  </StepLabel>
-                </Step>
-              ))}
+              {STEP_NAMES.map((label, index) => {
+                const isClickable = index < formState.currentStep;
+                const isActive = index === formState.currentStep;
+
+                return (
+                  <Step key={label}>
+                    <Tooltip
+                      title={
+                        isClickable
+                          ? `Click to return to ${label}`
+                          : isActive
+                            ? 'Current step'
+                            : 'Complete previous steps to unlock'
+                      }
+                      arrow
+                      placement='top'
+                    >
+                      <StepLabel
+                        onClick={
+                          isClickable ? () => handleStepClick(index) : undefined
+                        }
+                        sx={{
+                          cursor: isClickable ? 'pointer' : 'default',
+                          transition: 'all 0.2s ease-in-out',
+                          '& .MuiStepLabel-label': {
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                            transition: 'all 0.2s ease-in-out',
+                          },
+                          '& .MuiStepLabel-label.Mui-active': {
+                            color: theme.palette.primary.main,
+                            fontWeight: 600,
+                          },
+                          '& .MuiStepLabel-label.Mui-completed': {
+                            color: theme.palette.success.main,
+                            fontWeight: 500,
+                            ...(isClickable && {
+                              cursor: 'pointer',
+                              '&:hover': {
+                                color: theme.palette.success.dark,
+                                textDecoration: 'underline',
+                                transform: 'translateY(-1px)',
+                              },
+                            }),
+                          },
+                          '& .MuiStepIcon-root': {
+                            transition: 'all 0.2s ease-in-out',
+                          },
+                          '& .MuiStepIcon-root.Mui-completed': {
+                            ...(isClickable && {
+                              cursor: 'pointer',
+                              '&:hover': {
+                                color: theme.palette.success.dark,
+                                transform: 'scale(1.1)',
+                              },
+                            }),
+                          },
+                          '& .MuiStepIcon-root.Mui-active': {
+                            color: theme.palette.primary.main,
+                          },
+                          ...(isClickable && {
+                            '&:hover': {
+                              '& .MuiStepConnector-line': {
+                                borderColor: theme.palette.success.light,
+                              },
+                            },
+                          }),
+                        }}
+                      >
+                        {label}
+                      </StepLabel>
+                    </Tooltip>
+                  </Step>
+                );
+              })}
             </Stepper>
           </Box>
 
@@ -710,6 +928,14 @@ const OpenShopPage: React.FC = () => {
           <Typography variant='body1' gutterBottom>
             We found a saved draft from your previous store setup session.
           </Typography>
+          {savedDraft && (
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+              Last saved:{' '}
+              {savedDraft.savedAt
+                ? new Date(savedDraft.savedAt).toLocaleString()
+                : 'Unknown'}
+            </Typography>
+          )}
           {savedDraft && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant='body2' color='text.secondary'>

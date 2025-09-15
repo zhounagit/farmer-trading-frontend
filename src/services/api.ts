@@ -355,6 +355,97 @@ export const apiService = {
       throw error;
     }
   },
+
+  // Upload user profile picture
+  uploadProfilePicture: async (
+    userId: string,
+    imageFile: File,
+    onUploadProgress?: (progress: number) => void
+  ): Promise<{ profilePictureUrl: string }> => {
+    // Dynamic import for localStorage utilities (avoid import errors if not available)
+    const { storeProfilePicture } = await import(
+      '../utils/profilePictureStorage'
+    );
+
+    const formData = new FormData();
+    formData.append('userId', userId.toString());
+    formData.append('file', imageFile);
+
+    const endpoint = `/api/users/${userId}/profile-picture`;
+
+    try {
+      const response = await api.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total && onUploadProgress) {
+            const progress = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onUploadProgress(progress);
+          }
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Profile picture upload failed in apiService:', error);
+
+      // Handle 404 error (endpoint not implemented) with localStorage fallback
+      if (error.response?.status === 404) {
+        console.warn(
+          '⚠️ Profile picture endpoint not implemented, using localStorage fallback'
+        );
+
+        try {
+          // Simulate upload progress for better UX
+          if (onUploadProgress) {
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+              progress += 25;
+              onUploadProgress(progress);
+              if (progress >= 100) {
+                clearInterval(progressInterval);
+              }
+            }, 150);
+          }
+
+          // Store image in localStorage and get base64 data URL
+          const localImageData = await storeProfilePicture(
+            userId.toString(),
+            imageFile
+          );
+
+          return {
+            profilePictureUrl: localImageData,
+          };
+        } catch (fallbackError) {
+          console.error('❌ localStorage fallback also failed:', fallbackError);
+
+          // Last resort: create temporary blob URL
+          const blobUrl = URL.createObjectURL(imageFile);
+          console.warn('⚠️ Using temporary blob URL as final fallback');
+
+          return {
+            profilePictureUrl: blobUrl,
+          };
+        }
+      }
+
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response
+          ? {
+              status: error.response.status,
+              statusText: error.response.statusText,
+              data: error.response.data,
+            }
+          : 'No response',
+      });
+      throw error;
+    }
+  },
 };
 
 // Test API connection

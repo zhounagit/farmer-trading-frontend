@@ -32,6 +32,9 @@ export const API_ENDPOINTS = {
     GENERATE: '/api/users/generate-referral-code',
     INFO: '/api/users/referral-info',
   },
+  USER: {
+    PROFILE: '/api/users',
+  },
   STORE: {
     CREATE: '/api/stores',
     MY_STORES: '/api/stores/my-stores',
@@ -269,6 +272,24 @@ export const referralApi = {
 
   getInfo: async () => {
     return api.get(API_ENDPOINTS.REFERRAL.INFO);
+  },
+};
+
+// User API methods
+export const userApi = {
+  // Get current user profile
+  getCurrentUserProfile: async () => {
+    const userData = localStorage.getItem('heartwood_user_data');
+    if (!userData) {
+      throw new Error('No authenticated user found');
+    }
+
+    const user = JSON.parse(userData);
+    if (!user?.userId) {
+      throw new Error('No user ID found in stored user data');
+    }
+
+    return api.get(`${API_ENDPOINTS.USER.PROFILE}/${user.userId}`);
   },
 };
 

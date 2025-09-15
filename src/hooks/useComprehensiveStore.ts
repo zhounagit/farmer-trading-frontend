@@ -501,31 +501,19 @@ export const useComprehensiveStore = (
     };
   }, [enablePolling, storeData, pollingInterval, fetchStoreData]);
 
-  // Initial fetch
+  // Initial fetch with delay to prevent rate limiting during login
   useEffect(() => {
     if (autoFetch && storeId && isAuthenticated && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
-      fetchStoreData();
+      const timer = setTimeout(() => {
+        fetchStoreData();
+      }, 1500); // 1.5 second delay
+
+      return () => clearTimeout(timer);
     }
   }, [autoFetch, storeId, isAuthenticated, fetchStoreData]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🏪 === useComprehensiveStore State Update ===');
-    console.log('Store ID:', storeId);
-    console.log('Store data available:', !!storeData);
-    console.log('Is loading:', isLoading);
-    console.log('Is updating:', isUpdating);
-    console.log('Error:', error);
-    console.log('Completion percentage:', getCompletionPercentage());
-  }, [
-    storeData,
-    isLoading,
-    isUpdating,
-    error,
-    storeId,
-    getCompletionPercentage,
-  ]);
+  // Removed debug logging to reduce console output and improve performance
 
   return {
     storeData,

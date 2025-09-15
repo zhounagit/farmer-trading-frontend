@@ -7,7 +7,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Avatar,
   Typography,
   Chip,
   Divider,
@@ -25,13 +24,20 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../common/Logo';
+import UserProfilePictureAvatar from '../user/UserProfilePictureAvatar';
+import {
+  canAccessStoreFeatures,
+  debugUserType,
+  getUserRoleDisplayName,
+  getUserRoleBadgeColor,
+} from '../../utils/userTypeUtils';
 
 interface HeaderProps {
   onLoginClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
-  const { user, isAuthenticated, logout, updateStoreStatus } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const navigate = useNavigate();
@@ -53,10 +59,6 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
 
   const handleHowItWorks = () => {
     navigate('/how-it-works');
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   const isMenuOpen = Boolean(anchorEl);
@@ -156,11 +158,37 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   {user.firstName}
                 </Typography>
                 <Chip
-                  label={user.userType}
+                  label={getUserRoleDisplayName(user.userType, user.hasStore)}
                   size='small'
-                  variant='outlined'
-                  color='primary'
-                  sx={{ fontSize: '0.75rem' }}
+                  variant='filled'
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: getUserRoleBadgeColor(
+                      user.userType,
+                      user.hasStore
+                    ),
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: (() => {
+                        const baseColor = getUserRoleBadgeColor(
+                          user.userType,
+                          user.hasStore
+                        );
+                        // Darken the color for hover effect
+                        switch (baseColor) {
+                          case '#1976d2':
+                            return '#1565c0'; // Blue -> Darker Blue
+                          case '#2e7d32':
+                            return '#1b5e20'; // Green -> Darker Green
+                          case '#d32f2f':
+                            return '#c62828'; // Red -> Darker Red
+                          default:
+                            return '#555';
+                        }
+                      })(),
+                    },
+                  }}
                 />
               </Box>
 
@@ -175,16 +203,10 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                 color='inherit'
                 sx={{ p: { xs: 1, md: 1.5 } }}
               >
-                <Avatar
-                  sx={{
-                    width: { xs: 28, md: 32 },
-                    height: { xs: 28, md: 32 },
-                    bgcolor: 'primary.main',
-                    fontSize: { xs: '0.75rem', md: '0.875rem' },
-                  }}
-                >
-                  {getInitials(user.firstName, user.lastName)}
-                </Avatar>
+                <UserProfilePictureAvatar
+                  user={user as any}
+                  size={isMobile ? 28 : 32}
+                />
               </IconButton>
 
               <Menu
@@ -230,15 +252,26 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   Dashboard
                 </MenuItem>
 
-                <MenuItem
-                  onClick={() => {
-                    navigate('/my-stores');
-                    handleProfileMenuClose();
-                  }}
-                >
-                  <Store sx={{ mr: 2 }} />
-                  My Stores
-                </MenuItem>
+                {(() => {
+                  // Debug user type for troubleshooting
+                  debugUserType(
+                    user.userType,
+                    user.hasStore,
+                    'Header My Stores'
+                  );
+
+                  return canAccessStoreFeatures(user.userType, user.hasStore);
+                })() && (
+                  <MenuItem
+                    onClick={() => {
+                      navigate('/my-stores');
+                      handleProfileMenuClose();
+                    }}
+                  >
+                    <Store sx={{ mr: 2 }} />
+                    My Stores
+                  </MenuItem>
+                )}
 
                 <MenuItem onClick={handleProfileMenuClose}>
                   <Settings sx={{ mr: 2 }} />

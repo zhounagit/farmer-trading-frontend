@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   Stack,
-  Grid,
   Divider,
   Button,
 } from '@mui/material';
@@ -22,19 +21,7 @@ export const LandingPage: React.FC = () => {
     setAuthModalOpen(true);
   };
 
-  const handleRegisterClick = () => {
-    setAuthMode('register');
-    setAuthModalOpen(true);
-  };
-
-  const handleGetStarted = () => {
-    handleRegisterClick();
-  };
-
-  const handleLearnMore = () => {
-    // Navigate to How It Works page
-    window.location.href = '/how-it-works';
-  };
+  // handleRegisterClick removed as it's no longer needed
 
   const handleCloseAuthModal = () => {
     setAuthModalOpen(false);
@@ -47,22 +34,25 @@ export const LandingPage: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Header
-        onLoginClick={handleLoginClick}
-        onRegisterClick={handleRegisterClick}
-      />
+      <Header onLoginClick={handleLoginClick} />
 
       {/* Hero Section */}
-      <HeroSection
-        onGetStarted={handleGetStarted}
-        onLearnMore={handleLearnMore}
-      />
+      <HeroSection />
 
       {/* Footer */}
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 6 }}>
         <Container maxWidth='lg'>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 4,
+              '& > *': {
+                flex: { xs: '1 1 100%', md: '0 1 auto' },
+              },
+            }}
+          >
+            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 33%' } }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Farm Connect
               </Typography>
@@ -75,9 +65,11 @@ export const LandingPage: React.FC = () => {
                   hello@farmconnect.com
                 </Typography>
               </Stack>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Box
+              sx={{ flex: { xs: '1 1 100%', sm: '1 1 50%', md: '0 1 16%' } }}
+            >
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Platform
               </Typography>
@@ -92,9 +84,11 @@ export const LandingPage: React.FC = () => {
                   Pricing
                 </Typography>
               </Stack>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Box
+              sx={{ flex: { xs: '1 1 100%', sm: '1 1 50%', md: '0 1 16%' } }}
+            >
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Company
               </Typography>
@@ -109,9 +103,9 @@ export const LandingPage: React.FC = () => {
                   Careers
                 </Typography>
               </Stack>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={4}>
+            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 33%' } }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Get Updates
               </Typography>
@@ -132,8 +126,8 @@ export const LandingPage: React.FC = () => {
               >
                 Subscribe
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           <Divider sx={{ my: 4, bgcolor: 'grey.800' }} />
 
