@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Avatar,
@@ -16,6 +16,7 @@ import {
 import { CameraAlt, Delete, CloudUpload, Cancel } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
+import { profilePictureCache } from '../../services/profilePictureCache';
 
 interface ProfilePictureUploadProps {
   size?: 'small' | 'medium' | 'large';
@@ -38,7 +39,43 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [hasLoadedProfilePicture, setHasLoadedProfilePicture] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing profile picture on mount
+  useEffect(() => {
+    const loadProfilePicture = async () => {
+      if (!user || user.profilePictureUrl || hasLoadedProfilePicture) {
+        return;
+      }
+      setLoading(true);
+      try {
+        const result = await apiService.getUserProfilePicture(
+          user.userId.toString()
+        );
+
+        if (result.profilePictureUrl && result.hasProfilePicture) {
+          // Update user profile with the loaded picture URL
+          await updateProfile({
+            profilePictureUrl: result.profilePictureUrl,
+          });
+        }
+      } catch (error) {
+        // Don't show error to user - this is just an attempt to load existing picture
+      } finally {
+        setLoading(false);
+        setHasLoadedProfilePicture(true);
+      }
+    };
+
+    loadProfilePicture();
+  }, [user, updateProfile, hasLoadedProfilePicture]);
+
+  // Reset loading flag when user changes
+  useEffect(() => {
+    setHasLoadedProfilePicture(false);
+  }, [user?.userId]);
 
   const getAvatarSize = () => {
     switch (size) {
@@ -110,6 +147,9 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
       await updateProfile({
         profilePictureUrl: result.profilePictureUrl,
       });
+
+      // Invalidate cache to ensure fresh data on next load
+      profilePictureCache.invalidateUser(user.userId.toString());
 
       // Clean up preview URL
       if (previewUrl) {
@@ -184,7 +224,31 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   };
 
   const avatarSize = getAvatarSize();
-  const currentImageUrl = previewUrl || user?.profilePictureUrl;
+
+  // Convert relative URL to absolute URL using backend server
+  const getFullImageUrl = (
+    url: string | null | undefined
+  ): string | undefined => {
+    if (!url) return undefined;
+
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    // If it's a relative URL, make it absolute using backend server URL
+    if (url.startsWith('/')) {
+      const backendUrl = 'https://localhost:7008'; // Same as API_BASE_URL in api.ts
+      const fullUrl = `${backendUrl}${url}`;
+      return fullUrl;
+    }
+
+    return url;
+  };
+
+  const currentImageUrl = getFullImageUrl(
+    previewUrl || user?.profilePictureUrl
+  );
 
   if (!user) {
     return null;
@@ -207,9 +271,9 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
             ...avatarSize,
             bgcolor: currentImageUrl ? 'transparent' : 'primary.main',
             fontWeight: 600,
-            border: uploading ? '2px solid' : 'none',
-            borderColor: uploading ? 'primary.main' : 'transparent',
-            filter: uploading ? 'brightness(0.7)' : 'none',
+            border: uploading || loading ? '2px solid' : 'none',
+            borderColor: uploading || loading ? 'primary.main' : 'transparent',
+            filter: uploading || loading ? 'brightness(0.7)' : 'none',
           }}
         >
           {!currentImageUrl && getInitials(user.firstName, user.lastName)}
@@ -240,8 +304,31 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
           </Box>
         )}
 
+        {/* Loading Overlay */}
+        {loading && !uploading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            <CircularProgress
+              size={avatarSize.width * 0.4}
+              sx={{ color: 'white' }}
+            />
+          </Box>
+        )}
+
         {/* Edit Button Overlay */}
-        {editable && !uploading && (
+        {editable && !uploading && !loading && (
           <Tooltip title='Change profile picture'>
             <IconButton
               sx={{
@@ -279,7 +366,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
             variant='outlined'
             startIcon={<CloudUpload />}
             onClick={triggerFileSelect}
-            disabled={uploading}
+            disabled={uploading || loading}
             size='small'
             sx={{ textTransform: 'none' }}
           >
@@ -292,7 +379,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
               color='error'
               startIcon={<Delete />}
               onClick={() => setConfirmDialog(true)}
-              disabled={uploading}
+              disabled={uploading || loading}
               size='small'
               sx={{ textTransform: 'none' }}
             >
@@ -325,6 +412,13 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
             </Typography>
           )}
         </Alert>
+      )}
+
+      {/* Loading Text */}
+      {loading && !uploading && (
+        <Typography variant='body2' color='text.secondary'>
+          Loading profile picture...
+        </Typography>
       )}
 
       {/* Upload Progress Text */}

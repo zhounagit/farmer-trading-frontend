@@ -157,6 +157,14 @@ export const debugUserType = (
 };
 
 /**
+ * Direct admin check helper (case-insensitive)
+ * Use this for direct admin checks without store logic
+ */
+export const isAdminUser = (userType: string | undefined): boolean => {
+  return userType?.toLowerCase() === 'admin';
+};
+
+/**
  * Get dashboard metric labels based on user type
  * Returns different labels for different user types
  */

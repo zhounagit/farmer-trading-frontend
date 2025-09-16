@@ -70,6 +70,7 @@ export interface AuthContextType {
   updateStoreStatus: (hasStore: boolean) => void;
   updateProfile: (updates: Partial<User>) => void;
   refreshUserProfile: () => Promise<void>;
+  triggerProfilePictureLoad: () => Promise<void>;
   handleAuthenticationError: (
     error: unknown,
     navigate?: (path: string) => void

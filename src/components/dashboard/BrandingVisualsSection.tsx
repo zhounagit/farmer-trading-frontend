@@ -42,6 +42,7 @@ import OpenShopApiService from '../../services/open-shop.api';
 import StoreApiService, { type StoreImage } from '../../services/store.api';
 import { useAuth } from '../../contexts/AuthContext';
 import { handleAuthError, isAuthError } from '../../utils/authErrorHandler';
+import { isAdminUser } from '../../utils/userTypeUtils';
 
 // Import types for store submission
 interface StoreSubmissionRequest {
@@ -755,13 +756,15 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             You need to have a store created before you can manage branding and
             visuals.
           </Typography>
-          <Button
-            variant='contained'
-            onClick={() => (window.location.href = '/open-shop')}
-            startIcon={<Store />}
-          >
-            Create Your Store
-          </Button>
+          {!isAdminUser(user?.userType) && (
+            <Button
+              variant='contained'
+              onClick={() => (window.location.href = '/open-shop')}
+              startIcon={<Store />}
+            >
+              Create Your Store
+            </Button>
+          )}
         </Paper>
 
         {/* Debug Info for Development */}

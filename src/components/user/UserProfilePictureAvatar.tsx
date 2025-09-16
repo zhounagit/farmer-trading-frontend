@@ -36,9 +36,34 @@ const UserProfilePictureAvatar: React.FC<UserProfilePictureAvatarProps> = ({
 
   const avatarSize = getAvatarSize();
 
+  // Convert relative URL to absolute URL using backend server
+  const getFullImageUrl = (
+    url: string | null | undefined
+  ): string | undefined => {
+    if (!url) return undefined;
+
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    // If it's a relative URL, make it absolute using backend server URL
+    if (url.startsWith('/')) {
+      // Get the backend URL from API configuration or use default
+      const backendUrl = 'https://localhost:7008'; // Same as API_BASE_URL in api.ts
+      const fullUrl = `${backendUrl}${url}`;
+
+      return fullUrl;
+    }
+
+    return url;
+  };
+
+  const imageUrl = getFullImageUrl(user.profilePictureUrl);
+
   return (
     <Avatar
-      src={user.profilePictureUrl || undefined}
+      src={imageUrl}
       onClick={onClick}
       sx={{
         ...avatarSize,

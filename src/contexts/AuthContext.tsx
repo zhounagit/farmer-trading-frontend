@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authApi, handleApiError, tokenUtils, userApi } from '../utils/api';
+import { apiService } from '../services/api';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
 import { initializeProfilePicture } from '../utils/profilePictureStorage';
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingProfilePicture, setIsLoadingProfilePicture] = useState(false);
 
   // Check for existing token on mount
   useEffect(() => {
@@ -50,6 +52,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         setUser(parsedUser);
+
+        // Try to load profile picture from backend API
+        loadProfilePictureFromBackend(parsedUser);
       } catch (error) {
         // If parsing fails, clear the invalid data
         tokenUtils.clearAllTokens();
@@ -57,6 +62,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
   }, []);
+
+  // Helper function to load profile picture from backend
+  const loadProfilePictureFromBackend = async (userData: User) => {
+    // Prevent multiple concurrent calls
+    if (isLoadingProfilePicture) {
+      console.log('🔄 AuthContext: Profile picture already loading, skipping');
+      return;
+    }
+
+    setIsLoadingProfilePicture(true);
+    try {
+      const result = await apiService.getUserProfilePicture(
+        userData.userId.toString()
+      );
+
+      if (result.profilePictureUrl && result.hasProfilePicture) {
+        // Update user data if we got a different profile picture URL from backend
+        if (result.profilePictureUrl !== userData.profilePictureUrl) {
+          const updatedUser = {
+            ...userData,
+            profilePictureUrl: result.profilePictureUrl,
+          };
+          setUser(updatedUser);
+          localStorage.setItem(
+            'heartwood_user_data',
+            JSON.stringify(updatedUser)
+          );
+        }
+      }
+    } catch (error) {
+      // Don't throw error - just log it, we don't want to break the initialization
+    } finally {
+      setIsLoadingProfilePicture(false);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
@@ -89,6 +129,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('heartwood_user_data', JSON.stringify(userData));
 
       setUser(userData);
+
+      // Try to load profile picture from backend API after login
+      loadProfilePictureFromBackend(userData);
+
       toast.success('Welcome back!');
     } catch (err) {
       const errorMessage = handleApiError(err, 'login');
@@ -209,17 +253,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return;
 
     try {
-      // Only check localStorage for profile picture - don't make API calls
-      const storedProfilePicture = initializeProfilePicture(user.userId);
+      // First try to get profile picture from backend API
+      const result = await apiService.getUserProfilePicture(
+        user.userId.toString()
+      );
 
-      // Only update if there's actually a stored profile picture that's different
-      if (
-        storedProfilePicture &&
-        storedProfilePicture !== user.profilePictureUrl
-      ) {
+      let updatedProfilePictureUrl = user.profilePictureUrl;
+
+      if (result.profilePictureUrl && result.hasProfilePicture) {
+        updatedProfilePictureUrl = result.profilePictureUrl;
+      } else {
+        // Fallback to localStorage if backend doesn't have profile picture
+        const storedProfilePicture = initializeProfilePicture(user.userId);
+        if (storedProfilePicture) {
+          updatedProfilePictureUrl = storedProfilePicture;
+        }
+      }
+
+      // Only update if the profile picture URL has changed
+      if (updatedProfilePictureUrl !== user.profilePictureUrl) {
         const refreshedUser: User = {
           ...user,
-          profilePictureUrl: storedProfilePicture,
+          profilePictureUrl: updatedProfilePictureUrl,
         };
 
         // Update both context and localStorage
@@ -231,6 +286,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to refresh user profile:', error);
+
+      // Fallback to localStorage if API call fails
+      try {
+        const storedProfilePicture = initializeProfilePicture(user.userId);
+        if (
+          storedProfilePicture &&
+          storedProfilePicture !== user.profilePictureUrl
+        ) {
+          const refreshedUser: User = {
+            ...user,
+            profilePictureUrl: storedProfilePicture,
+          };
+
+          setUser(refreshedUser);
+          localStorage.setItem(
+            'heartwood_user_data',
+            JSON.stringify(refreshedUser)
+          );
+        }
+      } catch (storageError) {
+        console.warn(
+          'Failed to load profile picture from storage:',
+          storageError
+        );
+      }
+
       // Don't throw error - just log it, we don't want to break the UI
     }
   };
@@ -251,6 +332,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return false;
   };
 
+  const triggerProfilePictureLoad = async () => {
+    if (user && !isLoadingProfilePicture) {
+      await loadProfilePictureFromBackend(user);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -265,6 +352,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateStoreStatus,
     updateProfile,
     refreshUserProfile,
+    triggerProfilePictureLoad,
     handleAuthenticationError,
   };
 

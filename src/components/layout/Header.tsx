@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -30,6 +30,7 @@ import {
   debugUserType,
   getUserRoleDisplayName,
   getUserRoleBadgeColor,
+  isAdminUser,
 } from '../../utils/userTypeUtils';
 
 interface HeaderProps {
@@ -37,7 +38,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, triggerProfilePictureLoad } =
+    useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const navigate = useNavigate();
@@ -71,6 +73,15 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
   const handleLogoClick = () => {
     navigate('/');
   };
+
+  // Trigger profile picture loading when Header mounts (for Landing page)
+  useEffect(() => {
+    if (isAuthenticated && user && triggerProfilePictureLoad) {
+      triggerProfilePictureLoad().catch(() => {
+        // Silently handle errors - profile picture loading is non-critical
+      });
+    }
+  }, [isAuthenticated, user?.userId, triggerProfilePictureLoad]);
 
   return (
     <AppBar
@@ -204,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                 sx={{ p: { xs: 1, md: 1.5 } }}
               >
                 <UserProfilePictureAvatar
-                  user={user as any}
+                  user={user}
                   size={isMobile ? 28 : 32}
                 />
               </IconButton>
@@ -244,12 +255,17 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
 
                 <MenuItem
                   onClick={() => {
-                    navigate('/dashboard');
+                    // Redirect admin users to admin dashboard, others to regular dashboard
+                    const dashboardPath =
+                      user.userType === 'admin'
+                        ? '/admin/dashboard'
+                        : '/dashboard';
+                    navigate(dashboardPath);
                     handleProfileMenuClose();
                   }}
                 >
                   <Dashboard sx={{ mr: 2 }} />
-                  Dashboard
+                  {isAdminUser(user.userType) ? 'Admin Dashboard' : 'Dashboard'}
                 </MenuItem>
 
                 {(() => {
@@ -260,7 +276,13 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                     'Header My Stores'
                   );
 
-                  return canAccessStoreFeatures(user.userType, user.hasStore);
+                  // Only show "My Stores" for store owners, not admin users
+                  const typeCheck = canAccessStoreFeatures(
+                    user.userType,
+                    user.hasStore
+                  );
+                  const isAdmin = isAdminUser(user.userType);
+                  return typeCheck && !isAdmin;
                 })() && (
                   <MenuItem
                     onClick={() => {
@@ -280,12 +302,16 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
 
                 <Divider />
 
-                <MenuItem onClick={handleOpenStoreClick}>
-                  <Store sx={{ mr: 2 }} />
-                  Open Your Shop
-                </MenuItem>
+                {!isAdminUser(user.userType) && (
+                  <>
+                    <MenuItem onClick={handleOpenStoreClick}>
+                      <Store sx={{ mr: 2 }} />
+                      Open Your Shop
+                    </MenuItem>
 
-                <Divider />
+                    <Divider />
+                  </>
+                )}
 
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 2 }} />

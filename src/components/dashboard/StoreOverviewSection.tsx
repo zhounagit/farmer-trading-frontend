@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserStore } from '../../hooks/useUserStore';
 import StoreApiService from '../../services/store.api';
+import { isAdminUser } from '../../utils/userTypeUtils';
 import type {
   ComprehensiveStoreData,
   StoreAddress,
@@ -63,7 +64,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   onNavigateToBranding,
 }) => {
   // Auth context available if needed
-  useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const {
     primaryStore,
@@ -317,13 +318,15 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
               started!
             </Typography>
           </Alert>
-          <Button
-            variant='contained'
-            onClick={() => navigate('/open-shop')}
-            startIcon={<Store />}
-          >
-            Open Your Shop
-          </Button>
+          {!isAdminUser(user?.userType) && (
+            <Button
+              variant='contained'
+              onClick={() => navigate('/open-shop')}
+              startIcon={<Store />}
+            >
+              Open Your Shop
+            </Button>
+          )}
         </Paper>
       </Box>
     );

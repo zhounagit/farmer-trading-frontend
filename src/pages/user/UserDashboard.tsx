@@ -45,6 +45,7 @@ import {
   getUserRoleDisplayName,
   getUserRoleBadgeColor,
   getDashboardMetricLabels,
+  isAdminUser,
 } from '../../utils/userTypeUtils';
 
 interface TabPanelProps {
@@ -82,6 +83,14 @@ const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
 
+  // Redirect admin users to admin dashboard
+  useEffect(() => {
+    if (isAdminUser(user?.userType)) {
+      navigate('/admin/dashboard', { replace: true });
+      return;
+    }
+  }, [user?.userType, navigate]);
+
   // Define tab configuration based on user type
   const getTabConfig = () => {
     // Debug user type for troubleshooting
@@ -91,13 +100,22 @@ const UserDashboard: React.FC = () => {
       user?.userType,
       user?.hasStore
     );
+    const isAdmin = isAdminUser(user?.userType);
 
-    if (canAccessStore) {
+    if (canAccessStore && !isAdmin) {
       console.log('✅ Loading STORE OWNER dashboard tabs (6 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'store', label: 'Store Overview', icon: <Store /> },
         { key: 'branding', label: 'Branding & Visuals', icon: <Palette /> },
+        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
+        { key: 'profile', label: 'Profile', icon: <Person /> },
+      ];
+    } else if (isAdmin) {
+      console.log('✅ Loading ADMIN dashboard tabs (4 tabs)');
+      return [
+        { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
         { key: 'profile', label: 'Profile', icon: <Person /> },
@@ -172,6 +190,25 @@ const UserDashboard: React.FC = () => {
         <Typography variant='h5'>
           Please log in to access your dashboard.
         </Typography>
+      </Container>
+    );
+  }
+
+  // Show loading while redirecting admin users
+  if (isAdminUser(user.userType)) {
+    return (
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        <Box
+          display='flex'
+          justifyContent='center'
+          alignItems='center'
+          minHeight='50vh'
+        >
+          <CircularProgress />
+          <Typography variant='h6' sx={{ ml: 2 }}>
+            Redirecting to Admin Dashboard...
+          </Typography>
+        </Box>
       </Container>
     );
   }

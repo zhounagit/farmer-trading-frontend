@@ -109,6 +109,11 @@ export const getStoredProfilePicture = (userId: string): string | null => {
 };
 
 /**
+ * Alias for getStoredProfilePicture - used by API service
+ */
+export const getProfilePictureFromStorage = getStoredProfilePicture;
+
+/**
  * Remove profile picture from localStorage
  */
 export const removeStoredProfilePicture = (userId: string): void => {

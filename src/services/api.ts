@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { profilePictureCache } from './profilePictureCache';
 
 // Define Axios types explicitly
 type AxiosResponse<T = any> = {
@@ -445,6 +446,39 @@ export const apiService = {
       });
       throw error;
     }
+  },
+
+  // Get user profile picture with caching
+  getUserProfilePicture: async (
+    userId: string
+  ): Promise<{
+    profilePictureUrl: string | null;
+    hasProfilePicture: boolean;
+  }> => {
+    const result = await profilePictureCache.getProfilePicture(
+      userId,
+      async () => {
+        const endpoint = `/api/users/${userId}/profile-picture`;
+        const response = await api.get(endpoint);
+
+        if (response.data) {
+          return {
+            profilePictureUrl: response.data.profilePictureUrl || null,
+            hasProfilePicture: response.data.hasProfilePicture || false,
+          };
+        }
+
+        return {
+          profilePictureUrl: null,
+          hasProfilePicture: false,
+        };
+      }
+    );
+
+    return {
+      profilePictureUrl: result.profilePictureUrl,
+      hasProfilePicture: result.hasProfilePicture,
+    };
   },
 };
 

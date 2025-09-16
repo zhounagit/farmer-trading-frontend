@@ -12,6 +12,7 @@ import OpenShopPage from './pages/shop/OpenShopPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UserDashboard from './pages/user/UserDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -118,6 +119,7 @@ function App() {
                 <Route path='/login' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
                 <Route path='/dashboard' element={<UserDashboard />} />
+                <Route path='/admin/dashboard' element={<AdminDashboard />} />
                 <Route path='/open-shop' element={<OpenShopPage />} />
                 {/* /open-shop?edit=true - Edit existing store mode */}
                 <Route path='/my-stores' element={<StoreManagementPage />} />
