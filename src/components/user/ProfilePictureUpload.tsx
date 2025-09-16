@@ -389,15 +389,6 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         </Box>
       )}
 
-      {/* Development Notice */}
-      {!error && (
-        <Alert severity='info' sx={{ mt: 1, maxWidth: 400 }}>
-          <Typography variant='body2' sx={{ fontWeight: 500, mb: 0.5 }}>
-            Profile Picture Feature (Development Mode)
-          </Typography>
-        </Alert>
-      )}
-
       {/* Error Message */}
       {error && (
         <Alert

@@ -37,7 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserStore } from '../../hooks/useUserStore';
 import StoreApiService from '../../services/store.api';
-import { isAdminUser } from '../../utils/userTypeUtils';
+
 import type {
   ComprehensiveStoreData,
   StoreAddress,
@@ -81,8 +81,16 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   useEffect(() => {
     const fetchComprehensiveStoreData = async () => {
       if (!primaryStore?.storeId) {
+        console.log(
+          '🏪 StoreOverview: No primaryStore.storeId, skipping comprehensive data fetch'
+        );
         return;
       }
+
+      console.log(
+        '🏪 StoreOverview: Fetching comprehensive store data for storeId:',
+        primaryStore.storeId
+      );
       setIsLoading(true);
       setError(null);
 
@@ -90,10 +98,17 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
         const data = await StoreApiService.getComprehensiveStoreDetails(
           primaryStore.storeId
         );
+        console.log(
+          '✅ StoreOverview: Comprehensive store data loaded successfully'
+        );
         setComprehensiveStoreData(data);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to load store details';
+        console.error(
+          '❌ StoreOverview: Failed to load comprehensive store data:',
+          errorMessage
+        );
         setError(errorMessage);
         toast.error(`Failed to load store details: ${errorMessage}`);
       } finally {
@@ -103,6 +118,24 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
 
     fetchComprehensiveStoreData();
   }, [primaryStore?.storeId]);
+
+  // Sync hasStore flag in user context with actual store data
+  useEffect(() => {
+    if (user && primaryStore && !user.hasStore) {
+      console.log(
+        '🏪 StoreOverview: Syncing hasStore flag - user has store but flag is false'
+      );
+      // Update the hasStore flag in context if we found stores but flag is false
+      const userData = JSON.parse(
+        localStorage.getItem('heartwood_user_data') || '{}'
+      );
+      if (userData.userId === user.userId) {
+        userData.hasStore = true;
+        localStorage.setItem('heartwood_user_data', JSON.stringify(userData));
+        // Note: We don't call updateStoreStatus here to avoid triggering re-renders
+      }
+    }
+  }, [user, primaryStore]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -264,8 +297,30 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
     navigate('/open-shop?edit=true');
   };
 
-  // Loading state
-  if (storesLoading || isLoading) {
+  // Debug current state
+  const hasStoreData = primaryStore && comprehensiveStoreData;
+
+  // Since Store Overview tab is only shown to store owners, always show loading until we have data
+  const shouldShowLoading = storesLoading || isLoading || !hasStoreData;
+
+  console.log('🏪 StoreOverview render state:', {
+    storesLoading,
+    isLoading,
+    hasPrimaryStore: !!primaryStore,
+    hasComprehensiveData: !!comprehensiveStoreData,
+    storesError,
+    error,
+    userHasStore: user?.hasStore,
+    userType: user?.userType,
+    hasStoreData,
+    shouldShowLoading,
+  });
+
+  // Always show loading until we have complete store data
+  if (shouldShowLoading) {
+    console.log(
+      '🏪 StoreOverview: Showing loading state until complete data available'
+    );
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
@@ -304,29 +359,52 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
     );
   }
 
-  // No store state
-  if (!primaryStore || !comprehensiveStoreData) {
+  // Note: Removed "no store" message since Store Overview tab is only shown to store owners
+
+  // If we have primaryStore but failed to load comprehensive data, handle gracefully
+  if (primaryStore && !comprehensiveStoreData && error) {
+    console.log(
+      '🏪 StoreOverview: Have primaryStore but comprehensive data failed to load'
+    );
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
           Store Overview
         </Typography>
         <Paper sx={{ p: 3 }}>
-          <Alert severity='info' sx={{ mb: 2 }}>
+          <Alert severity='warning' sx={{ mb: 2 }}>
             <Typography variant='body2'>
-              You don't have a store yet. Create your first store to get
-              started!
+              Your store "{primaryStore.storeName}" exists but we're having
+              trouble loading the details. Please try refreshing the page.
             </Typography>
           </Alert>
-          {!isAdminUser(user?.userType) && (
-            <Button
-              variant='contained'
-              onClick={() => navigate('/open-shop')}
-              startIcon={<Store />}
-            >
-              Open Your Shop
-            </Button>
-          )}
+          <Button
+            variant='outlined'
+            onClick={() => window.location.reload()}
+            startIcon={<ErrorOutline />}
+          >
+            Refresh Page
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  // Final safety check - this should not happen due to loading logic above
+  if (!comprehensiveStoreData) {
+    console.log(
+      '🏪 StoreOverview: Final safety check - no comprehensive data, showing loading'
+    );
+    return (
+      <Box>
+        <Typography variant='h5' fontWeight={600} gutterBottom>
+          Store Overview
+        </Typography>
+        <Paper sx={{ p: 3 }}>
+          <LinearProgress />
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
+            Loading store details...
+          </Typography>
         </Paper>
       </Box>
     );
