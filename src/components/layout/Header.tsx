@@ -27,7 +27,6 @@ import Logo from '../common/Logo';
 import UserProfilePictureAvatar from '../user/UserProfilePictureAvatar';
 import {
   canAccessStoreFeatures,
-  debugUserType,
   getUserRoleDisplayName,
   getUserRoleBadgeColor,
   isAdminUser,
@@ -54,9 +53,10 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     handleProfileMenuClose();
+    await logout();
+    navigate('/');
   };
 
   const handleHowItWorks = () => {
@@ -257,7 +257,7 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   onClick={() => {
                     // Redirect admin users to admin dashboard, others to regular dashboard
                     const dashboardPath =
-                      user.userType === 'admin'
+                      user.userType === 'Admin'
                         ? '/admin/dashboard'
                         : '/dashboard';
                     navigate(dashboardPath);
@@ -269,13 +269,6 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                 </MenuItem>
 
                 {(() => {
-                  // Debug user type for troubleshooting
-                  debugUserType(
-                    user.userType,
-                    user.hasStore,
-                    'Header My Stores'
-                  );
-
                   // Only show "My Stores" for store owners, not admin users
                   const typeCheck = canAccessStoreFeatures(
                     user.userType,
@@ -302,16 +295,14 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
 
                 <Divider />
 
-                {!isAdminUser(user.userType) && (
-                  <>
-                    <MenuItem onClick={handleOpenStoreClick}>
-                      <Store sx={{ mr: 2 }} />
-                      Open Your Shop
-                    </MenuItem>
+                {!isAdminUser(user.userType) && [
+                  <MenuItem key='open-store' onClick={handleOpenStoreClick}>
+                    <Store sx={{ mr: 2 }} />
+                    Open Your Shop
+                  </MenuItem>,
 
-                    <Divider />
-                  </>
-                )}
+                  <Divider key='divider-store' />,
+                ]}
 
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 2 }} />

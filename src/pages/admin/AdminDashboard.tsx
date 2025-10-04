@@ -20,6 +20,10 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import Header from '../../components/layout/Header';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -87,132 +91,172 @@ function a11yProps(index: number) {
   };
 }
 
-// Mock data - Replace with actual API calls
-const mockKPIs = {
-  gmv: {
-    value: 250000,
-    change: 12.5,
-    label: 'Gross Merchandise Volume',
-    format: 'currency' as const,
-  },
-  revenue: {
-    value: 25000,
-    change: 8.3,
-    label: 'Platform Revenue',
-    format: 'currency' as const,
-  },
-  orders: {
-    value: 3400,
-    change: 15.2,
-    label: 'Total Orders',
-    format: 'number' as const,
-  },
-  customers: {
-    value: 540,
-    change: 22.1,
-    label: 'New Customers',
-    format: 'number' as const,
-  },
-  stores: {
-    value: 28,
-    change: 5.8,
-    label: 'New Store Applications',
-    format: 'number' as const,
-  },
-  aov: {
-    value: 73.53,
-    change: -2.1,
-    label: 'Average Order Value',
-    format: 'currency' as const,
-  },
-};
-
-const mockAlerts: AlertItem[] = [
+const mockRecentActivity = [
   {
     id: 1,
-    type: 'pending',
-    title: 'Store Applications',
-    count: 5,
-    description: 'Pending review',
-    severity: 'warning',
-    action: {
-      label: 'Review Now',
-      onClick: () => console.log('Navigate to store applications'),
-    },
+    type: 'order',
+    title: 'New Order',
+    description: 'Order #12345 - $89.50',
+    timestamp: '2 minutes ago',
+    severity: 'success',
   },
   {
     id: 2,
-    type: 'withdrawal',
-    title: 'Withdrawal Requests',
-    count: 3,
-    value: 4500,
-    description: 'Awaiting processing',
+    type: 'store',
+    title: 'Store Application',
+    description: 'Fresh Farm Produce submitted for review',
+    timestamp: '15 minutes ago',
     severity: 'info',
-    action: {
-      label: 'Process',
-      onClick: () => console.log('Navigate to payouts'),
-    },
   },
   {
     id: 3,
-    type: 'support',
-    title: 'High-Priority Tickets',
-    count: 2,
-    description: 'Urgent customer support',
-    severity: 'error',
-    action: {
-      label: 'View Tickets',
-      onClick: () => console.log('Navigate to support tickets'),
-    },
-  },
-];
-
-const mockRecentActivity: ActivityLogItem[] = [
-  {
-    id: 1,
-    timestamp: '2024-01-15 14:30:00',
-    action: 'Store "Green Valley Farms" was approved',
-    type: 'store_approval',
-    userName: 'Admin Sarah',
-    severity: 'low',
-  },
-  {
-    id: 2,
-    timestamp: '2024-01-15 13:45:00',
-    action: 'Commission rate for Electronics changed from 10% to 12%',
-    type: 'commission_update',
-    userName: 'Admin John',
-    severity: 'medium',
-  },
-  {
-    id: 3,
-    timestamp: '2024-01-15 12:20:00',
-    action: 'Payout #1234 for $1,200 processed for "Farm Fresh Produce"',
-    type: 'payout_processed',
-    userName: 'System',
-    severity: 'low',
+    type: 'alert',
+    title: 'Low Stock Alert',
+    description: 'Organic Tomatoes - Only 5 items left',
+    timestamp: '1 hour ago',
+    severity: 'warning',
   },
   {
     id: 4,
-    timestamp: '2024-01-15 11:15:00',
-    action: 'New customer support ticket #5678 created',
-    type: 'support_ticket',
-    severity: 'high',
+    type: 'user',
+    title: 'New User Registration',
+    description: 'John Smith joined as customer',
+    timestamp: '2 hours ago',
+    severity: 'info',
   },
   {
     id: 5,
-    timestamp: '2024-01-15 10:30:00',
-    action: 'Store "Organic Delights" submitted verification documents',
-    type: 'verification_submitted',
-    severity: 'low',
+    type: 'payout',
+    title: 'Payout Processed',
+    description: '$450.00 to Green Valley Farm',
+    timestamp: '3 hours ago',
+    severity: 'success',
   },
 ];
 
+
+
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [loading, setLoading] = useState(false);
+
+  // Fetch pending store applications for Mission Control Center
+  const { data: pendingApplications } = useQuery({
+    queryKey: ['pending-store-applications'],
+    queryFn: async () => {
+      try {
+        const response = await apiService.get('/api/admin/store-applications/pending');
+        return response.data || [];
+      } catch (error) {
+        console.log('Failed to fetch pending applications:', error);
+        return [];
+      }
+    },
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  const pendingCount = pendingApplications?.length || 0;
+
+
+
+  // KPIs with real data
+  const mockKPIs = {
+    gmv: {
+      value: 250000,
+      change: 12.5,
+      label: 'Gross Merchandise Volume',
+      format: 'currency' as const,
+    },
+    revenue: {
+      value: 25000,
+      change: 8.3,
+      label: 'Platform Revenue',
+      format: 'currency' as const,
+    },
+    orders: {
+      value: 3400,
+      change: 15.2,
+      label: 'Total Orders',
+      format: 'number' as const,
+    },
+    customers: {
+      value: 540,
+      change: 22.1,
+      label: 'New Customers',
+      format: 'number' as const,
+    },
+    stores: {
+      value: pendingCount,
+      change: 0,
+      label: 'Pending Store Applications',
+      format: 'number' as const,
+    },
+    aov: {
+      value: 73.53,
+      change: -2.1,
+      label: 'Average Order Value',
+      format: 'currency' as const,
+    },
+  };
+
+  // Alerts with real data
+  const mockAlerts = [
+    {
+      id: 1,
+      type: 'pending',
+      title: 'Store Applications',
+      count: pendingCount,
+      description: 'Pending review',
+      severity: pendingCount > 0 ? 'warning' : 'info',
+      action: {
+        label: pendingCount > 0 ? 'Review Now' : 'View All',
+        onClick: () => navigate('/admin/store-applications'),
+      },
+    },
+    {
+      id: 2,
+      type: 'withdrawal',
+      title: 'Withdrawal Requests',
+      count: 3,
+      value: 4500,
+      description: '$4,500 pending',
+      severity: 'info',
+      action: {
+        label: 'Process',
+        onClick: () => console.log('Navigate to withdrawals'),
+      },
+    },
+    {
+      id: 3,
+      type: 'inventory',
+      title: 'Low Stock Items',
+      count: 12,
+      description: 'Items below threshold',
+      severity: 'warning',
+      action: {
+        label: 'Review',
+        onClick: () => console.log('Navigate to inventory'),
+      },
+    },
+    {
+      id: 4,
+      type: 'report',
+      title: 'System Health',
+      description: 'All systems operational',
+      severity: 'success',
+      action: {
+        label: 'View Details',
+        onClick: () => console.log('Navigate to system health'),
+      },
+    },
+  ];
+
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -230,6 +274,9 @@ const AdminDashboard: React.FC = () => {
   const handleKPICardClick = (key: string) => {
     console.log(`Navigate to detailed view for ${key}`);
     // Add navigation logic based on KPI type
+    if (key === 'stores') {
+      navigate('/admin/store-applications');
+    }
   };
 
   // Chart data
@@ -286,12 +333,12 @@ const AdminDashboard: React.FC = () => {
       id: 'review-applications',
       label: 'Review Applications',
       icon: <Store />,
-      count: 5,
+      count: pendingCount,
       variant: 'contained',
-      color: 'warning',
-      onClick: () => setTabValue(2),
-      description: 'Pending store applications',
-      urgent: true,
+      color: pendingCount > 0 ? 'warning' : 'primary',
+      onClick: () => navigate('/admin/store-applications'),
+      description: `${pendingCount} pending store applications`,
+      urgent: pendingCount > 0,
     },
     {
       id: 'process-payouts',
@@ -356,334 +403,341 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <Container maxWidth='xl' sx={{ py: 3 }}>
-      {/* Admin Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box
-          display='flex'
-          justifyContent='space-between'
-          alignItems='center'
-          mb={2}
-        >
-          <Typography variant='h3' fontWeight={700} color='#d32f2f'>
-            Platform Administrator Dashboard
-          </Typography>
-          <Box display='flex' alignItems='center' gap={2}>
-            <Typography variant='body2' color='text.secondary'>
-              Last updated: {lastRefresh.toLocaleTimeString()}
+    <Box>
+      {/* Header */}
+      <Header onLoginClick={handleLoginClick} />
+
+      <Container maxWidth='xl' sx={{ py: 4 }}>
+        {/* Admin Header */}
+        <Box sx={{ mb: 4 }}>
+          <Box
+            display='flex'
+            justifyContent='space-between'
+            alignItems='center'
+            mb={2}
+          >
+            <Typography variant='h3' fontWeight={700} color='#d32f2f'>
+              Platform Administrator Dashboard
             </Typography>
-            <Button
-              variant='outlined'
-              startIcon={<Refresh />}
-              onClick={handleRefresh}
-              size='small'
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-          </Box>
-        </Box>
-        <Typography variant='h6' color='text.secondary' gutterBottom>
-          Mission Control Center - Welcome, {user.firstName}
-        </Typography>
-      </Box>
-
-      {/* Alert Hub */}
-      <AdminAlertHub
-        alerts={mockAlerts}
-        loading={loading}
-        onRefresh={handleRefresh}
-        lastUpdated={lastRefresh}
-      />
-
-      {/* KPI Cards Grid */}
-      <Box sx={{ mb: 4 }}>
-        <AdminKPICards
-          kpis={mockKPIs}
-          loading={loading}
-          onCardClick={handleKPICardClick}
-        />
-      </Box>
-
-      {/* Navigation Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant='scrollable'
-          scrollButtons='auto'
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '1rem',
-              minHeight: 64,
-            },
-          }}
-        >
-          {tabConfig.map((tab, index) => (
-            <Tab
-              key={tab.key}
-              label={tab.label}
-              icon={tab.icon}
-              iconPosition='start'
-              {...a11yProps(index)}
-            />
-          ))}
-        </Tabs>
-      </Paper>
-
-      {/* Tab Panels */}
-      <TabPanel value={tabValue} index={0}>
-        {/* Mission Control Dashboard */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 3,
-            flexDirection: { xs: 'column', lg: 'row' },
-          }}
-        >
-          {/* Main Charts */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant='h6' gutterBottom fontWeight={600}>
-                Gross Merchandise Volume Trend (Last 7 Days)
+            <Box display='flex' alignItems='center' gap={2}>
+              <Typography variant='body2' color='text.secondary'>
+                Last updated: {lastRefresh.toLocaleTimeString()}
               </Typography>
-              <Box height={300}>
-                <Line
-                  data={gmvChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: (context) =>
-                            `GMV: $${context.parsed.y.toLocaleString()}`,
-                        },
-                      },
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: (value) =>
-                            `$${Number(value).toLocaleString()}`,
-                        },
-                        grid: {
-                          color: 'rgba(0, 0, 0, 0.1)',
-                        },
-                      },
-                      x: {
-                        grid: {
+              <Button
+                variant='outlined'
+                startIcon={<Refresh />}
+                onClick={handleRefresh}
+                size='small'
+                disabled={loading}
+              >
+                Refresh
+              </Button>
+            </Box>
+          </Box>
+          <Typography variant='h6' color='text.secondary' gutterBottom>
+            Mission Control Center
+          </Typography>
+        </Box>
+
+        {/* Alert Hub */}
+        <AdminAlertHub
+          alerts={mockAlerts}
+          loading={loading}
+          onRefresh={handleRefresh}
+          lastUpdated={lastRefresh}
+        />
+
+        {/* KPI Cards Grid */}
+        <Box sx={{ mb: 4 }}>
+          <AdminKPICards
+            kpis={mockKPIs}
+            loading={loading}
+            onCardClick={handleKPICardClick}
+          />
+        </Box>
+
+        {/* Navigation Tabs */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            variant='scrollable'
+            scrollButtons='auto'
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                minHeight: 64,
+              },
+            }}
+          >
+            {tabConfig.map((tab, index) => (
+              <Tab
+                key={tab.key}
+                label={tab.label}
+                icon={tab.icon}
+                iconPosition='start'
+                {...a11yProps(index)}
+              />
+            ))}
+          </Tabs>
+        </Paper>
+
+        {/* Tab Panels */}
+        <TabPanel value={tabValue} index={0}>
+          {/* Mission Control Dashboard */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 3,
+              flexDirection: { xs: 'column', lg: 'row' },
+            }}
+          >
+            {/* Main Charts */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant='h6' gutterBottom fontWeight={600}>
+                  Gross Merchandise Volume Trend (Last 7 Days)
+                </Typography>
+                <Box height={300}>
+                  <Line
+                    data={gmvChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
                           display: false,
                         },
-                      },
-                    },
-                  }}
-                />
-              </Box>
-            </Paper>
-
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 2,
-                flexDirection: { xs: 'column', md: 'row' },
-              }}
-            >
-              <Box sx={{ flex: 1 }}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant='h6' gutterBottom fontWeight={600}>
-                    Revenue Breakdown
-                  </Typography>
-                  <Box height={250}>
-                    <Doughnut
-                      data={revenueBreakdownData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'bottom',
-                            labels: {
-                              padding: 20,
-                              usePointStyle: true,
-                            },
-                          },
-                          tooltip: {
-                            callbacks: {
-                              label: (context) =>
-                                `${context.label}: $${context.parsed.toLocaleString()}`,
-                            },
+                        tooltip: {
+                          callbacks: {
+                            label: (context) =>
+                              `GMV: $${context.parsed.y.toLocaleString()}`,
                           },
                         },
-                      }}
-                    />
-                  </Box>
-                </Paper>
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant='h6' gutterBottom fontWeight={600}>
-                    Top Selling Categories
-                  </Typography>
-                  <Box height={250}>
-                    <Bar
-                      data={topCategoriesData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            callback: (value) =>
+                              `$${Number(value).toLocaleString()}`,
+                          },
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                          },
+                        },
+                        x: {
+                          grid: {
                             display: false,
                           },
-                          tooltip: {
-                            callbacks: {
-                              label: (context) =>
-                                `Sales: $${context.parsed.y.toLocaleString()}`,
-                            },
-                          },
                         },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: {
-                              callback: (value) =>
-                                `$${Number(value).toLocaleString()}`,
+                      },
+                    }}
+                  />
+                </Box>
+              </Paper>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 2,
+                  flexDirection: { xs: 'column', md: 'row' },
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant='h6' gutterBottom fontWeight={600}>
+                      Revenue Breakdown
+                    </Typography>
+                    <Box height={250}>
+                      <Doughnut
+                        data={revenueBreakdownData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'bottom',
+                              labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                              },
                             },
-                            grid: {
-                              color: 'rgba(0, 0, 0, 0.1)',
+                            tooltip: {
+                              callbacks: {
+                                label: (context) =>
+                                  `${context.label}: $${context.parsed.toLocaleString()}`,
+                              },
                             },
                           },
-                          x: {
-                            grid: {
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant='h6' gutterBottom fontWeight={600}>
+                      Top Selling Categories
+                    </Typography>
+                    <Box height={250}>
+                      <Bar
+                        data={topCategoriesData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
                               display: false,
                             },
+                            tooltip: {
+                              callbacks: {
+                                label: (context) =>
+                                  `Sales: $${context.parsed.y.toLocaleString()}`,
+                              },
+                            },
                           },
-                        },
-                      }}
-                    />
-                  </Box>
-                </Paper>
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: {
+                                callback: (value) =>
+                                  `$${Number(value).toLocaleString()}`,
+                              },
+                              grid: {
+                                color: 'rgba(0, 0, 0, 0.1)',
+                              },
+                            },
+                            x: {
+                              grid: {
+                                display: false,
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                </Box>
               </Box>
             </Box>
-          </Box>
 
-          {/* Sidebar with Quick Actions and Activity */}
-          <Box sx={{ width: { lg: 350 }, flexShrink: 0 }}>
-            <Box sx={{ mb: 3 }}>
-              <AdminQuickActions actions={quickActions} loading={loading} />
+            {/* Sidebar with Quick Actions and Activity */}
+            <Box sx={{ width: { lg: 350 }, flexShrink: 0 }}>
+              <Box sx={{ mb: 3 }}>
+                <AdminQuickActions actions={quickActions} loading={loading} />
+              </Box>
+
+              <AdminActivityLog
+                activities={mockRecentActivity}
+                loading={loading}
+                onRefresh={handleRefresh}
+                maxItems={8}
+              />
             </Box>
-
-            <AdminActivityLog
-              activities={mockRecentActivity}
-              loading={loading}
-              onRefresh={handleRefresh}
-              maxItems={8}
-            />
           </Box>
-        </Box>
-      </TabPanel>
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={1}>
-        {/* User Management */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant='h5' gutterBottom fontWeight={600}>
-            User Management
-          </Typography>
-          <Typography variant='body1' color='text.secondary' paragraph>
-            Comprehensive user management features including customer accounts,
-            store owner profiles, and administrative role assignments.
-          </Typography>
-          <Alert severity='info' sx={{ mt: 3 }}>
-            <AlertTitle>Coming Soon</AlertTitle>
-            Advanced user management features are currently in development and
-            will be available in the next release.
-          </Alert>
-        </Paper>
-      </TabPanel>
+        <TabPanel value={tabValue} index={1}>
+          {/* User Management */}
+          <Paper sx={{ p: 4 }}>
+            <Typography variant='h5' gutterBottom fontWeight={600}>
+              User Management
+            </Typography>
+            <Typography variant='body1' color='text.secondary' paragraph>
+              Comprehensive user management features including customer
+              accounts, store owner profiles, and administrative role
+              assignments.
+            </Typography>
+            <Alert severity='info' sx={{ mt: 3 }}>
+              <AlertTitle>Coming Soon</AlertTitle>
+              Advanced user management features are currently in development and
+              will be available in the next release.
+            </Alert>
+          </Paper>
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={2}>
-        {/* Store Management */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant='h5' gutterBottom fontWeight={600}>
-            Store Management
-          </Typography>
-          <Typography variant='body1' color='text.secondary' paragraph>
-            Complete store lifecycle management including application reviews,
-            verification processes, active store monitoring, and suspension
-            controls.
-          </Typography>
-          <Alert severity='info' sx={{ mt: 3 }}>
-            <AlertTitle>In Development</AlertTitle>
-            Store management features are being actively developed with a focus
-            on streamlined approval workflows.
-          </Alert>
-        </Paper>
-      </TabPanel>
+        <TabPanel value={tabValue} index={2}>
+          {/* Store Management */}
+          <Paper sx={{ p: 4 }}>
+            <Typography variant='h5' gutterBottom fontWeight={600}>
+              Store Management
+            </Typography>
+            <Typography variant='body1' color='text.secondary' paragraph>
+              Complete store lifecycle management including application reviews,
+              verification processes, active store monitoring, and suspension
+              controls.
+            </Typography>
+            <Alert severity='info' sx={{ mt: 3 }}>
+              <AlertTitle>In Development</AlertTitle>
+              Store management features are being actively developed with a
+              focus on streamlined approval workflows.
+            </Alert>
+          </Paper>
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
-        {/* Financial Hub */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant='h5' gutterBottom fontWeight={600}>
-            Financial Hub
-          </Typography>
-          <Typography variant='body1' color='text.secondary' paragraph>
-            Centralized financial operations including transaction monitoring,
-            commission rate management, referral program configuration, and
-            automated payout processing.
-          </Typography>
-          <Alert severity='info' sx={{ mt: 3 }}>
-            <AlertTitle>Priority Development</AlertTitle>
-            Financial management tools are our top priority and will include
-            real-time transaction tracking and automated reconciliation.
-          </Alert>
-        </Paper>
-      </TabPanel>
+        <TabPanel value={tabValue} index={3}>
+          {/* Financial Hub */}
+          <Paper sx={{ p: 4 }}>
+            <Typography variant='h5' gutterBottom fontWeight={600}>
+              Financial Hub
+            </Typography>
+            <Typography variant='body1' color='text.secondary' paragraph>
+              Centralized financial operations including transaction monitoring,
+              commission rate management, referral program configuration, and
+              automated payout processing.
+            </Typography>
+            <Alert severity='info' sx={{ mt: 3 }}>
+              <AlertTitle>Priority Development</AlertTitle>
+              Financial management tools are our top priority and will include
+              real-time transaction tracking and automated reconciliation.
+            </Alert>
+          </Paper>
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={4}>
-        {/* Analytics & Reports */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant='h5' gutterBottom fontWeight={600}>
-            Analytics & Reports
-          </Typography>
-          <Typography variant='body1' color='text.secondary' paragraph>
-            Advanced analytics dashboard with sales performance metrics, user
-            acquisition trends, conversion analytics, and comprehensive export
-            capabilities for business intelligence.
-          </Typography>
-          <Alert severity='info' sx={{ mt: 3 }}>
-            <AlertTitle>Enhanced Features</AlertTitle>
-            Advanced reporting with predictive analytics and custom dashboard
-            creation will be available soon.
-          </Alert>
-        </Paper>
-      </TabPanel>
+        <TabPanel value={tabValue} index={4}>
+          {/* Analytics & Reports */}
+          <Paper sx={{ p: 4 }}>
+            <Typography variant='h5' gutterBottom fontWeight={600}>
+              Analytics & Reports
+            </Typography>
+            <Typography variant='body1' color='text.secondary' paragraph>
+              Advanced analytics dashboard with sales performance metrics, user
+              acquisition trends, conversion analytics, and comprehensive export
+              capabilities for business intelligence.
+            </Typography>
+            <Alert severity='info' sx={{ mt: 3 }}>
+              <AlertTitle>Enhanced Features</AlertTitle>
+              Advanced reporting with predictive analytics and custom dashboard
+              creation will be available soon.
+            </Alert>
+          </Paper>
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={5}>
-        {/* Platform Settings */}
-        <Paper sx={{ p: 4 }}>
-          <Typography variant='h5' gutterBottom fontWeight={600}>
-            Platform Settings
-          </Typography>
-          <Typography variant='body1' color='text.secondary' paragraph>
-            Global platform configuration including site branding, payment
-            gateway integration, tax and shipping rules, notification templates,
-            and system-wide preferences.
-          </Typography>
-          <Alert severity='info' sx={{ mt: 3 }}>
-            <AlertTitle>Configuration Management</AlertTitle>A comprehensive
-            settings panel with role-based access control is under development.
-          </Alert>
-        </Paper>
-      </TabPanel>
-    </Container>
+        <TabPanel value={tabValue} index={5}>
+          {/* Platform Settings */}
+          <Paper sx={{ p: 4 }}>
+            <Typography variant='h5' gutterBottom fontWeight={600}>
+              Platform Settings
+            </Typography>
+            <Typography variant='body1' color='text.secondary' paragraph>
+              Global platform configuration including site branding, payment
+              gateway integration, tax and shipping rules, notification
+              templates, and system-wide preferences.
+            </Typography>
+            <Alert severity='info' sx={{ mt: 3 }}>
+              <AlertTitle>Configuration Management</AlertTitle>A comprehensive
+              settings panel with role-based access control is under
+              development.
+            </Alert>
+          </Paper>
+        </TabPanel>
+      </Container>
+    </Box>
   );
 };
 

@@ -411,11 +411,11 @@ export const FormSection: React.FC<FormSectionProps> = ({
 };
 
 // Address form component
-export interface AddressFormProps {
+interface AddressFormProps {
   addressData: {
     locationName: string;
     contactPhone: string;
-    streetLine: string;
+    streetAddress: string;
     city: string;
     state: string;
     zipCode: string;
@@ -467,10 +467,10 @@ export const AddressForm: React.FC<AddressFormProps> = ({
 
       <FormField
         label="Street Address"
-        name="streetLine"
-        value={addressData.streetLine}
-        onChange={(value) => onChange('streetLine', value)}
-        error={errors.streetLine}
+        name="streetAddress"
+        value={addressData.streetAddress}
+        onChange={(value) => onChange('streetAddress', value)}
+        error={errors.streetAddress}
         required
         disabled={disabled}
         placeholder="123 Farm Road"

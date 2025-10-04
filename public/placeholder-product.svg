@@ -1,0 +1,30 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#f8f9fa"/>
+
+  <!-- Border -->
+  <rect x="1" y="1" width="398" height="298" stroke="#e9ecef" stroke-width="2" fill="none"/>
+
+  <!-- Icon Background Circle -->
+  <circle cx="200" cy="120" r="40" fill="#e9ecef"/>
+
+  <!-- Shopping Bag Icon -->
+  <path d="M175 100h50l5 40h-60l5-40z" fill="#6c757d"/>
+  <path d="M185 100v-10c0-8.284 6.716-15 15-15s15 6.716 15 15v10" stroke="#6c757d" stroke-width="2" fill="none"/>
+
+  <!-- Text -->
+  <text x="200" y="190" font-family="Arial, sans-serif" font-size="16" fill="#6c757d" text-anchor="middle" font-weight="500">
+    Product Image
+  </text>
+
+  <!-- Subtitle -->
+  <text x="200" y="210" font-family="Arial, sans-serif" font-size="12" fill="#adb5bd" text-anchor="middle">
+    No image available
+  </text>
+
+  <!-- Decorative elements -->
+  <circle cx="160" cy="250" r="3" fill="#dee2e6" opacity="0.6"/>
+  <circle cx="180" cy="240" r="2" fill="#dee2e6" opacity="0.4"/>
+  <circle cx="220" cy="240" r="2" fill="#dee2e6" opacity="0.4"/>
+  <circle cx="240" cy="250" r="3" fill="#dee2e6" opacity="0.6"/>
+</svg>

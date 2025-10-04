@@ -7,9 +7,7 @@ import {
   Paper,
   LinearProgress,
 } from '@mui/material';
-import {
-  CloudUpload as UploadIcon,
-} from '@mui/icons-material';
+import { CloudUpload as UploadIcon } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import OpenShopApiService from '../services/open-shop.api';
 
@@ -44,24 +42,26 @@ const TestApiIntegration: React.FC = () => {
       setUploadProgress(0);
 
       try {
-        console.log('Testing logo upload...');
+        // Testing logo upload
         const result = await OpenShopApiService.uploadLogo(
           testStoreId,
           testFile,
           (progress) => {
-            console.log('Upload progress:', progress);
+            // Upload progress tracked
             setUploadProgress(progress);
           }
         );
 
-        console.log('Upload result:', result);
+        // Upload completed successfully
         toast.success('Logo uploaded successfully!');
 
         // Display result
-        console.log('Logo URL:', result.fileUrl);
+        // Logo URL available in result.fileUrl
       } catch (error) {
-        console.error('Upload error:', error);
-        toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Upload error occurred
+        toast.error(
+          `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       } finally {
         setIsUploading(false);
         setUploadProgress(0);
@@ -89,30 +89,34 @@ const TestApiIntegration: React.FC = () => {
         return;
       }
 
-      const testFile = new File([blob], 'test-banner.png', { type: 'image/png' });
+      const testFile = new File([blob], 'test-banner.png', {
+        type: 'image/png',
+      });
 
       setIsUploading(true);
       setUploadProgress(0);
 
       try {
-        console.log('Testing banner upload...');
+        // Testing banner upload
         const result = await OpenShopApiService.uploadBanner(
           testStoreId,
           testFile,
           (progress) => {
-            console.log('Upload progress:', progress);
+            // Upload progress tracked
             setUploadProgress(progress);
           }
         );
 
-        console.log('Upload result:', result);
+        // Upload completed successfully
         toast.success('Banner uploaded successfully!');
 
         // Display result
-        console.log('Banner URL:', result.fileUrl);
+        // Banner URL available in result.fileUrl
       } catch (error) {
-        console.error('Upload error:', error);
-        toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Upload error occurred
+        toast.error(
+          `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       } finally {
         setIsUploading(false);
         setUploadProgress(0);
@@ -140,7 +144,11 @@ const TestApiIntegration: React.FC = () => {
       await new Promise<void>((resolve) => {
         canvas.toBlob((blob) => {
           if (blob) {
-            files.push(new File([blob], `test-gallery-${i + 1}.png`, { type: 'image/png' }));
+            files.push(
+              new File([blob], `test-gallery-${i + 1}.png`, {
+                type: 'image/png',
+              })
+            );
           }
           resolve();
         }, 'image/png');
@@ -156,26 +164,26 @@ const TestApiIntegration: React.FC = () => {
     setUploadProgress(0);
 
     try {
-      console.log('Testing gallery upload...');
+      // Testing gallery upload
       const result = await OpenShopApiService.uploadGalleryImages(
         testStoreId,
         files,
         (progress) => {
-          console.log('Upload progress:', progress);
+          // Upload progress tracked
           setUploadProgress(progress);
         }
       );
 
-      console.log('Upload result:', result);
+      // Upload completed successfully
       toast.success('Gallery images uploaded successfully!');
 
       // Display results
-      result.forEach((img, index) => {
-        console.log(`Gallery image ${index + 1} URL:`, img.fileUrl);
-      });
+      // All gallery images uploaded successfully
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Upload error occurred
+      toast.error(
+        `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -184,47 +192,47 @@ const TestApiIntegration: React.FC = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant='h4' gutterBottom>
         API Integration Test
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 4 }}>
-        This component tests the branding API integration. Check the browser console for detailed logs.
-        Test store ID: {testStoreId}
+      <Alert severity='info' sx={{ mb: 4 }}>
+        This component tests the branding API integration. Check the browser
+        console for detailed logs. Test store ID: {testStoreId}
       </Alert>
 
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant='h6' gutterBottom>
           Test Upload Functions
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
           <Button
-            variant="contained"
+            variant='contained'
             startIcon={<UploadIcon />}
             onClick={handleTestLogoUpload}
             disabled={isUploading}
-            color="primary"
+            color='primary'
           >
             Test Logo Upload
           </Button>
 
           <Button
-            variant="contained"
+            variant='contained'
             startIcon={<UploadIcon />}
             onClick={handleTestBannerUpload}
             disabled={isUploading}
-            color="secondary"
+            color='secondary'
           >
             Test Banner Upload
           </Button>
 
           <Button
-            variant="contained"
+            variant='contained'
             startIcon={<UploadIcon />}
             onClick={handleTestGalleryUpload}
             disabled={isUploading}
-            color="success"
+            color='success'
           >
             Test Gallery Upload (3 images)
           </Button>
@@ -232,26 +240,24 @@ const TestApiIntegration: React.FC = () => {
 
         {isUploading && (
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" gutterBottom>
+            <Typography variant='body2' gutterBottom>
               Uploading... {uploadProgress}%
             </Typography>
             <LinearProgress
-              variant="determinate"
+              variant='determinate'
               value={uploadProgress}
               sx={{ borderRadius: 1 }}
             />
           </Box>
         )}
 
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant='body2' color='text.secondary'>
           API Endpoints being tested:
         </Typography>
-        <Typography variant="body2" color="text.secondary" component="div">
+        <Typography variant='body2' color='text.secondary' component='div'>
           • POST /api/stores/{testStoreId}/upload-logo
-          <br />
-          • POST /api/stores/{testStoreId}/upload-banner
-          <br />
-          • POST /api/stores/{testStoreId}/upload-gallery
+          <br />• POST /api/stores/{testStoreId}/upload-banner
+          <br />• POST /api/stores/{testStoreId}/upload-gallery
         </Typography>
       </Paper>
     </Box>

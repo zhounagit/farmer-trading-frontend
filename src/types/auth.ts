@@ -3,7 +3,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  userType: 'customer' | 'store_owner' | 'admin';
+  userType: 'Customer' | 'Store Owner' | 'Admin';
   phone?: string;
   referralCode?: string;
   hasStore?: boolean;
@@ -32,7 +32,7 @@ export interface RegisterRequest {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  userType: 'customer' | 'store_owner';
+  userType: 'Customer' | 'Store Owner';
   phone?: string;
   referralCode?: string;
 }
@@ -51,7 +51,7 @@ export interface RegisterData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  userType: 'customer' | 'store_owner';
+  userType: 'Customer' | 'Store Owner';
   phone?: string;
   referralCode?: string;
 }
@@ -60,7 +60,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;

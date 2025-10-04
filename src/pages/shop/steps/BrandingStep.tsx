@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -15,8 +15,6 @@ import {
 import {
   CloudUpload as UploadIcon,
   Delete as DeleteIcon,
-  Image as ImageIcon,
-  PhotoCamera as PhotoIcon,
   Collections as GalleryIcon,
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
@@ -47,9 +45,69 @@ const BrandingStep: React.FC<StepProps> = ({
     gallery?: string[];
   }>({});
 
+  // Debug: Log what formState this step receives
+  console.log('🖼️ BrandingStep - Received formState:', {
+    hasBranding: !!formState.branding,
+    logoUrl: formState.branding?.logoUrl,
+    bannerUrl: formState.branding?.bannerUrl,
+    galleryUrls: formState.branding?.galleryUrls,
+    galleryUrlsLength: formState.branding?.galleryUrls?.length || 0,
+    logoFile: formState.branding?.logoFile,
+    bannerFile: formState.branding?.bannerFile,
+    galleryFiles: formState.branding?.galleryFiles,
+  });
+
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize preview URLs with existing images in edit mode
+  useEffect(() => {
+    const branding = formState.branding;
+    console.log('🖼️ BrandingStep useEffect - Setting preview URLs:', {
+      hasBranding: !!branding,
+      logoUrl: branding?.logoUrl,
+      bannerUrl: branding?.bannerUrl,
+      galleryUrls: branding?.galleryUrls,
+      galleryCount: branding?.galleryUrls?.length || 0,
+    });
+
+    if (branding) {
+      const newPreviewUrls = {
+        logo: branding.logoUrl || undefined,
+        banner: branding.bannerUrl || undefined,
+        gallery: branding.galleryUrls || [],
+      };
+
+      console.log(
+        '🖼️ BrandingStep - New preview URLs being set:',
+        newPreviewUrls
+      );
+      setPreviewUrls(newPreviewUrls);
+    }
+  }, [formState.branding]);
+
+  // Cleanup effect to revoke object URLs on unmount
+  useEffect(() => {
+    return () => {
+      // Only revoke object URLs (blob:), not server URLs
+      const isObjectUrl = (url: string) => url.startsWith('blob:');
+
+      if (previewUrls.logo && isObjectUrl(previewUrls.logo)) {
+        URL.revokeObjectURL(previewUrls.logo);
+      }
+      if (previewUrls.banner && isObjectUrl(previewUrls.banner)) {
+        URL.revokeObjectURL(previewUrls.banner);
+      }
+      if (previewUrls.gallery) {
+        previewUrls.gallery.forEach((url) => {
+          if (isObjectUrl(url)) {
+            URL.revokeObjectURL(url);
+          }
+        });
+      }
+    };
+  }, [previewUrls]);
 
   const validateFile = (
     file: File,
@@ -157,18 +215,22 @@ const BrandingStep: React.FC<StepProps> = ({
     type: 'logo' | 'banner' | 'gallery',
     index?: number
   ) => {
+    // Helper function to check if URL is an object URL (starts with blob:)
+    const isObjectUrl = (url: string) => url.startsWith('blob:');
+
     if (type === 'logo') {
       updateFormState({
         branding: {
           ...formState.branding,
           logoFile: undefined,
+          logoUrl: undefined, // Clear existing URL as well
         },
       });
       setPreviewUrls((prev) => ({
         ...prev,
         logo: undefined,
       }));
-      if (previewUrls.logo) {
+      if (previewUrls.logo && isObjectUrl(previewUrls.logo)) {
         URL.revokeObjectURL(previewUrls.logo);
       }
     } else if (type === 'banner') {
@@ -176,23 +238,26 @@ const BrandingStep: React.FC<StepProps> = ({
         branding: {
           ...formState.branding,
           bannerFile: undefined,
+          bannerUrl: undefined, // Clear existing URL as well
         },
       });
       setPreviewUrls((prev) => ({
         ...prev,
         banner: undefined,
       }));
-      if (previewUrls.banner) {
+      if (previewUrls.banner && isObjectUrl(previewUrls.banner)) {
         URL.revokeObjectURL(previewUrls.banner);
       }
     } else if (type === 'gallery' && typeof index === 'number') {
       const currentFiles = formState.branding.galleryFiles || [];
       const currentPreviews = previewUrls.gallery || [];
+      const currentUrls = formState.branding.galleryUrls || [];
 
       const newFiles = currentFiles.filter((_, i) => i !== index);
       const newPreviews = currentPreviews.filter((_, i) => i !== index);
+      const newUrls = currentUrls.filter((_, i) => i !== index);
 
-      if (currentPreviews[index]) {
+      if (currentPreviews[index] && isObjectUrl(currentPreviews[index])) {
         URL.revokeObjectURL(currentPreviews[index]);
       }
 
@@ -200,6 +265,7 @@ const BrandingStep: React.FC<StepProps> = ({
         branding: {
           ...formState.branding,
           galleryFiles: newFiles,
+          galleryUrls: newUrls, // Update existing URLs as well
         },
       });
 
@@ -298,78 +364,6 @@ const BrandingStep: React.FC<StepProps> = ({
     }
   };
 
-  const renderUploadArea = (
-    type: 'logo' | 'banner' | 'gallery',
-    title: string,
-    description: string,
-    icon: React.ReactNode,
-    inputRef: React.RefObject<HTMLInputElement>,
-    accept: string = 'image/*',
-    multiple: boolean = false
-  ) => (
-    <Paper
-      elevation={1}
-      sx={{
-        p: 3,
-        border: '2px dashed',
-        borderColor: 'divider',
-        borderRadius: 2,
-        textAlign: 'center',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': {
-          borderColor: 'primary.main',
-          backgroundColor: 'action.hover',
-        },
-      }}
-      onClick={() => inputRef.current?.click()}
-    >
-      <input
-        ref={inputRef}
-        type='file'
-        accept={accept}
-        multiple={multiple}
-        style={{ display: 'none' }}
-        onChange={(e) => handleFileSelect(e, type)}
-      />
-
-      <Box sx={{ mb: 2 }}>{icon}</Box>
-
-      <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-        {title}
-      </Typography>
-
-      <Typography variant='body2' color='text.secondary' gutterBottom>
-        {description}
-      </Typography>
-
-      <Button variant='outlined' startIcon={<UploadIcon />} sx={{ mt: 2 }}>
-        Choose {multiple ? 'Files' : 'File'}
-      </Button>
-
-      <Typography
-        variant='caption'
-        display='block'
-        sx={{ mt: 2, color: 'text.secondary' }}
-      >
-        Max file size: 5MB • Formats: JPEG, PNG, WebP
-      </Typography>
-
-      {uploadProgress[type] !== undefined && uploadProgress[type] < 100 && (
-        <Box sx={{ mt: 2 }}>
-          <LinearProgress
-            variant='determinate'
-            value={uploadProgress[type]}
-            sx={{ borderRadius: 1 }}
-          />
-          <Typography variant='caption' color='text.secondary'>
-            Uploading... {uploadProgress[type]}%
-          </Typography>
-        </Box>
-      )}
-    </Paper>
-  );
-
   return (
     <Box>
       <Typography
@@ -406,43 +400,85 @@ const BrandingStep: React.FC<StepProps> = ({
             Store Logo
           </Typography>
 
-          {previewUrls.logo ? (
-            <Paper
-              elevation={2}
-              sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}
+          <Paper
+            elevation={2}
+            sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}
+          >
+            {previewUrls.logo && (
+              <Box sx={{ mb: 2 }}>
+                <Avatar
+                  src={previewUrls.logo}
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    mx: 'auto',
+                    mb: 2,
+                    border: '2px solid',
+                    borderColor: 'divider',
+                  }}
+                  onLoad={() =>
+                    console.log('✅ Logo image loaded:', previewUrls.logo)
+                  }
+                  onError={() =>
+                    console.error(
+                      '❌ Logo image failed to load:',
+                      previewUrls.logo
+                    )
+                  }
+                />
+                <Typography variant='body2' gutterBottom>
+                  Current Logo
+                </Typography>
+              </Box>
+            )}
+            <Button
+              variant={previewUrls.logo ? 'outlined' : 'contained'}
+              startIcon={<UploadIcon />}
+              onClick={() => logoInputRef.current?.click()}
+              sx={{ mb: previewUrls.logo ? 1 : 0 }}
+              disabled={
+                uploadProgress.logo !== undefined && uploadProgress.logo < 100
+              }
             >
-              <Avatar
-                src={previewUrls.logo}
-                sx={{
-                  width: 120,
-                  height: 120,
-                  mx: 'auto',
-                  mb: 2,
-                  border: '2px solid',
-                  borderColor: 'divider',
-                }}
-              />
-              <Typography variant='body2' gutterBottom>
-                Logo Preview
-              </Typography>
+              {previewUrls.logo ? 'Replace Logo' : 'Upload Logo'}
+            </Button>
+            {uploadProgress.logo !== undefined && uploadProgress.logo < 100 && (
+              <Box sx={{ width: '100%', mt: 1 }}>
+                <LinearProgress
+                  variant='determinate'
+                  value={uploadProgress.logo}
+                  sx={{ borderRadius: 1 }}
+                />
+                <Typography
+                  variant='caption'
+                  color='text.secondary'
+                  sx={{ mt: 0.5, display: 'block' }}
+                >
+                  Uploading... {uploadProgress.logo}%
+                </Typography>
+              </Box>
+            )}
+            {previewUrls.logo && (
               <Button
                 startIcon={<DeleteIcon />}
                 onClick={() => handleRemoveFile('logo')}
                 color='error'
                 size='small'
+                sx={{ ml: 1 }}
               >
                 Remove
               </Button>
-            </Paper>
-          ) : (
-            renderUploadArea(
-              'logo',
-              'Upload Logo',
-              'Your store logo (square format recommended)',
-              <PhotoIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-              logoInputRef as React.RefObject<HTMLInputElement>
-            )
-          )}
+            )}
+          </Paper>
+
+          {/* Hidden input for logo */}
+          <input
+            ref={logoInputRef}
+            type='file'
+            accept='image/*'
+            style={{ display: 'none' }}
+            onChange={(e) => handleFileSelect(e, 'logo')}
+          />
         </Box>
 
         {/* Banner Upload */}
@@ -451,45 +487,89 @@ const BrandingStep: React.FC<StepProps> = ({
             Store Banner
           </Typography>
 
-          {previewUrls.banner ? (
-            <Paper
-              elevation={2}
-              sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}
+          <Paper
+            elevation={2}
+            sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}
+          >
+            {previewUrls.banner && (
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  component='img'
+                  src={previewUrls.banner}
+                  sx={{
+                    width: '100%',
+                    maxWidth: 400,
+                    height: 120,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    border: '2px solid',
+                    borderColor: 'divider',
+                  }}
+                  onLoad={() =>
+                    console.log('✅ Banner image loaded:', previewUrls.banner)
+                  }
+                  onError={() =>
+                    console.error(
+                      '❌ Banner image failed to load:',
+                      previewUrls.banner
+                    )
+                  }
+                />
+                <Typography variant='body2' gutterBottom sx={{ mt: 1 }}>
+                  Current Banner
+                </Typography>
+              </Box>
+            )}
+            <Button
+              variant={previewUrls.banner ? 'outlined' : 'contained'}
+              startIcon={<UploadIcon />}
+              onClick={() => bannerInputRef.current?.click()}
+              sx={{ mb: previewUrls.banner ? 1 : 0 }}
+              disabled={
+                uploadProgress.banner !== undefined &&
+                uploadProgress.banner < 100
+              }
             >
-              <Box
-                component='img'
-                src={previewUrls.banner}
-                sx={{
-                  width: '100%',
-                  height: 120,
-                  objectFit: 'cover',
-                  borderRadius: 1,
-                  mb: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              />
-              <Typography variant='body2' gutterBottom>
-                Banner Preview
-              </Typography>
+              {previewUrls.banner ? 'Replace Banner' : 'Upload Banner'}
+            </Button>
+            {uploadProgress.banner !== undefined &&
+              uploadProgress.banner < 100 && (
+                <Box sx={{ width: '100%', mt: 1 }}>
+                  <LinearProgress
+                    variant='determinate'
+                    value={uploadProgress.banner}
+                    sx={{ borderRadius: 1 }}
+                  />
+                  <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{ mt: 0.5, display: 'block' }}
+                  >
+                    Uploading... {uploadProgress.banner}%
+                  </Typography>
+                </Box>
+              )}
+            {previewUrls.banner && (
               <Button
                 startIcon={<DeleteIcon />}
                 onClick={() => handleRemoveFile('banner')}
                 color='error'
                 size='small'
+                sx={{ ml: 1 }}
               >
                 Remove
               </Button>
-            </Paper>
-          ) : (
-            renderUploadArea(
-              'banner',
-              'Upload Banner',
-              'Header image for your store page',
-              <ImageIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-              bannerInputRef as React.RefObject<HTMLInputElement>
-            )
-          )}
+            )}
+          </Paper>
+
+          {/* Hidden input for banner */}
+          <input
+            ref={bannerInputRef}
+            type='file'
+            accept='image/*'
+            style={{ display: 'none' }}
+            onChange={(e) => handleFileSelect(e, 'banner')}
+          />
         </Box>
       </Box>
 
@@ -499,29 +579,58 @@ const BrandingStep: React.FC<StepProps> = ({
           Store Gallery
         </Typography>
 
-        {previewUrls.gallery && previewUrls.gallery.length > 0 ? (
-          <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 2,
-              }}
+        <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}
+          >
+            <Typography variant='body1' sx={{ fontWeight: 500 }}>
+              Gallery Images ({previewUrls.gallery?.length || 0}/6)
+            </Typography>
+            <Button
+              variant={
+                previewUrls.gallery && previewUrls.gallery.length > 0
+                  ? 'outlined'
+                  : 'contained'
+              }
+              startIcon={<UploadIcon />}
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={
+                (previewUrls.gallery?.length || 0) >= 6 ||
+                (uploadProgress.gallery !== undefined &&
+                  uploadProgress.gallery < 100)
+              }
+              size='small'
             >
-              <Typography variant='body1' sx={{ fontWeight: 500 }}>
-                Gallery Images ({previewUrls.gallery.length}/6)
-              </Typography>
-              <Button
-                startIcon={<UploadIcon />}
-                onClick={() => galleryInputRef.current?.click()}
-                disabled={previewUrls.gallery.length >= 6}
-                size='small'
-              >
-                Add More
-              </Button>
-            </Box>
+              {previewUrls.gallery && previewUrls.gallery.length > 0
+                ? 'Add More'
+                : 'Upload Images'}
+            </Button>
+          </Box>
 
+          {uploadProgress.gallery !== undefined &&
+            uploadProgress.gallery < 100 && (
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress
+                  variant='determinate'
+                  value={uploadProgress.gallery}
+                  sx={{ height: 6, borderRadius: 3 }}
+                />
+                <Typography
+                  variant='caption'
+                  color='text.secondary'
+                  sx={{ mt: 1, display: 'block' }}
+                >
+                  Uploading... {uploadProgress.gallery}%
+                </Typography>
+              </Box>
+            )}
+
+          {previewUrls.gallery && previewUrls.gallery.length > 0 ? (
             <ImageList cols={3} rowHeight={164} gap={8}>
               {previewUrls.gallery.map((url, index) => (
                 <ImageListItem key={index}>
@@ -534,6 +643,15 @@ const BrandingStep: React.FC<StepProps> = ({
                       objectFit: 'cover',
                       borderRadius: 4,
                     }}
+                    onLoad={() =>
+                      console.log(`✅ Gallery image ${index + 1} loaded:`, url)
+                    }
+                    onError={() =>
+                      console.error(
+                        `❌ Gallery image ${index + 1} failed to load:`,
+                        url
+                      )
+                    }
                   />
                   <ImageListItemBar
                     actionIcon={
@@ -548,27 +666,38 @@ const BrandingStep: React.FC<StepProps> = ({
                 </ImageListItem>
               ))}
             </ImageList>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 4,
+                border: '2px dashed',
+                borderColor: 'divider',
+                borderRadius: 2,
+                textAlign: 'center',
+              }}
+            >
+              <GalleryIcon
+                sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }}
+              />
+              <Typography variant='body2' color='text.secondary'>
+                Showcase your products and farm (up to 6 images)
+              </Typography>
+            </Box>
+          )}
 
-            <input
-              ref={galleryInputRef}
-              type='file'
-              accept='image/*'
-              multiple
-              style={{ display: 'none' }}
-              onChange={(e) => handleFileSelect(e, 'gallery')}
-            />
-          </Paper>
-        ) : (
-          renderUploadArea(
-            'gallery',
-            'Upload Gallery Images',
-            'Showcase your products and farm (up to 6 images)',
-            <GalleryIcon sx={{ fontSize: 48, color: 'primary.main' }} />,
-            galleryInputRef as React.RefObject<HTMLInputElement>,
-            'image/*',
-            true
-          )
-        )}
+          <input
+            ref={galleryInputRef}
+            type='file'
+            accept='image/*'
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) => handleFileSelect(e, 'gallery')}
+          />
+        </Paper>
       </Box>
 
       {/* Action Buttons */}

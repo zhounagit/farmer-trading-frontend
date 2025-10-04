@@ -8,6 +8,7 @@ import {
   Button,
 } from '@mui/material';
 import { Email } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import HeroSection from '../components/layout/HeroSection';
 import AuthModal from '../components/auth/AuthModal';
@@ -15,6 +16,7 @@ import AuthModal from '../components/auth/AuthModal';
 export const LandingPage: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const navigate = useNavigate();
 
   const handleLoginClick = () => {
     setAuthMode('login');
@@ -31,13 +33,19 @@ export const LandingPage: React.FC = () => {
     setAuthMode(mode);
   };
 
+  const handleSearch = (query: string) => {
+    console.log('🔍 Search initiated from landing page:', query);
+    // Navigate to enhanced unified search page with search query
+    navigate(`/unified-search?q=${encodeURIComponent(query)}`);
+  };
+
   return (
     <Box>
       {/* Header */}
       <Header onLoginClick={handleLoginClick} />
 
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection onSearch={handleSearch} />
 
       {/* Footer */}
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 6 }}>
@@ -54,15 +62,15 @@ export const LandingPage: React.FC = () => {
           >
             <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 33%' } }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Farm Connect
+                Neighbors Connect
               </Typography>
               <Typography variant='body2' color='grey.400' sx={{ mb: 2 }}>
-                Connecting farmers and consumers for a more sustainable future.
+                Connecting sellers and consumers for a more sustainable future.
               </Typography>
               <Stack direction='row' spacing={1}>
                 <Email sx={{ fontSize: '1.2rem' }} />
                 <Typography variant='body2' color='grey.400'>
-                  hello@farmconnect.com
+                  hello@neighborsconnect.com
                 </Typography>
               </Stack>
             </Box>
@@ -75,7 +83,7 @@ export const LandingPage: React.FC = () => {
               </Typography>
               <Stack spacing={1}>
                 <Typography variant='body2' color='grey.400'>
-                  For Farmers
+                  For Sellers
                 </Typography>
                 <Typography variant='body2' color='grey.400'>
                   For Consumers
@@ -138,7 +146,7 @@ export const LandingPage: React.FC = () => {
             spacing={2}
           >
             <Typography variant='body2' color='grey.500'>
-              © 2025 Farm Connect. All rights reserved.
+              © 2025 Neighbors Connect. All rights reserved.
             </Typography>
             <Stack direction='row' spacing={3}>
               <Typography variant='body2' color='grey.500'>

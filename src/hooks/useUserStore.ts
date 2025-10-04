@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
+import { STORAGE_KEYS } from '../utils/api';
 import axios from 'axios';
 
 // Define types inline to avoid import issues
@@ -37,7 +39,8 @@ export const useUserStore = (): UseUserStoreReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, handleAuthenticationError } = useAuth();
+  const navigate = useNavigate();
   const isFetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
 
@@ -54,6 +57,196 @@ export const useUserStore = (): UseUserStoreReturn => {
       return;
     }
 
+    // Debug token validation
+    const authToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    console.log('🔍 Token Debug - Token exists:', !!authToken);
+    console.log('🔍 Token Debug - Token length:', authToken?.length || 0);
+    console.log('🔍 Token Debug - User ID:', user?.userId);
+
+    if (authToken) {
+      try {
+        // Basic token format validation
+        const tokenParts = authToken.split('.');
+        console.log('🔍 Token Debug - Token parts count:', tokenParts.length);
+
+        if (tokenParts.length === 3) {
+          // Decode payload (without verification)
+          const payload = JSON.parse(atob(tokenParts[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          console.log(
+            '🔍 Token Debug - Token expires at:',
+            new Date(payload.exp * 1000).toISOString()
+          );
+          console.log(
+            '🔍 Token Debug - Current time:',
+            new Date(currentTime * 1000).toISOString()
+          );
+          console.log(
+            '🔍 Token Debug - Token expired:',
+            payload.exp < currentTime
+          );
+        }
+      } catch (tokenParseError) {
+        console.error(
+          '❌ Token Debug - Failed to parse token:',
+          tokenParseError
+        );
+      }
+    }
+
+    // Add comprehensive debugging utility to window object for troubleshooting
+    if (typeof window !== 'undefined') {
+      (window as any).debugAuth = () => {
+        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+        console.log('🔍 AUTH DEBUG UTILITY');
+        console.log('====================');
+        console.log('Access Token exists:', !!token);
+        console.log('Refresh Token exists:', !!refreshToken);
+        console.log('User authenticated:', !!user);
+        console.log('User ID:', user?.userId);
+        console.log('User email:', user?.email);
+
+        if (token) {
+          try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              const exp = new Date(payload.exp * 1000);
+              const now = new Date();
+              console.log('Token expires:', exp.toISOString());
+              console.log('Current time:', now.toISOString());
+              console.log('Token expired:', exp < now);
+              console.log(
+                'Time until expiry:',
+                Math.round((exp.getTime() - now.getTime()) / 1000 / 60),
+                'minutes'
+              );
+            }
+          } catch (e) {
+            console.error('Failed to parse token:', e);
+          }
+        }
+
+        console.log('====================');
+        console.log('Run window.debugAuth() anytime to check auth status');
+      };
+
+      // Add API testing utility
+      (window as any).testStoreApi = async () => {
+        console.log('🧪 TESTING STORE API ENDPOINT');
+        console.log('=============================');
+
+        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!token) {
+          console.error('❌ No auth token found. Please login first.');
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            'https://localhost:7008/api/stores/my-stores',
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log('Response status:', response.status);
+          console.log(
+            'Response headers:',
+            Object.fromEntries(response.headers.entries())
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ SUCCESS - Store data:', data);
+          } else {
+            const errorText = await response.text();
+            console.error('❌ API ERROR:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText,
+            });
+
+            if (response.status === 401) {
+              console.error(
+                '🚨 401 UNAUTHORIZED - Token may be expired or invalid'
+              );
+              console.log(
+                '💡 Try logging out and back in to refresh your session'
+              );
+            }
+          }
+        } catch (error) {
+          console.error('❌ NETWORK ERROR:', error);
+        }
+
+        console.log('=============================');
+        console.log('Run window.testStoreApi() to test the API endpoint');
+      };
+
+      // Add token refresh utility
+      (window as any).refreshAuthToken = async () => {
+        console.log('🔄 ATTEMPTING TOKEN REFRESH');
+        console.log('===========================');
+
+        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+        if (!refreshToken) {
+          console.error('❌ No refresh token found. Please login again.');
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            'https://localhost:7008/api/auth/refresh',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                refreshToken: refreshToken,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
+            if (data.refreshToken) {
+              localStorage.setItem(
+                STORAGE_KEYS.REFRESH_TOKEN,
+                data.refreshToken
+              );
+            }
+            console.log('✅ Token refreshed successfully');
+            console.log('💡 Try your request again now');
+          } else {
+            const errorText = await response.text();
+            console.error('❌ Token refresh failed:', {
+              status: response.status,
+              body: errorText,
+            });
+            console.log('💡 Please login again');
+          }
+        } catch (error) {
+          console.error('❌ Token refresh error:', error);
+        }
+
+        console.log('===========================');
+      };
+
+      console.log('🔧 Debug utilities loaded:');
+      console.log('- window.debugAuth() - Check authentication status');
+      console.log('- window.testStoreApi() - Test store API endpoint');
+      console.log('- window.refreshAuthToken() - Refresh expired token');
+    }
+
     // Prevent duplicate calls
     if (isFetchingRef.current) {
       console.log('🔄 Already fetching stores, skipping duplicate call');
@@ -67,8 +260,8 @@ export const useUserStore = (): UseUserStoreReturn => {
 
     try {
       // Check if authentication tokens exist
-      const token = localStorage.getItem('heartwood_access_token');
-      const refreshToken = localStorage.getItem('heartwood_refresh_token');
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       console.log('🔐 Auth Debug - Token exists:', !!token);
       console.log('🔐 Auth Debug - Refresh token exists:', !!refreshToken);
@@ -170,7 +363,7 @@ export const useUserStore = (): UseUserStoreReturn => {
       );
 
       // Add token to fresh instance
-      const authToken = localStorage.getItem('heartwood_access_token');
+      const authToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (authToken) {
         freshAxios.defaults.headers.Authorization = `Bearer ${authToken}`;
         console.log('🔐 Fresh axios - Token added:', !!authToken);
@@ -187,11 +380,26 @@ export const useUserStore = (): UseUserStoreReturn => {
         response = await freshAxios.get('/api/stores/my-stores');
         userStores = response.data;
         console.log('✅ Fresh axios worked:', userStores);
-      } catch (axiosError) {
+      } catch (axiosError: any) {
         console.error(
           '❌ Fresh axios failed, trying native fetch:',
           axiosError
         );
+
+        // Check if it's an authentication error
+        if (axiosError?.response?.status === 401) {
+          console.error(
+            '❌ Axios authentication failed - token expired or invalid'
+          );
+          if (
+            handleAuthenticationError &&
+            handleAuthenticationError(axiosError, navigate)
+          ) {
+            setError('Your session has expired. Please log in again.');
+            setIsLoading(false);
+            return; // Exit early if it's an auth error
+          }
+        }
 
         // LAST RESORT: Use native fetch API to completely bypass axios
         const fetchUrl = 'https://localhost:7008/api/stores/my-stores';
@@ -209,6 +417,23 @@ export const useUserStore = (): UseUserStoreReturn => {
         console.log('🆘 NATIVE FETCH - Response URL:', fetchResponse.url);
 
         if (!fetchResponse.ok) {
+          if (fetchResponse.status === 401) {
+            console.error(
+              '❌ Authentication failed - token expired or invalid'
+            );
+            const authError = new Error('Authentication failed');
+            (authError as any).response = { status: 401 };
+
+            // Use AuthContext's authentication error handler
+            if (
+              handleAuthenticationError &&
+              handleAuthenticationError(authError, navigate)
+            ) {
+              setError('Your session has expired. Please log in again.');
+              setIsLoading(false);
+              return; // Exit early if it's an auth error
+            }
+          }
           throw new Error(`HTTP error! status: ${fetchResponse.status}`);
         }
 
@@ -232,6 +457,30 @@ export const useUserStore = (): UseUserStoreReturn => {
     } catch (fetchError) {
       console.error('❌ Failed to fetch user stores:', fetchError);
 
+      // Check if it's an authentication error and handle it properly
+      if (
+        (fetchError as any)?.response?.status === 401 ||
+        (fetchError instanceof Error &&
+          fetchError.message.includes('HTTP error! status: 401'))
+      ) {
+        console.error(
+          '❌ Main catch: Authentication failed - token expired or invalid'
+        );
+
+        if (
+          handleAuthenticationError &&
+          handleAuthenticationError(fetchError, navigate)
+        ) {
+          setError('Your session has expired. Please log in again.');
+          setStores([]);
+          setPrimaryStore(null);
+          setIsLoading(false);
+          isFetchingRef.current = false;
+          hasInitializedRef.current = true;
+          return; // Exit early if it's handled as auth error
+        }
+      }
+
       const errorMessage =
         fetchError instanceof Error
           ? fetchError.message
@@ -242,22 +491,13 @@ export const useUserStore = (): UseUserStoreReturn => {
       // Handle different types of errors
       if (
         errorMessage.includes('Authentication') ||
-        errorMessage.includes('log in')
+        errorMessage.includes('log in') ||
+        errorMessage.includes('401')
       ) {
         console.log(
           '🔐 Authentication error detected - tokens may be invalid or expired'
         );
-        // Clear invalid tokens
-        localStorage.removeItem('heartwood_access_token');
-        localStorage.removeItem('heartwood_refresh_token');
-      } else if (
-        errorMessage.includes('401') ||
-        errorMessage.includes('Unauthorized')
-      ) {
-        console.log(
-          '🔐 401 Unauthorized - may trigger token refresh automatically'
-        );
-        // Don't clear tokens here, let the axios interceptor handle it
+        // Don't show error toast for auth errors, user will be redirected to login
       } else {
         // Only show toast for non-auth errors
         toast.error(`Store Error: ${errorMessage}`);

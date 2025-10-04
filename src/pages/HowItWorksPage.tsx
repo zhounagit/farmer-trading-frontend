@@ -238,7 +238,7 @@ export const HowItWorksPage: React.FC = () => {
           <Grid container spacing={{ xs: 3, md: 4 }}>
             <Grid item xs={12} md={4}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
-                Heartwood-Redig
+                HelloNeighbors
               </Typography>
               <Typography variant='body2' color='grey.400' sx={{ mb: 2 }}>
                 Sophisticated B2C marketplace with multi-store operations, price
@@ -318,7 +318,7 @@ export const HowItWorksPage: React.FC = () => {
             spacing={2}
           >
             <Typography variant='body2' color='grey.500'>
-              © 2025 Heartwood-Redig. All rights reserved.
+              © 2025 HelloNeighbors. All rights reserved.
             </Typography>
             <Stack direction='row' spacing={3}>
               <Typography variant='body2' color='grey.500'>

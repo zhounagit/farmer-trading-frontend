@@ -2,12 +2,10 @@ import React from 'react';
 import { Box, Typography, SvgIcon } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
-// Custom tree icon for heartwood theme
-const TreeIcon = () => (
+// Custom house icon for HelloNeighbors theme
+const HouseIcon = () => (
   <SvgIcon viewBox='0 0 24 24' sx={{ fontSize: 'inherit' }}>
-    <path d='M12 2L8 6h2v2H8l4 4 4-4h-2V6h2l-4-4z' fill='currentColor' />
-    <path d='M8 10l4 4 4-4h-2v6h-4v-6H8z' fill='currentColor' />
-    <rect x='11' y='18' width='2' height='4' fill='currentColor' />
+    <path d='M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' fill='currentColor' />
   </SvgIcon>
 );
 
@@ -91,7 +89,7 @@ export const Logo: React.FC<LogoProps> = ({
           padding: styles.padding,
         }}
       >
-        <TreeIcon />
+        <HouseIcon />
       </LogoIcon>
 
       {showText && (
@@ -105,22 +103,10 @@ export const Logo: React.FC<LogoProps> = ({
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textTransform: 'lowercase',
+              textTransform: 'none',
             }}
           >
-            heartwood
-          </Typography>
-          <Typography
-            variant={styles.secondaryText as 'body1' | 'body2' | 'caption'}
-            component='span'
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              textTransform: 'lowercase',
-              letterSpacing: '0.5px',
-            }}
-          >
-            redig
+            HelloNeighbors
           </Typography>
         </LogoText>
       )}

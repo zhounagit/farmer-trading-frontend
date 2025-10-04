@@ -7,7 +7,7 @@ export interface StoreAddress {
   addressType: string;
   locationName?: string;
   contactPhone: string;
-  streetLine: string;
+  streetAddress: string;
   city: string;
   state: string;
   zipCode: string;
@@ -91,12 +91,28 @@ export interface ComprehensiveStoreData {
   slug?: string;
   tierId?: number;
 
+  // Store type and capabilities
+  storeType: string;
+  canProduce: boolean;
+  canProcess: boolean;
+  canRetail: boolean;
+  partnershipRadiusMi: number;
+  autoAcceptPartnerships: boolean;
+  partnershipPreferences?: string;
+
+  // Computed properties
+  isProducer: boolean;
+  isProcessor: boolean;
+  isHybrid: boolean;
+  isIndependent: boolean;
+
   // Related data
   addresses: StoreAddress[];
   categories: StoreCategory[];
   images: StoreImage[];
   openHours: StoreOpenHours[];
   paymentMethods: StorePaymentMethod[];
+  setupFlowData?: string; // JSON string containing setup flow data
 }
 
 export interface StoreUpdateRequest {
@@ -111,7 +127,7 @@ export interface StoreAddressRequest {
   addressType: string;
   locationName?: string;
   contactPhone: string;
-  streetLine: string;
+  streetAddress: string;
   city: string;
   state: string;
   zipCode: string;
@@ -216,6 +232,11 @@ class StoreApiService {
 
       const comprehensiveData: ComprehensiveStoreData = {
         ...(store as any),
+        // Map backend field names to frontend interface (now properly aligned)
+        contactPhone:
+          (store as any).contactPhone || (store as any).ContactPhone,
+        contactEmail:
+          (store as any).contactEmail || (store as any).ContactEmail,
         addresses: addresses || [],
         categories: categories || [],
         images: images || [],

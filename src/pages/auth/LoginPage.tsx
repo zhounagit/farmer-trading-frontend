@@ -12,7 +12,6 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Email as EmailIcon,
@@ -25,11 +24,10 @@ import { LoadingButton } from '@mui/lab';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
+  console.log('🔥 LOGIN PAGE LOADING - JS IS WORKING');
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
@@ -58,14 +56,14 @@ const LoginPage: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
     // Clear error when user starts typing
     if (formErrors[field]) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
         [field]: '',
       }));
@@ -102,7 +100,7 @@ const LoginPage: React.FC = () => {
         py: 4,
       }}
     >
-      <Container maxWidth="sm">
+      <Container maxWidth='sm'>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -126,15 +124,15 @@ const LoginPage: React.FC = () => {
             >
               <LoginIcon sx={{ fontSize: 48, mb: 2 }} />
               <Typography
-                variant="h4"
-                component="h1"
+                variant='h4'
+                component='h1'
                 gutterBottom
                 sx={{ fontWeight: 700 }}
               >
                 Welcome Back
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Sign in to your farmer trading account
+              <Typography variant='body1' sx={{ opacity: 0.9 }}>
+                Sign in to your HelloNeighbors account
               </Typography>
             </Box>
 
@@ -143,15 +141,15 @@ const LoginPage: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {/* Error Alert */}
                   {error && (
-                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    <Alert severity='error' sx={{ borderRadius: 2 }}>
                       {error}
                     </Alert>
                   )}
 
                   {/* Email Field */}
                   <TextField
-                    label="Email Address"
-                    type="email"
+                    label='Email Address'
+                    type='email'
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     error={!!formErrors.email}
@@ -160,8 +158,8 @@ const LoginPage: React.FC = () => {
                     fullWidth
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon color="action" />
+                        <InputAdornment position='start'>
+                          <EmailIcon color='action' />
                         </InputAdornment>
                       ),
                     }}
@@ -174,26 +172,28 @@ const LoginPage: React.FC = () => {
 
                   {/* Password Field */}
                   <TextField
-                    label="Password"
+                    label='Password'
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange('password', e.target.value)
+                    }
                     error={!!formErrors.password}
                     helperText={formErrors.password}
                     required
                     fullWidth
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon color="action" />
+                        <InputAdornment position='start'>
+                          <LockIcon color='action' />
                         </InputAdornment>
                       ),
                       endAdornment: (
-                        <InputAdornment position="end">
+                        <InputAdornment position='end'>
                           <IconButton
                             onClick={handleTogglePassword}
-                            edge="end"
-                            size="small"
+                            edge='end'
+                            size='small'
                           >
                             {showPassword ? <VisibilityOff /> : <Visibility />}
                           </IconButton>
@@ -209,9 +209,9 @@ const LoginPage: React.FC = () => {
 
                   {/* Login Button */}
                   <LoadingButton
-                    type="submit"
-                    variant="contained"
-                    size="large"
+                    type='submit'
+                    variant='contained'
+                    size='large'
                     loading={isLoading}
                     sx={{
                       py: 1.5,
@@ -232,10 +232,11 @@ const LoginPage: React.FC = () => {
                   <Box sx={{ textAlign: 'center' }}>
                     <Link
                       component={RouterLink}
-                      to="/forgot-password"
+                      to='/forgot-password'
                       sx={{
                         color: theme.palette.primary.main,
                         textDecoration: 'none',
+                        fontSize: '0.95rem',
                         fontWeight: 500,
                         '&:hover': {
                           textDecoration: 'underline',
@@ -247,7 +248,14 @@ const LoginPage: React.FC = () => {
                   </Box>
 
                   {/* Divider */}
-                  <Box sx={{ textAlign: 'center', position: 'relative', mt: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      textAlign: 'center',
+                      position: 'relative',
+                      mt: 2,
+                      mb: 2,
+                    }}
+                  >
                     <Box
                       sx={{
                         height: 1,
@@ -259,7 +267,7 @@ const LoginPage: React.FC = () => {
                       }}
                     />
                     <Typography
-                      variant="body2"
+                      variant='body2'
                       sx={{
                         bgcolor: 'background.paper',
                         px: 2,
@@ -274,9 +282,9 @@ const LoginPage: React.FC = () => {
                   {/* Register Link */}
                   <Button
                     component={RouterLink}
-                    to="/register"
-                    variant="outlined"
-                    size="large"
+                    to='/register'
+                    variant='outlined'
+                    size='large'
                     sx={{
                       py: 1.5,
                       borderRadius: 2,
@@ -301,7 +309,7 @@ const LoginPage: React.FC = () => {
         <Box sx={{ textAlign: 'center', mt: 3 }}>
           <Link
             component={RouterLink}
-            to="/"
+            to='/'
             sx={{
               color: 'white',
               textDecoration: 'none',

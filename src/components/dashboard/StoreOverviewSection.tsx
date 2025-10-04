@@ -8,11 +8,6 @@ import {
   LinearProgress,
   Chip,
   Alert,
-  List,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
-  Divider,
   Stack,
   Card,
   CardContent,
@@ -24,19 +19,18 @@ import {
   Payment,
   Palette,
   Edit,
-  ArrowForward,
-  CheckCircle,
-  RadioButtonUnchecked,
   Business,
-  Phone,
-  Email,
-  Inventory,
   ErrorOutline,
+  Preview,
+  LocalPhone,
+  Inventory,
+  Email,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserStore } from '../../hooks/useUserStore';
 import StoreApiService from '../../services/store.api';
+import { STORAGE_KEYS } from '../../utils/api';
 
 import type {
   ComprehensiveStoreData,
@@ -44,6 +38,7 @@ import type {
   StoreOpenHours,
   StoreImage,
 } from '../../services/store.api';
+import PartnershipSection from './PartnershipSection';
 import toast from 'react-hot-toast';
 
 interface SetupStep {
@@ -81,16 +76,8 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   useEffect(() => {
     const fetchComprehensiveStoreData = async () => {
       if (!primaryStore?.storeId) {
-        console.log(
-          '🏪 StoreOverview: No primaryStore.storeId, skipping comprehensive data fetch'
-        );
         return;
       }
-
-      console.log(
-        '🏪 StoreOverview: Fetching comprehensive store data for storeId:',
-        primaryStore.storeId
-      );
       setIsLoading(true);
       setError(null);
 
@@ -98,17 +85,10 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
         const data = await StoreApiService.getComprehensiveStoreDetails(
           primaryStore.storeId
         );
-        console.log(
-          '✅ StoreOverview: Comprehensive store data loaded successfully'
-        );
         setComprehensiveStoreData(data);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to load store details';
-        console.error(
-          '❌ StoreOverview: Failed to load comprehensive store data:',
-          errorMessage
-        );
         setError(errorMessage);
         toast.error(`Failed to load store details: ${errorMessage}`);
       } finally {
@@ -122,17 +102,14 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   // Sync hasStore flag in user context with actual store data
   useEffect(() => {
     if (user && primaryStore && !user.hasStore) {
-      console.log(
-        '🏪 StoreOverview: Syncing hasStore flag - user has store but flag is false'
-      );
       // Update the hasStore flag in context if we found stores but flag is false
       const userData = JSON.parse(
-        localStorage.getItem('heartwood_user_data') || '{}'
+        localStorage.getItem(STORAGE_KEYS.USER_DATA) || '{}'
       );
       if (userData.userId === user.userId) {
         userData.hasStore = true;
-        localStorage.setItem('heartwood_user_data', JSON.stringify(userData));
-        // Note: We don't call updateStoreStatus here to avoid triggering re-renders
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+        // Note: AuthContext will pick up this change on next refresh
       }
     }
   }, [user, primaryStore]);
@@ -171,30 +148,66 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
 
   const formatBusinessHours = (
     openHours: StoreOpenHours[]
-  ): { [key: string]: string } => {
-    if (!openHours || openHours.length === 0) return {};
+  ): { day: string; hours: string }[] => {
+    if (!openHours || openHours.length === 0) return [];
 
     const daysMap = [
-      'sunday',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
     ];
-    const formatted: { [key: string]: string } = {};
+
+    // Create a map of day index to hours
+    const dayHours: { [key: number]: string } = {};
 
     openHours.forEach((hour) => {
-      const dayName = daysMap[hour.dayOfWeek];
       if (hour.isClosed) {
-        formatted[dayName] = 'Closed';
+        dayHours[hour.dayOfWeek] = 'Closed';
       } else if (hour.openTime && hour.closeTime) {
-        formatted[dayName] = `${hour.openTime} - ${hour.closeTime}`;
+        dayHours[hour.dayOfWeek] = `${hour.openTime} - ${hour.closeTime}`;
       }
     });
 
-    return formatted;
+    // Group consecutive days with same hours
+    const consolidated: { day: string; hours: string }[] = [];
+    let i = 0;
+
+    while (i < 7) {
+      if (dayHours[i] === undefined) {
+        i++;
+        continue;
+      }
+
+      const currentHours = dayHours[i];
+      let endDay = i;
+
+      // Find consecutive days with same hours
+      while (endDay + 1 < 7 && dayHours[endDay + 1] === currentHours) {
+        endDay++;
+      }
+
+      // Format the day range
+      let dayRange: string;
+      if (i === endDay) {
+        // Single day
+        dayRange = daysMap[i];
+      } else if (endDay - i === 1) {
+        // Two consecutive days
+        dayRange = `${daysMap[i]} - ${daysMap[endDay]}`;
+      } else {
+        // Multiple consecutive days
+        dayRange = `${daysMap[i]} - ${daysMap[endDay]}`;
+      }
+
+      consolidated.push({ day: dayRange, hours: currentHours });
+      i = endDay + 1;
+    }
+
+    return consolidated;
   };
 
   const getPrimaryAddress = (
@@ -256,7 +269,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
         id: 'location',
         title: 'Location & Logistics',
         description: 'Address, selling methods, delivery settings',
-        completed: !!(primaryAddress && primaryAddress.streetLine),
+        completed: !!(primaryAddress && primaryAddress.streetAddress),
         route: '/open-shop/location',
         icon: <LocationOn />,
         priority: 'high',
@@ -266,8 +279,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
         title: 'Store Policies',
         description: 'Business hours and payment methods',
         completed: !!(
-          Object.keys(businessHours).length > 0 &&
-          storeData.paymentMethods?.length > 0
+          businessHours.length > 0 && storeData.paymentMethods?.length > 0
         ),
         route: '/open-shop/policies',
         icon: <Schedule />,
@@ -285,42 +297,42 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
     ];
   };
 
-  const handleStepClick = (step: SetupStep) => {
-    if (step.id === 'branding') {
-      onNavigateToBranding?.();
+  // const handleStepClick = (step: SetupStep) => {
+  //   if (step.id === 'branding') {
+  //     onNavigateToBranding?.();
+  //   } else {
+  //     navigate(step.route);
+  //   }
+  // };
+
+  const handleEditStore = () => {
+    if (primaryStore?.storeId) {
+      navigate(`/open-shop?edit=true&storeId=${primaryStore.storeId}`);
     } else {
-      navigate(step.route);
+      navigate('/open-shop?edit=true');
     }
   };
 
-  const handleEditStore = () => {
-    navigate('/open-shop?edit=true');
+  const handlePreviewStore = () => {
+    navigate(`/stores/${primaryStore?.storeId}/customize`);
   };
 
-  // Debug current state
+  const handleManageProducts = () => {
+    if (!primaryStore?.storeId || primaryStore.storeId === 0) {
+      alert('Unable to navigate to products: Invalid store ID');
+      return;
+    }
+
+    navigate(`/inventory?storeId=${primaryStore.storeId}`);
+  };
+
   const hasStoreData = primaryStore && comprehensiveStoreData;
 
   // Since Store Overview tab is only shown to store owners, always show loading until we have data
   const shouldShowLoading = storesLoading || isLoading || !hasStoreData;
 
-  console.log('🏪 StoreOverview render state:', {
-    storesLoading,
-    isLoading,
-    hasPrimaryStore: !!primaryStore,
-    hasComprehensiveData: !!comprehensiveStoreData,
-    storesError,
-    error,
-    userHasStore: user?.hasStore,
-    userType: user?.userType,
-    hasStoreData,
-    shouldShowLoading,
-  });
-
   // Always show loading until we have complete store data
   if (shouldShowLoading) {
-    console.log(
-      '🏪 StoreOverview: Showing loading state until complete data available'
-    );
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
@@ -363,9 +375,6 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
 
   // If we have primaryStore but failed to load comprehensive data, handle gracefully
   if (primaryStore && !comprehensiveStoreData && error) {
-    console.log(
-      '🏪 StoreOverview: Have primaryStore but comprehensive data failed to load'
-    );
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
@@ -414,7 +423,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
   const setupSteps = getSetupSteps(storeData);
   const completedSteps = setupSteps.filter((step) => step.completed).length;
   const totalSteps = setupSteps.length;
-  const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
+  // const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
 
   const primaryAddress = getPrimaryAddress(storeData.addresses);
   const businessHours = formatBusinessHours(storeData.openHours);
@@ -435,17 +444,73 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
         <Typography variant='h5' fontWeight={600}>
           Store Overview
         </Typography>
-        <Button
-          variant='outlined'
-          startIcon={<Edit />}
-          onClick={handleEditStore}
-          size='small'
-        >
-          Edit Store
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Button
+            variant='contained'
+            startIcon={<Preview />}
+            onClick={handlePreviewStore}
+            size='small'
+            color='primary'
+            title='Preview and customize your storefront appearance'
+          >
+            Preview & Customize Store
+          </Button>
+          <Button
+            variant='outlined'
+            startIcon={<Edit />}
+            onClick={handleEditStore}
+            size='small'
+          >
+            Edit Store
+          </Button>
+          <Button
+            variant='outlined'
+            startIcon={<Inventory />}
+            onClick={handleManageProducts}
+            size='small'
+            color='secondary'
+            disabled={!primaryStore?.storeId || primaryStore.storeId === 0}
+            title='Add products, upload images, manage inventory'
+          >
+            Manage Products
+          </Button>
+        </Box>
+
+        {/* Workflow Guidance */}
+        <Alert severity='info' sx={{ mt: 2, mb: 2 }}>
+          <Typography variant='body2' fontWeight={600} gutterBottom>
+            Quick Start Guide:
+          </Typography>
+          <Typography variant='body2' component='div'>
+            1. <strong>Manage Products</strong> - Add inventory items, upload
+            images, set prices
+            <br />
+            2. <strong>Preview & Customize Store</strong> - See how your store
+            looks with real products
+          </Typography>
+        </Alert>
       </Box>
 
       <Grid container spacing={3}>
+        {/* Partnership Section as Priority Item */}
+        {(storeData.isProducer ||
+          storeData.isProcessor ||
+          storeData.canProduce ||
+          storeData.canProcess ||
+          storeData.storeType === 'producer' ||
+          storeData.storeType === 'processor' ||
+          storeData.storeType === 'hybrid') && (
+          <Grid size={{ xs: 12 }}>
+            <PartnershipSection
+              storeId={storeData.storeId}
+              storeName={storeData.storeName}
+              storeType={storeData.storeType || 'independent'}
+              canProduce={storeData.canProduce || false}
+              canProcess={storeData.canProcess || false}
+              partnershipRadiusMi={storeData.partnershipRadiusMi || 50}
+            />
+          </Grid>
+        )}
         {/* Store Info Card */}
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3, mb: 3 }}>
@@ -467,31 +532,6 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
               </Box>
             </Box>
 
-            {/* Setup Progress */}
-            <Box sx={{ mb: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 1,
-                }}
-              >
-                <Typography variant='body2' fontWeight={600}>
-                  Setup Progress
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {completedSteps} of {totalSteps} steps completed (
-                  {completionPercentage}%)
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant='determinate'
-                value={completionPercentage}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-            </Box>
-
             {/* Store Information Grid */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
@@ -506,7 +546,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
                     {primaryAddress ? (
                       <Box>
                         <Typography variant='body2' color='text.secondary'>
-                          {primaryAddress.streetLine}
+                          {primaryAddress.streetAddress}
                         </Typography>
                         <Typography variant='body2' color='text.secondary'>
                           {primaryAddress.city}, {primaryAddress.state}{' '}
@@ -518,7 +558,7 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
                             color='text.secondary'
                             sx={{ mt: 1 }}
                           >
-                            <Phone
+                            <LocalPhone
                               sx={{
                                 fontSize: 14,
                                 mr: 0.5,
@@ -615,26 +655,50 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
                       />
                       Business Hours
                     </Typography>
-                    {Object.keys(businessHours).length > 0 ? (
-                      <Box>
-                        {Object.entries(businessHours).map(([day, hours]) => (
+                    {businessHours.length > 0 ? (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 0.5,
+                        }}
+                      >
+                        {businessHours.map(({ day, hours }, index) => (
                           <Box
-                            key={day}
+                            key={index}
                             sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              mb: 0.5,
+                              display: 'grid',
+                              gridTemplateColumns: '1fr auto',
+                              gap: 2,
+                              p: '8px 12px',
+                              bgcolor:
+                                index % 2 === 0 ? 'grey.50' : 'transparent',
+                              borderRadius: '6px',
+                              alignItems: 'center',
+                              minHeight: '36px',
                             }}
                           >
                             <Typography
-                              variant='caption'
-                              sx={{ textTransform: 'capitalize' }}
+                              variant='body2'
+                              fontWeight={500}
+                              sx={{
+                                fontSize: '0.875rem',
+                                color: 'text.primary',
+                              }}
                             >
-                              {day}:
+                              {day}
                             </Typography>
                             <Typography
-                              variant='caption'
-                              color='text.secondary'
+                              variant='body2'
+                              sx={{
+                                fontSize: '0.875rem',
+                                color:
+                                  hours === 'Closed'
+                                    ? 'error.main'
+                                    : 'text.secondary',
+                                fontWeight: hours === 'Closed' ? 500 : 400,
+                                textAlign: 'right',
+                              }}
                             >
                               {hours}
                             </Typography>
@@ -755,81 +819,6 @@ const StoreOverviewSection: React.FC<StoreOverviewSectionProps> = ({
                 </Card>
               </Grid>
             </Grid>
-          </Paper>
-        </Grid>
-
-        {/* Setup Steps Card */}
-        <Grid size={{ xs: 12 }}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant='h6' fontWeight={600} gutterBottom>
-              Setup Steps
-            </Typography>
-
-            {completedSteps === totalSteps ? (
-              <Alert severity='success' sx={{ mb: 2 }}>
-                <Typography variant='body2'>
-                  🎉 Store setup complete! Ready to submit for approval.
-                </Typography>
-              </Alert>
-            ) : (
-              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                Complete the remaining steps to finish your store setup.
-              </Typography>
-            )}
-
-            <List disablePadding>
-              {setupSteps.map((step) => (
-                <ListItemButton
-                  key={step.id}
-                  onClick={() => handleStepClick(step)}
-                  sx={{
-                    borderRadius: 2,
-                    mb: 1,
-                    border: '1px solid',
-                    borderColor: step.completed
-                      ? 'success.main'
-                      : step.priority === 'high'
-                        ? 'warning.main'
-                        : 'grey.300',
-                    bgcolor: step.completed ? 'success.50' : 'transparent',
-                    '&:hover': {
-                      bgcolor: step.completed ? 'success.100' : 'grey.50',
-                    },
-                  }}
-                >
-                  <ListItemIcon>
-                    {step.completed ? (
-                      <CheckCircle color='success' />
-                    ) : (
-                      <RadioButtonUnchecked color='disabled' />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Typography variant='body2' fontWeight={600}>
-                          {step.title}
-                        </Typography>
-                        {!step.completed && step.priority === 'high' && (
-                          <Chip label='Required' color='warning' size='small' />
-                        )}
-                      </Box>
-                    }
-                    secondary={step.description}
-                  />
-                  <ArrowForward sx={{ color: 'text.secondary' }} />
-                </ListItemButton>
-              ))}
-            </List>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant='body2' color='text.secondary'>
-              <strong>Last updated:</strong>{' '}
-              {new Date(storeData.updatedAt).toLocaleDateString()}
-            </Typography>
           </Paper>
         </Grid>
       </Grid>

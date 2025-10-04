@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { profilePictureCache } from './profilePictureCache';
+import { STORAGE_KEYS } from '../utils/api';
 
 // Define Axios types explicitly
 type AxiosResponse<T = any> = {
@@ -24,124 +25,68 @@ type AxiosError<T = any> = Error & {
   isAxiosError: boolean;
 };
 
-// AGGRESSIVE LOCALSTORAGE CLEARING
-console.log('🧹 CLEARING ALL POTENTIAL API URL OVERRIDES...');
-console.log(
-  'Before clearing - TEMP_API_BASE_URL:',
-  localStorage.getItem('TEMP_API_BASE_URL')
-);
-console.log(
-  'Before clearing - API_BASE_URL:',
-  localStorage.getItem('API_BASE_URL')
-);
-console.log(
-  'Before clearing - VITE_API_BASE_URL:',
-  localStorage.getItem('VITE_API_BASE_URL')
-);
-
-// Clear all possible localStorage API URL keys
+// Clear any localStorage API URL overrides
 localStorage.removeItem('TEMP_API_BASE_URL');
 localStorage.removeItem('API_BASE_URL');
 localStorage.removeItem('VITE_API_BASE_URL');
 localStorage.removeItem('BASE_URL');
 
-// Use HTTPS endpoint since browser is forcing HTTPS redirect
+// Use correct HTTPS endpoint
 const API_BASE_URL = 'https://localhost:7008';
-
-// Final normalization - remove any /api suffix
 const normalizedApiUrl = API_BASE_URL.replace(/\/api$/, '');
-
-// Debug logging for API configuration
-console.log('=== API CONFIGURATION DEBUG ===');
-console.log('Environment API URL:', import.meta.env.VITE_API_BASE_URL);
-console.log('Using HTTPS API_BASE_URL:', API_BASE_URL);
-console.log('Final normalized API URL:', normalizedApiUrl);
-console.log('Window location:', window.location.href);
-console.log('Environment mode:', import.meta.env.MODE);
-console.log('Development mode:', import.meta.env.DEV);
-
-// Double-check localStorage is clear
-console.log(
-  'After clearing - TEMP_API_BASE_URL:',
-  localStorage.getItem('TEMP_API_BASE_URL')
-);
-console.log(
-  'After clearing - all localStorage keys:',
-  Object.keys(localStorage)
-);
 
 // Create axios instance
 export const api = axios.create({
   baseURL: normalizedApiUrl,
-  timeout: 30000, // Increased to 30 seconds for debugging
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: false,
 });
 
-// Add debug logging for the axios instance
-console.log('🔧 AXIOS INSTANCE CREATED:', {
-  baseURL: api.defaults.baseURL,
-  normalizedApiUrl: normalizedApiUrl,
-  timeout: api.defaults.timeout,
-});
-
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    console.log('🚨 INTERCEPTOR - BEFORE ANY CHANGES:', {
-      originalUrl: config.url,
-      originalBaseURL: config.baseURL,
-      fullOriginalUrl: `${config.baseURL}${config.url}`,
-    });
-
-    // Ensure HTTPS URL is used
-    if (!config.baseURL?.startsWith('https://localhost:7008')) {
-      config.baseURL = 'https://localhost:7008';
+    // Ensure headers object exists
+    if (!config.headers) {
+      config.headers = {};
     }
 
-    // Debug the actual URL being called
-    const fullUrl = `${config.baseURL}${config.url}`;
-
-    console.log('🔥 INTERCEPTOR - AFTER FORCED CHANGES:', {
-      forcedUrl: config.url,
-      forcedBaseURL: config.baseURL,
-      finalFullUrl: fullUrl,
-      method: config.method?.toUpperCase(),
-    });
-
-    // Verify correct HTTPS URL is being used
-    if (!fullUrl.startsWith('https://localhost:7008')) {
-      console.log('🔧 Ensuring HTTPS URL for:', fullUrl);
-      config.baseURL = 'https://localhost:7008';
+    // Ensure URL doesn't have double slashes or trailing slashes
+    if (config.url?.startsWith('/')) {
+      config.url = config.url;
+    } else if (config.url) {
+      config.url = '/' + config.url;
     }
 
-    const token = localStorage.getItem('heartwood_access_token');
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Auth token added to request');
+      config.headers['authorization'] = `Bearer ${token}`;
 
-      // Debug token payload
+      // Check token expiry
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('🔐 Token payload debug:', {
-          sub: payload.sub,
-          nameid: payload.nameid,
-          role: payload.role,
-          exp: new Date(payload.exp * 1000),
-          expired: payload.exp * 1000 < Date.now(),
-        });
+        const isExpired = payload.exp * 1000 < Date.now();
+
+        if (isExpired) {
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          const error = new Error('Token expired - please log in again');
+          error.name = 'TokenExpiredError';
+          throw error;
+        }
       } catch (e) {
-        console.log('🔐 Could not decode token payload:', e.message);
+        if (e.name === 'TokenExpiredError') {
+          throw e;
+        }
       }
-    } else {
-      console.log('⚠️ No auth token found in localStorage');
     }
+
     return config;
   },
   (error) => {
-    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -158,7 +103,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('heartwood_refresh_token');
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
       if (refreshToken) {
         try {
           const response = await api.post('/auth/refresh', {
@@ -168,20 +113,18 @@ api.interceptors.response.use(
           const { accessToken, refreshToken: newRefreshToken } = response.data;
 
           // Update stored tokens
-          localStorage.setItem('heartwood_access_token', accessToken);
+          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
           if (newRefreshToken) {
-            localStorage.setItem('heartwood_refresh_token', newRefreshToken);
+            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
           }
 
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api.request(originalRequest);
         } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-
           // Clear tokens and throw authentication error
-          localStorage.removeItem('heartwood_access_token');
-          localStorage.removeItem('heartwood_refresh_token');
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
 
           // Create a custom authentication error
           const authError = new Error(
@@ -193,8 +136,8 @@ api.interceptors.response.use(
         }
       } else {
         // No refresh token, clear storage and throw error
-        localStorage.removeItem('heartwood_access_token');
-        localStorage.removeItem('heartwood_refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
 
         const authError = new Error(
           'No authentication token - please log in again'
@@ -207,7 +150,6 @@ api.interceptors.response.use(
 
     // Handle network errors
     if (!error.response) {
-      console.error('Network error:', error.message);
       return Promise.reject({
         message: 'Network error. Please check your internet connection.',
         code: 'NETWORK_ERROR',
@@ -234,39 +176,64 @@ api.interceptors.response.use(
 
 // Utility functions for common HTTP methods
 export const apiService = {
-  // GET request
+  // GET request with robust auth header injection
   get: async <T>(url: string, params?: any): Promise<T> => {
-    const response = await api.get(url, { params });
-    return response.data;
+    // Get token
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    // For non-auth endpoints, allow requests without token
+    const isPublicEndpoint =
+      url.includes('/auth/') ||
+      url.includes('/browse') ||
+      url.includes('/search') ||
+      url.includes('/store/') ||
+      url.includes('/product/');
+
+    if (!token && !isPublicEndpoint) {
+      const error = new Error('Authentication required - please log in again');
+      error.name = 'AuthenticationError';
+      throw error;
+    }
+
+    // Create config with explicit headers
+    const config: any = {
+      params,
+    };
+
+    // If we have a token, add it in multiple ways to ensure it gets through
+    if (token) {
+      config.headers = {
+        Authorization: `Bearer ${token}`,
+        authorization: `Bearer ${token}`, // lowercase variant
+        'Content-Type': 'application/json',
+      };
+    }
+
+    try {
+      const response = await api.get(url, config);
+      return response.data;
+    } catch (error: any) {
+      // If it's a 401 and we have a token, the token might be invalid
+      if (error.response?.status === 401 && token) {
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      }
+
+      throw error;
+    }
   },
 
   // POST request
   post: async <T>(url: string, data?: any): Promise<T> => {
-    console.log('=== API SERVICE POST ===');
-    console.log('URL:', url);
-    console.log('Data:', data);
-    console.log('Request start time:', new Date().toISOString());
+    // Ensure auth token is present
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (!token && !url.includes('/auth/')) {
+      throw new Error('Authentication required - please log in again');
+    }
 
     try {
       const response = await api.post(url, data);
-      console.log('=== API SERVICE SUCCESS ===');
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      console.log('Response data:', response.data);
-      console.log('Request end time:', new Date().toISOString());
       return response.data;
     } catch (error: any) {
-      console.error('=== API SERVICE ERROR ===');
-      console.error('Error in apiService.post:', error);
-      console.error('Error message:', error?.message);
-      console.error('Error code:', error?.code);
-      console.error('Has response:', !!error?.response);
-      if (error?.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', error.response.data);
-        console.error('Response headers:', error.response.headers);
-      }
-      console.error('Request failed time:', new Date().toISOString());
       throw error;
     }
   },
@@ -295,31 +262,7 @@ export const apiService = {
     formData: FormData,
     onUploadProgress?: (progress: number) => void
   ): Promise<T> => {
-    console.log('🌐 === apiService.upload CALLED ===');
-    console.log('URL:', url);
-    console.log('FormData entries:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`- ${key}:`, {
-          name: value.name,
-          size: value.size,
-          type: value.type,
-        });
-      } else {
-        console.log(`- ${key}:`, value);
-      }
-    }
-    console.log('🔧 API Configuration Check:');
-    console.log('- API_BASE_URL constant:', API_BASE_URL);
-    console.log('- axios baseURL:', api.defaults.baseURL);
-    console.log('- Expected full URL:', `${API_BASE_URL}${url}`);
-    console.log(
-      '- localStorage TEMP_API_BASE_URL:',
-      localStorage.getItem('TEMP_API_BASE_URL')
-    );
-
     try {
-      console.log('🚀 Making axios POST request...');
       const response = await api.post(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -329,30 +272,12 @@ export const apiService = {
             const progress = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
-            console.log(`📊 Upload progress: ${progress}%`);
             onUploadProgress(progress);
           }
         },
       });
-      console.log('✅ Upload response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-      });
       return response.data;
     } catch (error) {
-      console.error('❌ Upload request failed in apiService:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response
-          ? {
-              status: error.response.status,
-              statusText: error.response.statusText,
-              data: error.response.data,
-            }
-          : 'No response',
-      });
       throw error;
     }
   },
@@ -390,14 +315,8 @@ export const apiService = {
       });
       return response.data;
     } catch (error: any) {
-      console.error('❌ Profile picture upload failed in apiService:', error);
-
       // Handle 404 error (endpoint not implemented) with localStorage fallback
       if (error.response?.status === 404) {
-        console.warn(
-          '⚠️ Profile picture endpoint not implemented, using localStorage fallback'
-        );
-
         try {
           // Simulate upload progress for better UX
           if (onUploadProgress) {
@@ -421,11 +340,8 @@ export const apiService = {
             profilePictureUrl: localImageData,
           };
         } catch (fallbackError) {
-          console.error('❌ localStorage fallback also failed:', fallbackError);
-
           // Last resort: create temporary blob URL
           const blobUrl = URL.createObjectURL(imageFile);
-          console.warn('⚠️ Using temporary blob URL as final fallback');
 
           return {
             profilePictureUrl: blobUrl,
@@ -433,17 +349,6 @@ export const apiService = {
         }
       }
 
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response
-          ? {
-              status: error.response.status,
-              statusText: error.response.statusText,
-              data: error.response.data,
-            }
-          : 'No response',
-      });
       throw error;
     }
   },
@@ -485,22 +390,22 @@ export const apiService = {
 // Test API connection
 export const testApiConnection = async (): Promise<boolean> => {
   try {
-    // Always log the actual URL we're connecting to
     const testUrl = 'https://localhost:7008/health';
-    console.log(`🔍 Testing health endpoint: ${testUrl}`);
-    console.log(`🔧 Environment var: ${import.meta.env.VITE_API_BASE_URL}`);
-
     const response = await axios.get(testUrl, {
       timeout: 5000,
     });
-    console.log(`✅ API Connection Successful:`, response.data);
     return true;
   } catch (error: any) {
-    console.error('❌ API Connection Failed:', error.message || error);
-    console.log('🔍 Attempted to connect to:', testUrl);
-    console.log(
-      '💡 Tip: Make sure your .NET backend is running on HTTPS port 7008'
-    );
+    return false;
+  }
+};
+
+// Test inventory API endpoint specifically
+export const testInventoryApi = async (): Promise<boolean> => {
+  try {
+    const response = await api.get('/api/inventory');
+    return true;
+  } catch (error: any) {
     return false;
   }
 };

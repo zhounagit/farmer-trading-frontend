@@ -39,10 +39,12 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../services/open-shop.api';
-import StoreApiService, { type StoreImage } from '../../services/store.api';
+import StoreApiService from '../../services/store.api';
+import { type StoreImage } from '../../types/open-shop.types';
 import { useAuth } from '../../contexts/AuthContext';
 import { handleAuthError, isAuthError } from '../../utils/authErrorHandler';
 import { isAdminUser } from '../../utils/userTypeUtils';
+import { STORAGE_KEYS } from '../../utils/api';
 
 // Import types for store submission
 interface StoreSubmissionRequest {
@@ -102,10 +104,17 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Helper function to build proper image URLs
-  const buildImageUrl = (filePath: string): string => {
+  const buildImageUrl = (fileUrl: string): string => {
+    // If fileUrl is already absolute, return as-is
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      return fileUrl;
+    }
+
+    // The fileUrl from API should be like "/Uploads/Stores/19/image.jpg"
     const baseUrl = 'https://localhost:7008';
-    const normalizedPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-    return `${baseUrl}${normalizedPath}`;
+    const normalizedPath = fileUrl.startsWith('/') ? fileUrl : '/' + fileUrl;
+    const finalUrl = `${baseUrl}${normalizedPath}`;
+    return finalUrl;
   };
 
   // Load existing images when component mounts
@@ -114,12 +123,22 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
       if (!storeId) return;
 
       try {
-        console.log('🖼️ Loading existing store images for store:', storeId);
         const images = await StoreApiService.getStoreImages(storeId);
 
-        const logoImage = images.find((img) => img.imageType === 'logo');
-        const bannerImage = images.find((img) => img.imageType === 'banner');
-        const galleryImages = images.filter(
+        // Transform the images to match the expected StoreImage type from open-shop.types
+        const transformedImages: StoreImage[] = images.map((img) => ({
+          ...img,
+          imageType: img.imageType as string,
+          fileUrl: img.filePath, // Add fileUrl property that matches filePath
+        }));
+
+        const logoImage = transformedImages.find(
+          (img) => img.imageType === 'logo'
+        );
+        const bannerImage = transformedImages.find(
+          (img) => img.imageType === 'banner'
+        );
+        const galleryImages = transformedImages.filter(
           (img) => img.imageType === 'gallery'
         );
 
@@ -136,19 +155,8 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
 
         setBrandingData(updatedBrandingData);
         onUpdate?.(updatedBrandingData);
-
-        console.log('✅ Store images loaded successfully:', {
-          logo: !!logoImage,
-          banner: !!bannerImage,
-          galleryCount: galleryImages.length,
-        });
-        console.log('🖼️ Image URLs generated:', {
-          logoUrl: updatedBrandingData.logoUrl,
-          bannerUrl: updatedBrandingData.bannerUrl,
-          galleryImages: updatedBrandingData.galleryImages,
-        });
       } catch (error) {
-        console.error('❌ Failed to load existing images:', error);
+        console.error('Failed to load existing images:', error);
         onError?.(error);
         // Don't show error toast for missing images as it's expected for new stores
       }
@@ -171,45 +179,24 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
     event: React.ChangeEvent<HTMLInputElement>,
     type: 'logo' | 'banner' | 'gallery'
   ) => {
-    console.log('🚀 === UPLOAD STARTED ===');
-    console.log('Upload type:', type);
-    console.log('Event target:', event.target);
-    console.log('Files selected:', event.target.files?.length || 0);
-
     const files = Array.from(event.target.files || []);
     if (files.length === 0) {
-      console.log('❌ No files selected, returning early');
       return;
     }
 
-    console.log(
-      '📁 Files to process:',
-      files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
-    );
-
     // Check authentication state before attempting upload
-    const token = localStorage.getItem('heartwood_access_token');
-    const refreshToken = localStorage.getItem('heartwood_refresh_token');
-
-    console.log('🔐 === AUTHENTICATION CHECK ===');
-    console.log('Access Token exists:', !!token);
-    console.log('Refresh Token exists:', !!refreshToken);
-    console.log('User authenticated:', !!user);
-    console.log('Store ID:', storeId);
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
     // If user context shows authenticated but no tokens, this is likely a development scenario
     if (!token && !refreshToken && !user) {
-      console.log('❌ No authentication tokens found and no user context');
       toast.error('Please log in to upload images');
       handleAuthError(new Error('No authentication token'), navigate);
       return;
     }
 
-    // Warning for missing tokens but authenticated user (common in development)
+    // Special case: User context exists but tokens are missing (development)
     if (!token && !refreshToken && user) {
-      console.log(
-        '⚠️ User authenticated but tokens missing - proceeding anyway'
-      );
       toast.error(
         'Authentication tokens missing! Use the "Auth Debug" tab in the dashboard to set authentication tokens.',
         {
@@ -243,58 +230,35 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
       }
     }
 
-    console.log('✅ Validation passed, starting upload process');
     setIsUploading(true);
 
     try {
       if (!storeId) {
-        console.log('❌ Store ID missing:', storeId);
         toast.error('Store ID is required for upload');
         return;
       }
-
-      console.log('📤 Starting API upload for', validFiles.length, 'files');
 
       // Upload files using real API service
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
         const progressKey = `${type}_${i}`;
 
-        console.log(`📁 Processing file ${i + 1}/${validFiles.length}:`, {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          uploadType: type,
-          storeId: storeId,
-          progressKey: progressKey,
-        });
-
         try {
           switch (type) {
             case 'logo': {
-              console.log('🎨 Calling OpenShopApiService.uploadLogo...');
-              console.log('Parameters:', {
-                storeId,
-                fileName: file.name,
-                fileSize: file.size,
-              });
-
               const result = await OpenShopApiService.uploadLogo(
                 storeId,
                 file,
                 (progress) => {
-                  console.log(`📊 Upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
                   }));
                 }
               );
-
-              console.log('✅ Logo upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
-                logoUrl: result.filePath,
+                logoUrl: buildImageUrl(result.filePath),
                 logoImage: result,
                 lastUpdated: new Date().toISOString(),
               }));
@@ -302,22 +266,19 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             }
 
             case 'banner': {
-              console.log('🖼️ Calling OpenShopApiService.uploadBanner...');
               const result = await OpenShopApiService.uploadBanner(
                 storeId,
                 file,
                 (progress) => {
-                  console.log(`📊 Banner upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
                   }));
                 }
               );
-              console.log('✅ Banner upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
-                bannerUrl: result.filePath,
+                bannerUrl: buildImageUrl(result.filePath),
                 bannerImage: result,
                 lastUpdated: new Date().toISOString(),
               }));
@@ -325,21 +286,16 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             }
 
             case 'gallery': {
-              console.log(
-                '🖼️ Calling OpenShopApiService.uploadGalleryImages...'
-              );
               const result = await OpenShopApiService.uploadGalleryImages(
                 storeId,
                 [file],
                 (progress) => {
-                  console.log(`📊 Gallery upload progress: ${progress}%`);
                   setUploadProgress((prev) => ({
                     ...prev,
                     [progressKey]: progress,
                   }));
                 }
               );
-              console.log('✅ Gallery upload successful:', result);
               setBrandingData((prev) => ({
                 ...prev,
                 galleryImages: [...(prev.galleryImages || []), ...result],
@@ -349,19 +305,12 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             }
           }
         } catch (uploadError: unknown) {
-          console.error('❌ === UPLOAD ERROR ===');
           console.error(`${type} upload error:`, uploadError);
-          console.error('Error type:', typeof uploadError);
-          console.error('Error constructor:', uploadError?.constructor?.name);
 
-          if (uploadError instanceof Error) {
-            console.error('Error message:', uploadError.message);
-            console.error('Error stack:', uploadError.stack);
-          }
+          // Break the upload loop on error
+          toast.error(`Failed to upload ${file.name}`);
 
-          // Handle authentication errors specially
           if (isAuthError(uploadError)) {
-            console.log('🔐 Authentication error detected, handling...');
             onError?.(uploadError);
             handleAuthError(uploadError, navigate);
             return; // Stop the upload process
@@ -376,25 +325,17 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
         }
       }
 
-      console.log('🎉 All uploads completed successfully');
       setUploadProgress({});
       toast.success(`${type} uploaded successfully!`);
 
       // Notify parent component of updates
       onUpdate?.(brandingData);
     } catch (error: unknown) {
-      console.error('❌ === GENERAL UPLOAD ERROR ===');
       console.error('Upload error:', error);
-      console.error('Error type:', typeof error);
 
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
+      toast.error('Upload failed. Please try again.');
 
-      // Handle authentication errors specially
       if (isAuthError(error)) {
-        console.log('🔐 General authentication error, handling...');
         onError?.(error);
         handleAuthError(error, navigate);
         return;
@@ -406,7 +347,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           : 'Upload failed. Please try again.';
       toast.error(errorMessage);
     } finally {
-      console.log('🔚 Upload process finished, cleaning up...');
       setIsUploading(false);
       // Clear the input
       if (event.target) {
@@ -457,7 +397,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
       }
 
       // Delete from backend
-      console.log(`🗑️ Deleting ${type} image with ID: ${imageId}`);
       await StoreApiService.deleteStoreImage(storeId, imageId);
 
       // Update local state only after successful backend deletion
@@ -489,8 +428,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
 
       setDeleteDialog({ open: false });
       toast.success(`${type} removed successfully`);
-
-      console.log('✅ Image deleted successfully from both backend and UI');
     } catch (error: unknown) {
       console.error('Delete error:', error);
 
@@ -529,9 +466,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
 
     try {
       setIsSubmitting(true);
-      console.log('=== COMPLETING STORE SETUP FROM DASHBOARD ===');
-      console.log('Store ID:', storeId);
-      console.log('Branding Data:', brandingData);
 
       // Prepare submission request
       const submissionRequest: StoreSubmissionRequest = {
@@ -542,11 +476,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           'Store setup completed from dashboard - branding section',
       };
 
-      // Submit store for review
-      const response =
-        await OpenShopApiService.submitStoreForReview(submissionRequest);
-
-      console.log('✅ Store submission completed:', response);
+      await OpenShopApiService.submitStoreForReview(submissionRequest);
       toast.success('Store submitted for review successfully!');
 
       // Navigate to success or dashboard overview
@@ -555,7 +485,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
         window.location.reload(); // Refresh to show updated status
       }, 2000);
     } catch (error: unknown) {
-      console.error('❌ Store submission failed:', error);
+      console.error('Store submission failed:', error);
 
       // Handle authentication errors
       if (isAuthError(error)) {
@@ -614,12 +544,9 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
               height={type === 'banner' ? 120 : 200}
               image={currentImage}
               alt={title}
-              onLoad={() =>
-                console.log(`✅ Image loaded successfully: ${currentImage}`)
-              }
+              onLoad={() => {}}
               onError={(e) => {
-                console.error(`❌ Image failed to load: ${currentImage}`, e);
-                console.error(`Error details:`, e.currentTarget);
+                console.error(`Image failed to load: ${currentImage}`, e);
               }}
               sx={{
                 borderRadius: 2,
@@ -766,25 +693,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             </Button>
           )}
         </Paper>
-
-        {/* Debug Info for Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.100' }}>
-            <Typography variant='caption' color='text.secondary'>
-              Debug: Store ID: {storeId}, User: {user?.email || 'Not logged in'}
-              <br />
-              Access Token:{' '}
-              {localStorage.getItem('heartwood_access_token')
-                ? 'Present'
-                : 'Missing'}
-              <br />
-              Refresh Token:{' '}
-              {localStorage.getItem('heartwood_refresh_token')
-                ? 'Present'
-                : 'Missing'}
-            </Typography>
-          </Paper>
-        )}
       </Box>
     );
   }
@@ -810,25 +718,8 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
         )}
       </Box>
 
-      {/* Debug info for development */}
-      {import.meta.env.DEV && (
-        <Alert severity='info' sx={{ mb: 3 }}>
-          <Typography variant='body2' component='div'>
-            <strong>Debug Info:</strong>
-            <br />
-            Logo URL: {brandingData.logoUrl || 'None'}
-            <br />
-            Banner URL: {brandingData.bannerUrl || 'None'}
-            <br />
-            Gallery Images: {brandingData.galleryImages?.length || 0}
-            <br />
-            Store ID: {storeId}
-          </Typography>
-        </Alert>
-      )}
-
       {/* Authentication Warning */}
-      {!localStorage.getItem('heartwood_access_token') && (
+      {!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) && (
         <Alert severity='warning' sx={{ mb: 3 }}>
           <Typography variant='body2'>
             <strong>Upload Disabled:</strong> Authentication tokens missing. Use
@@ -938,28 +829,26 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                       src={buildImageUrl(image.filePath)}
                       alt={`Gallery image ${index + 1}`}
                       loading='lazy'
-                      onLoad={() =>
-                        console.log(
-                          `✅ Gallery image loaded: ${buildImageUrl(image.filePath)}`
-                        )
-                      }
+                      onLoad={() => {}}
                       onError={(e) => {
                         console.error(
-                          `❌ Gallery image failed to load: ${buildImageUrl(image.filePath)}`,
+                          `Failed to load gallery image ${index + 1}:`,
                           e
                         );
                       }}
                       style={{
+                        width: '100%',
                         height: 200,
                         objectFit: 'cover',
                         borderRadius: 8,
                         cursor: 'pointer',
                       }}
                       onClick={() =>
-                        openPreview(
-                          buildImageUrl(image.filePath),
-                          `Gallery Image ${index + 1}`
-                        )
+                        setPreviewDialog({
+                          open: true,
+                          imageUrl: buildImageUrl(image.filePath),
+                          title: `Gallery Image ${index + 1}`,
+                        })
                       }
                     />
                     <ImageListItemBar
@@ -974,11 +863,12 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                           sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            openDeleteDialog(
-                              'gallery',
-                              buildImageUrl(image.filePath),
-                              index
-                            );
+                            setDeleteDialog({
+                              open: true,
+                              type: 'gallery',
+                              imageUrl: buildImageUrl(image.filePath),
+                              index,
+                            });
                           }}
                         >
                           <Delete />
@@ -1160,55 +1050,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             </Typography>
           </Box>
         </Box>
-
-        {/* Debug Info for Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-            <Typography variant='caption' color='text.secondary'>
-              Debug: Store ID: {storeId}, User: {user?.email || 'Not logged in'}
-              <br />
-              Access Token:{' '}
-              {localStorage.getItem('heartwood_access_token')
-                ? 'Present'
-                : 'Missing'}
-              <br />
-              Refresh Token:{' '}
-              {localStorage.getItem('heartwood_refresh_token')
-                ? 'Present'
-                : 'Missing'}
-            </Typography>
-
-            {/* Debug Info - Development Only */}
-            {import.meta.env.NODE_ENV === 'development' && (
-              <Box
-                sx={{
-                  mt: 3,
-                  p: 2,
-                  bgcolor: 'info.50',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'info.200',
-                }}
-              >
-                <Typography variant='body2' color='info.main' gutterBottom>
-                  <strong>Development Mode:</strong> Need authentication tokens
-                  or debugging tools?
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  Visit the <strong>"Auth Debug"</strong> tab in the dashboard
-                  for:
-                  <br />
-                  • Set mock authentication tokens
-                  <br />
-                  • Test API connections
-                  <br />
-                  • Debug authentication state
-                  <br />• Network troubleshooting tools
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        )}
 
         {/* Review & Submit Section */}
         <Paper

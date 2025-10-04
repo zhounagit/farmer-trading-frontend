@@ -2,7 +2,7 @@
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5008',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7008',
   TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
   RETRY_ATTEMPTS: parseInt(import.meta.env.VITE_RETRY_ATTEMPTS) || 3,
 };
@@ -10,10 +10,11 @@ export const API_CONFIG = {
 // Storage keys
 export const STORAGE_KEYS = {
   ACCESS_TOKEN:
-    import.meta.env.VITE_JWT_STORAGE_KEY || 'heartwood_access_token',
+    import.meta.env.VITE_JWT_STORAGE_KEY || 'helloneighbors_access_token',
   REFRESH_TOKEN:
-    import.meta.env.VITE_REFRESH_TOKEN_KEY || 'heartwood_refresh_token',
-  USER_DATA: 'heartwood_user_data',
+    import.meta.env.VITE_REFRESH_TOKEN_KEY || 'helloneighbors_refresh_token',
+  USER_DATA: 'helloneighbors_user_data',
+  SESSION_ID: 'helloneighbors_session_id',
 };
 
 // API endpoints
@@ -23,6 +24,9 @@ export const API_ENDPOINTS = {
     REGISTER: '/api/auth/register',
     LOGOUT: '/api/auth/logout',
     REFRESH: '/api/auth/refresh',
+    FORGOT_PASSWORD: '/api/auth/forgot-password',
+    VALIDATE_RESET_TOKEN: '/api/auth/validate-reset-token',
+    RESET_PASSWORD: '/api/auth/reset-password',
   },
   HEALTH: '/health',
   USERS: '/api/users',
@@ -85,6 +89,26 @@ export const apiRequest = async <T = unknown>(
   // Get auth token
   const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
+  // Debug JWT token details
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('🔍 JWT Token Debug:', {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 50) + '...',
+        payload: payload,
+        exp: new Date(payload.exp * 1000),
+        isExpired: payload.exp < Date.now() / 1000,
+        role: payload.role,
+        sub: payload.sub,
+      });
+    } catch (e) {
+      console.error('Failed to decode JWT token:', e);
+    }
+  } else {
+    console.warn('❌ No JWT token found in localStorage');
+  }
+
   // Default headers
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
@@ -93,6 +117,12 @@ export const apiRequest = async <T = unknown>(
   // Add auth header if token exists
   if (token) {
     defaultHeaders.Authorization = `Bearer ${token}`;
+    console.log(
+      '🔐 Authorization header added:',
+      `Bearer ${token.substring(0, 20)}...`
+    );
+  } else {
+    console.warn('❌ No Authorization header added - no token');
   }
 
   const config: RequestInit = {
@@ -118,6 +148,91 @@ export const apiRequest = async <T = unknown>(
 
     if (!response.ok) {
       const errorData = data as Record<string, unknown>;
+
+      // Enhanced debugging for failed requests
+      console.error('🔴 HTTP Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: url,
+        method: options.method || 'GET',
+        headers: Object.fromEntries(response.headers.entries()),
+        errorData: errorData,
+        requestHeaders: config.headers,
+        hasAuthHeader: !!config.headers?.Authorization,
+        authHeaderPrefix: config.headers?.Authorization
+          ? String(config.headers.Authorization).substring(0, 20) + '...'
+          : 'None',
+      });
+
+      // Special handling for 403 Forbidden
+      if (response.status === 403) {
+        const token = localStorage.getItem('access_token');
+        console.error('🚫 403 Forbidden - Detailed Authorization Analysis:', {
+          hasToken: !!token,
+          tokenLength: token?.length || 0,
+          tokenPrefix: token ? token.substring(0, 20) + '...' : 'No token',
+          endpoint: endpoint,
+          authHeader: config.headers?.Authorization || 'Missing',
+          requestMethod: options.method || 'GET',
+          fullUrl: url,
+          responseHeaders: Object.fromEntries(response.headers.entries()),
+        });
+
+        // Try to decode JWT for debugging
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.error('🔍 JWT Claims Analysis in 403 Error:', {
+              role: payload.role,
+              roleType: typeof payload.role,
+              roleValue: Array.isArray(payload.role)
+                ? payload.role
+                : [payload.role],
+              sub: payload.sub,
+              email: payload.email,
+              exp: new Date(payload.exp * 1000),
+              isExpired: payload.exp < Date.now() / 1000,
+              timeUntilExpiry: payload.exp - Date.now() / 1000,
+              allClaims: payload,
+            });
+
+            // Check if this looks like a backend authentication vs authorization issue
+            if (payload.exp < Date.now() / 1000) {
+              console.error(
+                '❌ JWT Token is EXPIRED - this is likely the cause of 403'
+              );
+            } else if (
+              !payload.role ||
+              (Array.isArray(payload.role) && payload.role.length === 0)
+            ) {
+              console.error(
+                '❌ JWT Token has NO ROLE claim - authorization will fail'
+              );
+            } else if (
+              payload.role !== 'Admin' &&
+              !payload.role.includes('Admin')
+            ) {
+              console.error(
+                '❌ JWT Token role is not Admin - authorization will fail for admin endpoints'
+              );
+            } else {
+              console.error(
+                '⚠️ JWT Token looks valid - this might be a backend configuration issue'
+              );
+            }
+          } catch (decodeError) {
+            console.error(
+              '❌ Failed to decode JWT during 403 error - token may be malformed:',
+              decodeError
+            );
+          }
+        } else {
+          console.error(
+            '❌ 403 with no token - user is not authenticated at all'
+          );
+        }
+      }
+
       throw new ApiErrorClass(
         (errorData.error as string) ||
           (errorData.message as string) ||
@@ -130,11 +245,26 @@ export const apiRequest = async <T = unknown>(
     return data as T;
   } catch (error) {
     if (error instanceof ApiErrorClass) {
+      // Add debugging for API errors
+      console.error('🚨 API Error Details:', {
+        message: error.message,
+        status: error.status,
+        data: error.data,
+        endpoint: endpoint,
+        method: options.method || 'GET',
+        headers: config.headers,
+        url: url,
+      });
       throw error;
     }
 
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('🌐 Network Error:', {
+        error: error.message,
+        endpoint: endpoint,
+        url: url,
+      });
       throw new ApiErrorClass(
         'Network error - please check your connection',
         0
@@ -142,6 +272,12 @@ export const apiRequest = async <T = unknown>(
     }
 
     // Handle other errors
+    console.error('❌ Unknown API Error:', {
+      error: error,
+      endpoint: endpoint,
+      url: url,
+      method: options.method || 'GET',
+    });
     throw new ApiErrorClass(
       error instanceof Error ? error.message : 'Unknown error occurred',
       500
@@ -259,6 +395,28 @@ export const authApi = {
     return api.post(API_ENDPOINTS.AUTH.REFRESH, { refreshToken });
   },
 
+  forgotPassword: async (email: string) => {
+    return api.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  },
+
+  validateResetToken: async (token: string) => {
+    return api.get(
+      `${API_ENDPOINTS.AUTH.VALIDATE_RESET_TOKEN}?token=${encodeURIComponent(token)}`
+    );
+  },
+
+  resetPassword: async (
+    token: string,
+    password: string,
+    confirmPassword: string
+  ) => {
+    return api.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      token,
+      password,
+      confirmPassword,
+    });
+  },
+
   healthCheck: async () => {
     return api.get(API_ENDPOINTS.HEALTH);
   },
@@ -277,9 +435,9 @@ export const referralApi = {
 
 // User API methods
 export const userApi = {
-  // Get current user profile
+  // Get current user profile from localStorage
   getCurrentUserProfile: async () => {
-    const userData = localStorage.getItem('heartwood_user_data');
+    const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
     if (!userData) {
       throw new Error('No authenticated user found');
     }
@@ -315,6 +473,11 @@ export const storeApi = {
   // Get current user's stores (requires auth)
   getMyStores: async () => {
     return api.get('/api/stores/my-stores');
+  },
+
+  // Get stores by user ID (explicit user filtering)
+  getUserStores: async (userId: number) => {
+    return api.get(`/api/users/${userId}/stores`);
   },
 
   // Create new store
@@ -435,6 +598,75 @@ export const storeApi = {
       },
     });
   },
+
+  // Get enhanced store data for current user
+  getMyStoresEnhanced: async (params?: {
+    includeMetrics?: boolean;
+    includeFeaturedProducts?: boolean;
+    includeImages?: boolean;
+    includeAddresses?: boolean;
+    includeOperations?: boolean;
+    includeStorefront?: boolean;
+    sortBy?: string;
+    sortDescending?: boolean;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.includeMetrics !== undefined)
+      queryParams.append('includeMetrics', params.includeMetrics.toString());
+    if (params?.includeFeaturedProducts !== undefined)
+      queryParams.append(
+        'includeFeaturedProducts',
+        params.includeFeaturedProducts.toString()
+      );
+    if (params?.includeImages !== undefined)
+      queryParams.append('includeImages', params.includeImages.toString());
+    if (params?.includeAddresses !== undefined)
+      queryParams.append(
+        'includeAddresses',
+        params.includeAddresses.toString()
+      );
+    if (params?.includeOperations !== undefined)
+      queryParams.append(
+        'includeOperations',
+        params.includeOperations.toString()
+      );
+    if (params?.includeStorefront !== undefined)
+      queryParams.append(
+        'includeStorefront',
+        params.includeStorefront.toString()
+      );
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortDescending !== undefined)
+      queryParams.append('sortDescending', params.sortDescending.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+
+    const query = queryParams.toString();
+    return api.get(`/api/stores/my-stores-enhanced${query ? `?${query}` : ''}`);
+  },
+
+  // Get enhanced store by ID
+  getEnhancedById: async (storeId: number) => {
+    return api.get(`/api/stores/${storeId}/enhanced`);
+  },
+
+  // Get store metrics
+  getMetrics: async (storeId: number, period: string = 'month') => {
+    return api.get(`/api/stores/${storeId}/metrics?period=${period}`);
+  },
+
+  // Get featured products for a store
+  getFeaturedProducts: async (storeId: number, limit: number = 8) => {
+    return api.get(`/api/stores/${storeId}/featured-products?limit=${limit}`);
+  },
+
+  // Delete store
+  deleteStore: async (storeId: number) => {
+    return api.delete(`/api/stores/${storeId}`);
+  },
 };
 
 // Error handler utility with context awareness
@@ -490,7 +722,10 @@ export const tokenUtils = {
   },
 
   setAccessToken: (token: string): void => {
+    const sessionId =
+      tokenUtils.getSessionId() || tokenUtils.generateSessionId();
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+    tokenUtils.setSessionId(sessionId);
   },
 
   removeAccessToken: (): void => {
@@ -513,6 +748,19 @@ export const tokenUtils = {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
+  },
+
+  generateSessionId: (): string => {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  },
+
+  setSessionId: (sessionId: string): void => {
+    localStorage.setItem(STORAGE_KEYS.SESSION_ID, sessionId);
+  },
+
+  getSessionId: (): string | null => {
+    return localStorage.getItem(STORAGE_KEYS.SESSION_ID);
   },
 
   isTokenExpired: (token: string): boolean => {

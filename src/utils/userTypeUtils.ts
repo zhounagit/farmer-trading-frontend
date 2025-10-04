@@ -1,6 +1,6 @@
 // User type utility functions for consistent checking across components
 
-export type UserType = 'customer' | 'store_owner' | 'admin';
+export type UserType = 'Customer' | 'Store Owner' | 'Admin';
 
 export interface UserTypeCheckResult {
   isCustomer: boolean;
@@ -15,7 +15,7 @@ export interface UserTypeCheckResult {
  * Handles various possible formats from backend
  */
 export const normalizeUserType = (userType: string | undefined): UserType => {
-  if (!userType) return 'customer';
+  if (!userType) return 'Customer';
 
   const normalized = userType.toLowerCase().trim();
 
@@ -29,7 +29,7 @@ export const normalizeUserType = (userType: string | undefined): UserType => {
     normalized === 'seller' ||
     normalized === 'merchant'
   ) {
-    return 'store_owner';
+    return 'Store Owner';
   }
 
   // Handle admin variations
@@ -39,11 +39,11 @@ export const normalizeUserType = (userType: string | undefined): UserType => {
     normalized === 'superuser' ||
     normalized === 'super_user'
   ) {
-    return 'admin';
+    return 'Admin';
   }
 
   // Default to customer for any other value
-  return 'customer';
+  return 'Customer';
 };
 
 /**
@@ -58,14 +58,14 @@ export const checkUserType = (
   let normalizedType = normalizeUserType(userType);
 
   // If user has a store but type says customer, override to store_owner
-  if (hasStore === true && normalizedType === 'customer') {
-    normalizedType = 'store_owner';
+  if (hasStore === true && normalizedType === 'Customer') {
+    normalizedType = 'Store Owner';
   }
 
   return {
-    isCustomer: normalizedType === 'customer',
-    isStoreOwner: normalizedType === 'store_owner',
-    isAdmin: normalizedType === 'admin',
+    isCustomer: normalizedType === 'Customer',
+    isStoreOwner: normalizedType === 'Store Owner',
+    isAdmin: normalizedType === 'Admin',
     normalizedType,
     rawType,
   };
@@ -102,11 +102,11 @@ export const getUserRoleDisplayName = (
   const typeCheck = checkUserType(userType, hasStore);
 
   switch (typeCheck.normalizedType) {
-    case 'store_owner':
+    case 'Store Owner':
       return 'Store Owner';
-    case 'admin':
+    case 'Admin':
       return 'Admin';
-    case 'customer':
+    case 'Customer':
     default:
       return 'Customer';
   }
@@ -122,38 +122,14 @@ export const getUserRoleBadgeColor = (
   const typeCheck = checkUserType(userType, hasStore);
 
   switch (typeCheck.normalizedType) {
-    case 'store_owner':
+    case 'Store Owner':
       return '#2e7d32'; // Green
-    case 'admin':
+    case 'Admin':
       return '#d32f2f'; // Red
-    case 'customer':
+    case 'Customer':
     default:
       return '#1976d2'; // Blue
   }
-};
-
-/**
- * Debug user type information
- * Use this for troubleshooting user type issues
- */
-export const debugUserType = (
-  userType: string | undefined,
-  hasStore?: boolean,
-  context?: string
-): void => {
-  const typeCheck = checkUserType(userType, hasStore);
-
-  console.log(`🔍 User type debug${context ? ` (${context})` : ''}:`, {
-    rawType: typeCheck.rawType,
-    normalizedType: typeCheck.normalizedType,
-    hasStore,
-    isCustomer: typeCheck.isCustomer,
-    isStoreOwner: typeCheck.isStoreOwner,
-    isAdmin: typeCheck.isAdmin,
-    canAccessStoreFeatures: canAccessStoreFeatures(userType, hasStore),
-    displayName: getUserRoleDisplayName(userType, hasStore),
-    badgeColor: getUserRoleBadgeColor(userType, hasStore),
-  });
 };
 
 /**
@@ -161,7 +137,7 @@ export const debugUserType = (
  * Use this for direct admin checks without store logic
  */
 export const isAdminUser = (userType: string | undefined): boolean => {
-  return userType?.toLowerCase() === 'admin';
+  return userType === 'Admin';
 };
 
 /**

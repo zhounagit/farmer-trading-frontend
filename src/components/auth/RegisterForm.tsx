@@ -167,7 +167,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       <Box sx={{ textAlign: 'center', mb: 3 }}>
         <Logo size='medium' />
         <Typography variant='h5' fontWeight={600} sx={{ mt: 2, mb: 1 }}>
-          Join Heartwood-Redig
+          Join HelloNeighbors
         </Typography>
         <Typography variant='body2' color='text.secondary'>
           Create your account to get started

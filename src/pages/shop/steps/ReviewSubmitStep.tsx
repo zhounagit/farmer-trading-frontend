@@ -28,6 +28,10 @@ import {
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
 import { useAuth } from '../../../contexts/AuthContext';
+import {
+  consolidateBusinessHours,
+  type StoreOpenHours,
+} from '../../../utils/businessHours';
 import { useNavigate } from 'react-router-dom';
 import {
   type StepProps,
@@ -40,16 +44,6 @@ import toast from 'react-hot-toast';
 interface ReviewSubmitStepProps extends StepProps {
   onComplete: () => void;
 }
-
-const DAYS_OF_WEEK = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
 
 const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
   formState,
@@ -202,7 +196,7 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
             {formState.locationLogistics.businessAddress.locationName}
           </Typography>
           <Typography variant='body2' color='text.secondary'>
-            {formState.locationLogistics.businessAddress.streetLine}
+            {formState.locationLogistics.businessAddress.streetAddress}
           </Typography>
           <Typography variant='body2' color='text.secondary'>
             {formState.locationLogistics.businessAddress.city},{' '}
@@ -255,7 +249,7 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
               </Typography>
             ) : (
               <Typography variant='body2' color='text.secondary'>
-                {formState.locationLogistics.farmgateAddress?.streetLine},{' '}
+                {formState.locationLogistics.farmgateAddress?.streetAddress},{' '}
                 {formState.locationLogistics.farmgateAddress?.city}
               </Typography>
             )}
@@ -297,7 +291,7 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 'Farmers Market'}
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              {formState.locationLogistics.pickupPointAddress?.streetLine},{' '}
+              {formState.locationLogistics.pickupPointAddress?.streetAddress},{' '}
               {formState.locationLogistics.pickupPointAddress?.city}
             </Typography>
           </Box>
@@ -330,20 +324,34 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
               Store Hours
             </Typography>
             <List dense>
-              {Object.entries(formState.storeHours).map(([day, hours]) => {
-                const dayIndex = [
-                  'sunday',
-                  'monday',
-                  'tuesday',
-                  'wednesday',
-                  'thursday',
-                  'friday',
-                  'saturday',
-                ].indexOf(day);
-                const dayName = DAYS_OF_WEEK[dayIndex];
+              {(() => {
+                // Convert form hours to StoreOpenHours format
+                const storeHours: StoreOpenHours[] = Object.entries(
+                  formState.storeHours
+                ).map(([day, hours]) => {
+                  const dayIndex = [
+                    'sunday',
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                  ].indexOf(day);
 
-                return (
-                  <ListItem key={day} sx={{ py: 0.5, px: 0 }}>
+                  return {
+                    dayOfWeek: dayIndex,
+                    openTime: hours.isOpen ? hours.openTime || '' : '',
+                    closeTime: hours.isOpen ? hours.closeTime || '' : '',
+                    isClosed: !hours.isOpen,
+                  };
+                });
+
+                // Get consolidated hours
+                const consolidatedHours = consolidateBusinessHours(storeHours);
+
+                return consolidatedHours.map((item, index) => (
+                  <ListItem key={index} sx={{ py: 0.5, px: 0 }}>
                     <ListItemText
                       primary={
                         <Box
@@ -353,19 +361,22 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                           }}
                         >
                           <Typography variant='body2' sx={{ fontWeight: 500 }}>
-                            {dayName}
+                            {item.day}
                           </Typography>
                           <Typography variant='body2' color='text.secondary'>
-                            {hours.isOpen
-                              ? `${formatTime(hours.openTime)} - ${formatTime(hours.closeTime)}`
-                              : 'Closed'}
+                            {item.hours === 'Closed'
+                              ? 'Closed'
+                              : item.hours
+                                  .split(' - ')
+                                  .map((time) => formatTime(time))
+                                  .join(' - ')}
                           </Typography>
                         </Box>
                       }
                     />
                   </ListItem>
-                );
-              })}
+                ));
+              })()}
             </List>
           </Box>
 

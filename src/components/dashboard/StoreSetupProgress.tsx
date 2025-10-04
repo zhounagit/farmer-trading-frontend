@@ -160,6 +160,9 @@ const StoreSetupProgress: React.FC<StoreSetupProgressProps> = ({
       approvalStatus === 'pending' ||
       approvalStatus === 'under_review');
 
+  // Check if setup is complete (all steps done, regardless of approval status)
+  const isSetupComplete = completedSteps === totalSteps;
+
   const getStepIcon = (step: SetupStep) => {
     if (step.completed) {
       return <CheckCircle color='success' />;
@@ -264,143 +267,198 @@ const StoreSetupProgress: React.FC<StoreSetupProgressProps> = ({
         ) : null}
       </Paper>
 
-      {/* Detailed Steps */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant='h6' fontWeight={600} gutterBottom>
-          Setup Steps
-        </Typography>
+      {/* Detailed Steps - Only show if setup is not complete */}
+      {!isSetupComplete && (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant='h6' fontWeight={600} gutterBottom>
+            Setup Steps
+          </Typography>
 
-        <Stepper orientation='vertical' sx={{ mt: 2 }}>
-          {setupSteps.map((step) => (
-            <Step
-              key={step.label}
-              active={!step.completed}
-              completed={step.completed}
-            >
-              <StepLabel
-                StepIconComponent={() => getStepIcon(step)}
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    fontWeight: step.completed ? 400 : 600,
-                    color: step.completed ? 'text.secondary' : 'text.primary',
-                  },
-                }}
+          <Stepper orientation='vertical' sx={{ mt: 2 }}>
+            {setupSteps.map((step) => (
+              <Step
+                key={step.label}
+                active={!step.completed}
+                completed={step.completed}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {step.label}
-                  {step.optional && (
-                    <Chip label='Optional' size='small' variant='outlined' />
-                  )}
-                </Box>
-              </StepLabel>
-              <StepContent>
-                <Typography
-                  variant='body2'
-                  color='text.secondary'
-                  sx={{ mb: 2 }}
+                <StepLabel
+                  StepIconComponent={() => getStepIcon(step)}
+                  sx={{
+                    '& .MuiStepLabel-label': {
+                      fontWeight: step.completed ? 400 : 600,
+                      color: step.completed ? 'text.secondary' : 'text.primary',
+                    },
+                  }}
                 >
-                  {step.description}
-                </Typography>
-
-                {step.actions && !step.completed && (
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    {step.actions.primary && (
-                      <Button
-                        variant='contained'
-                        size='small'
-                        onClick={step.actions.primary.action}
-                        startIcon={<ArrowForward />}
-                      >
-                        {step.actions.primary.label}
-                      </Button>
-                    )}
-                    {step.actions.secondary && (
-                      <Button
-                        variant='outlined'
-                        size='small'
-                        onClick={step.actions.secondary.action}
-                      >
-                        {step.actions.secondary.label}
-                      </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {step.label}
+                    {step.optional && (
+                      <Chip label='Optional' size='small' variant='outlined' />
                     )}
                   </Box>
-                )}
-
-                {step.completed && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mb: 2,
-                    }}
+                </StepLabel>
+                <StepContent>
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    sx={{ mb: 2 }}
                   >
-                    <CheckCircle color='success' sx={{ fontSize: 16 }} />
-                    <Typography
-                      variant='body2'
-                      color='success.main'
-                      fontWeight={500}
+                    {step.description}
+                  </Typography>
+
+                  {step.actions && !step.completed && (
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      {step.actions.primary && (
+                        <Button
+                          variant='contained'
+                          size='small'
+                          onClick={step.actions.primary.action}
+                          startIcon={<ArrowForward />}
+                        >
+                          {step.actions.primary.label}
+                        </Button>
+                      )}
+                      {step.actions.secondary && (
+                        <Button
+                          variant='outlined'
+                          size='small'
+                          onClick={step.actions.secondary.action}
+                        >
+                          {step.actions.secondary.label}
+                        </Button>
+                      )}
+                    </Box>
+                  )}
+
+                  {step.completed && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
+                      }}
                     >
-                      Completed
-                    </Typography>
-                  </Box>
-                )}
-              </StepContent>
-            </Step>
-          ))}
-        </Stepper>
+                      <CheckCircle color='success' sx={{ fontSize: 16 }} />
+                      <Typography
+                        variant='body2'
+                        color='success.main'
+                        fontWeight={500}
+                      >
+                        Completed
+                      </Typography>
+                    </Box>
+                  )}
+                </StepContent>
+              </Step>
+            ))}
+          </Stepper>
 
-        {/* Quick Actions */}
-        <Divider sx={{ my: 3 }} />
+          {/* Quick Actions */}
+          <Divider sx={{ my: 3 }} />
 
-        <Typography variant='body2' fontWeight={600} gutterBottom>
-          Quick Actions
-        </Typography>
+          <Typography variant='body2' fontWeight={600} gutterBottom>
+            Quick Actions
+          </Typography>
 
-        <List dense>
-          <ListItem
-            component='div'
-            onClick={() => onNavigateToStep?.('branding')}
-            sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-          >
-            <ListItemIcon>
-              <Palette color='primary' />
-            </ListItemIcon>
-            <ListItemText
-              primary='Complete Branding'
-              secondary='Add logo, banner, and gallery images'
-            />
-          </ListItem>
+          <List dense>
+            <ListItem
+              component='div'
+              onClick={() => onNavigateToStep?.('branding')}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Palette color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Complete Branding'
+                secondary='Add logo, banner, and gallery images'
+              />
+            </ListItem>
 
-          <ListItem
-            component='div'
-            onClick={() => console.log('Preview store')}
-            sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-          >
-            <ListItemIcon>
-              <Visibility color='primary' />
-            </ListItemIcon>
-            <ListItemText
-              primary='Preview Store'
-              secondary='See how your store looks to customers'
-            />
-          </ListItem>
+            <ListItem
+              component='div'
+              onClick={() => console.log('Preview store')}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Visibility color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Preview Store'
+                secondary='See how your store looks to customers'
+              />
+            </ListItem>
 
-          <ListItem
-            component='div'
-            onClick={() => onCompleteSetup?.()}
-            sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-          >
-            <ListItemIcon>
-              <Store color='primary' />
-            </ListItemIcon>
-            <ListItemText
-              primary='Launch Store'
-              secondary='Make your store live and start selling'
-            />
-          </ListItem>
-        </List>
-      </Paper>
+            <ListItem
+              component='div'
+              onClick={() => onCompleteSetup?.()}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Store color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Launch Store'
+                secondary='Make your store live and start selling'
+              />
+            </ListItem>
+          </List>
+        </Paper>
+      )}
+
+      {/* Store Management Actions - Show when setup is complete */}
+      {isSetupComplete && (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant='h6' fontWeight={600} gutterBottom>
+            Store Management
+          </Typography>
+
+          <List dense>
+            <ListItem
+              component='div'
+              onClick={() => onNavigateToStep?.('branding')}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Palette color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Update Branding'
+                secondary='Modify logo, banner, and gallery images'
+              />
+            </ListItem>
+
+            <ListItem
+              component='div'
+              onClick={() => console.log('Preview store')}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Visibility color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Preview Store'
+                secondary='See how your store looks to customers'
+              />
+            </ListItem>
+
+            <ListItem
+              component='div'
+              onClick={() => console.log('Manage products')}
+              sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            >
+              <ListItemIcon>
+                <Store color='primary' />
+              </ListItemIcon>
+              <ListItemText
+                primary='Manage Products'
+                secondary='Add, edit, or remove products from your store'
+              />
+            </ListItem>
+          </List>
+        </Paper>
+      )}
     </Box>
   );
 };

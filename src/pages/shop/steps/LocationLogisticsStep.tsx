@@ -38,7 +38,11 @@ import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../../services/open-shop.api';
 import toast from 'react-hot-toast';
 
-type SellingMethod = 'on-farm-pickup' | 'local-delivery' | 'farmers-market';
+type SellingMethod =
+  | 'on-farm-pickup'
+  | 'local-delivery'
+  | 'farmers-market'
+  | 'processor-pickup';
 
 const LocationLogisticsStep: React.FC<StepProps> = ({
   formState,
@@ -46,10 +50,31 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
   onNext,
   onPrevious,
 }) => {
+  // Debug: Log what formState this step receives
+  console.log('🚚 LocationLogisticsStep - Received formState:', {
+    hasLocationLogistics: !!formState.locationLogistics,
+    sellingMethods: formState.locationLogistics?.sellingMethods,
+    sellingMethodsLength:
+      formState.locationLogistics?.sellingMethods?.length || 0,
+    deliveryRadiusMi: formState.locationLogistics?.deliveryRadiusMi,
+    businessAddress: formState.locationLogistics?.businessAddress,
+    enableProcessorNotifications:
+      formState.locationLogistics?.enableProcessorNotifications,
+    enableCustomerProcessorContact:
+      formState.locationLogistics?.enableCustomerProcessorContact,
+    processorInstructions: formState.locationLogistics?.processorInstructions,
+  });
   const { user } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if this is a producer store that needs processor logistics
+  const isProducerStore =
+    formState.storeBasics?.setupFlow?.derivedStoreType === 'producer';
+  const hasLiveAnimalsCategory =
+    formState.storeBasics?.categories?.includes('Live Animals');
+  const needsProcessorLogistics = isProducerStore && hasLiveAnimalsCategory;
 
   // Helper function to format phone numbers for database constraint
   const formatPhoneNumber = (phone: string): string => {
@@ -88,8 +113,8 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
     if (!address.contactEmail.trim()) {
       newErrors.contactEmail = 'Contact email is required';
     }
-    if (!address.streetLine.trim()) {
-      newErrors.streetLine = 'Street address is required';
+    if (!address.streetAddress.trim()) {
+      newErrors.streetAddress = 'Street address is required';
     }
     if (!address.city.trim()) {
       newErrors.city = 'City is required';
@@ -172,7 +197,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
       locationName: '',
       contactPhone: '',
       contactEmail: '',
-      streetLine: '',
+      streetAddress: '',
       city: '',
       state: '',
       zipCode: '',
@@ -196,7 +221,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
       locationName: '',
       contactPhone: '',
       contactEmail: '',
-      streetLine: '',
+      streetAddress: '',
       city: '',
       state: '',
       zipCode: '',
@@ -234,7 +259,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
               locationName: '',
               contactPhone: '',
               contactEmail: '',
-              streetLine: '',
+              streetAddress: '',
               city: '',
               state: '',
               zipCode: '',
@@ -318,7 +343,8 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           formState.locationLogistics.businessAddress.contactPhone
         ),
         ContactEmail: formState.locationLogistics.businessAddress.contactEmail,
-        StreetLine: formState.locationLogistics.businessAddress.streetLine,
+        StreetAddress:
+          formState.locationLogistics.businessAddress.streetAddress,
         City: formState.locationLogistics.businessAddress.city,
         State: formState.locationLogistics.businessAddress.state,
         ZipCode: formState.locationLogistics.businessAddress.zipCode,
@@ -352,8 +378,8 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             ContactPhone: formatPhoneNumber(
               formState.locationLogistics.farmgateAddress?.contactPhone || ''
             ),
-            StreetLine:
-              formState.locationLogistics.farmgateAddress?.streetLine || '',
+            StreetAddress:
+              formState.locationLogistics.farmgateAddress?.streetAddress || '',
             City: formState.locationLogistics.farmgateAddress?.city || '',
             State: formState.locationLogistics.farmgateAddress?.state || '',
             ZipCode: formState.locationLogistics.farmgateAddress?.zipCode || '',
@@ -385,8 +411,8 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           ContactPhone: formatPhoneNumber(
             formState.locationLogistics.pickupPointAddress?.contactPhone || ''
           ),
-          StreetLine:
-            formState.locationLogistics.pickupPointAddress?.streetLine || '',
+          StreetAddress:
+            formState.locationLogistics.pickupPointAddress?.streetAddress || '',
           City: formState.locationLogistics.pickupPointAddress?.city || '',
           State: formState.locationLogistics.pickupPointAddress?.state || '',
           ZipCode:
@@ -396,6 +422,37 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           IsPrimary: false,
           IsActive: true,
         });
+      }
+
+      // Handle processor pickup logistics if selected
+      if (
+        sellingMethods.includes('processor-pickup') &&
+        needsProcessorLogistics
+      ) {
+        // Store processor logistics preferences in store setup data
+        const processorLogisticsData = {
+          enableProcessorNotifications:
+            formState.locationLogistics.enableProcessorNotifications || false,
+          enableCustomerProcessorContact:
+            formState.locationLogistics.enableCustomerProcessorContact || false,
+          processorInstructions:
+            formState.locationLogistics.processorInstructions || '',
+          processorPickupEnabled: true,
+        };
+
+        // Update store setup data with processor logistics
+        try {
+          await OpenShopApiService.updateStoreSetupData(formState.storeId, {
+            processorLogistics: processorLogisticsData,
+            sellingMethods: formState.locationLogistics.sellingMethods,
+          });
+        } catch (processorError) {
+          console.warn(
+            'Failed to save processor logistics preferences:',
+            processorError
+          );
+          // Don't fail the entire flow for this
+        }
       }
 
       toast.success('Location and logistics saved successfully!');
@@ -418,9 +475,11 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
     formState.locationLogistics.sellingMethods.includes('local-delivery');
   const isFarmersMarketSelected =
     formState.locationLogistics.sellingMethods.includes('farmers-market');
+  const isProcessorPickupSelected =
+    formState.locationLogistics.sellingMethods.includes('processor-pickup');
 
   return (
-    <Box>
+    <Box component='form' noValidate>
       <Typography
         variant='h4'
         component='h2'
@@ -519,12 +578,12 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           <TextField
             label='Street Address'
             placeholder='e.g., 123 Farm Road'
-            value={formState.locationLogistics.businessAddress.streetLine}
+            value={formState.locationLogistics.businessAddress.streetAddress}
             onChange={(e) =>
-              handleBusinessAddressChange('streetLine', e.target.value)
+              handleBusinessAddressChange('streetAddress', e.target.value)
             }
-            error={!!errors.streetLine}
-            helperText={errors.streetLine}
+            error={!!errors.streetAddress}
+            helperText={errors.streetAddress}
             fullWidth
             required
           />
@@ -602,6 +661,15 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
 
         <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
           Select all that apply:
+          {needsProcessorLogistics && (
+            <>
+              <br />
+              <em>
+                Note: Since you're selling live animals, customers can pick up
+                processed meat from your processor partners.
+              </em>
+            </>
+          )}
         </Typography>
 
         <FormGroup>
@@ -643,6 +711,25 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             }
             label="I sell at a Farmers' Market or other pickup point"
           />
+
+          {needsProcessorLogistics && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isProcessorPickupSelected}
+                  onChange={(e) =>
+                    handleSellingMethodChange(
+                      'processor-pickup',
+                      e.target.checked
+                    )
+                  }
+                  color='primary'
+                />
+              }
+              label='Processor Pickup (Customers pick up processed products from my processor partners)'
+              sx={{ mb: 1 }}
+            />
+          )}
         </FormGroup>
 
         {errors.sellingMethods && (
@@ -715,10 +802,11 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
               <TextField
                 label='Street Address'
                 value={
-                  formState.locationLogistics.farmgateAddress?.streetLine || ''
+                  formState.locationLogistics.farmgateAddress?.streetAddress ||
+                  ''
                 }
                 onChange={(e) =>
-                  handleFarmgateAddressChange('streetLine', e.target.value)
+                  handleFarmgateAddressChange('streetAddress', e.target.value)
                 }
                 fullWidth
               />
@@ -759,7 +847,103 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
         </Paper>
       </Collapse>
 
-      {/* Delivery Radius - appears when Local Delivery is selected */}
+      {/* Processor Pickup Logistics - appears when Processor Pickup is selected for Producer stores */}
+      <Collapse in={isProcessorPickupSelected && needsProcessorLogistics}>
+        <Paper elevation={1} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              fontWeight: 600,
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <BusinessIcon color='primary' />
+            Processor Partnership Logistics
+          </Typography>
+
+          <Alert severity='info' sx={{ mb: 3 }}>
+            <Typography variant='body2'>
+              Configure how customers will interact with your processor
+              partners. Customers will pick up processed meat directly from
+              processor facilities, not from your farm location.
+            </Typography>
+          </Alert>
+
+          <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+            Your processor partnerships from the previous step will be used for
+            customer pickup locations. The system will automatically provide
+            customers with processor addresses and contact information when they
+            place orders for live animals.
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={
+                    formState.locationLogistics.enableProcessorNotifications ||
+                    false
+                  }
+                  onChange={(e) =>
+                    updateFormState({
+                      locationLogistics: {
+                        ...formState.locationLogistics,
+                        enableProcessorNotifications: e.target.checked,
+                      },
+                    })
+                  }
+                  color='primary'
+                />
+              }
+              label='Automatically notify processors when orders are placed'
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={
+                    formState.locationLogistics
+                      .enableCustomerProcessorContact || false
+                  }
+                  onChange={(e) =>
+                    updateFormState({
+                      locationLogistics: {
+                        ...formState.locationLogistics,
+                        enableCustomerProcessorContact: e.target.checked,
+                      },
+                    })
+                  }
+                  color='primary'
+                />
+              }
+              label='Allow customers to contact processors directly for pickup coordination'
+            />
+
+            <TextField
+              label='Special Instructions for Processor Partnerships'
+              multiline
+              rows={3}
+              value={formState.locationLogistics.processorInstructions || ''}
+              onChange={(e) =>
+                updateFormState({
+                  locationLogistics: {
+                    ...formState.locationLogistics,
+                    processorInstructions: e.target.value,
+                  },
+                })
+              }
+              placeholder='e.g., "Please call customer 24 hours before processing is complete", "Pickup available Tuesday-Saturday 8am-4pm"'
+              fullWidth
+              helperText='These instructions will be shared with your processor partners to ensure smooth customer pickup experience.'
+            />
+          </Box>
+        </Paper>
+      </Collapse>
+
+      {/* Local Delivery - appears when Local Delivery is selected */}
       <Collapse in={isLocalDeliverySelected}>
         <Paper elevation={1} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
           <Typography
@@ -1109,10 +1293,11 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             <TextField
               label='Street Address'
               value={
-                formState.locationLogistics.pickupPointAddress?.streetLine || ''
+                formState.locationLogistics.pickupPointAddress?.streetAddress ||
+                ''
               }
               onChange={(e) =>
-                handlePickupPointAddressChange('streetLine', e.target.value)
+                handlePickupPointAddressChange('streetAddress', e.target.value)
               }
               fullWidth
             />

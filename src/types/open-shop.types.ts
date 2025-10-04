@@ -21,7 +21,7 @@ export interface AddressCreationRequest {
   locationName: string;
   contactPhone: string;
   contactEmail: string;
-  streetLine: string;
+  streetAddress: string;
   city: string;
   state: string;
   zipCode: string;
@@ -57,13 +57,25 @@ export interface StoreBasicsFormData {
   storeName: string;
   description: string;
   categories: string[];
+  setupFlow?: {
+    selectedCategoryIds: number[];
+    categoryResponses: { [key: string]: string };
+    partnershipRadiusMi: number;
+    selectedPartnerIds: number[];
+    derivedStoreType: string;
+    derivedCanProduce: boolean;
+    derivedCanProcess: boolean;
+    derivedCanRetail: boolean;
+    needsPartnerships: boolean;
+    partnershipType: string;
+  };
 }
 
 export interface AddressFormData {
   locationName: string;
   contactPhone: string;
   contactEmail: string;
-  streetLine: string;
+  streetAddress: string;
   city: string;
   state: string;
   zipCode: string;
@@ -100,6 +112,10 @@ export interface LocationLogisticsFormData {
   pickupPointNickname?: string;
   shippingServices?: ShippingServiceFormData[];
   enablePlatformShipping?: boolean;
+  // Processor pickup logistics (only for producer stores)
+  enableProcessorNotifications?: boolean;
+  enableCustomerProcessorContact?: boolean;
+  processorInstructions?: string;
 }
 
 export interface StoreHoursFormData {
@@ -134,6 +150,10 @@ export interface BrandingFormData {
   logoFile?: File;
   bannerFile?: File;
   galleryFiles?: File[];
+  // For edit mode - existing image URLs
+  logoUrl?: string;
+  bannerUrl?: string;
+  galleryUrls?: string[];
 }
 
 // Store Submission Types
@@ -204,7 +224,8 @@ export interface OpenShopFormState {
 export type SellingMethod =
   | 'on-farm-pickup'
   | 'local-delivery'
-  | 'farmers-market';
+  | 'farmers-market'
+  | 'processor-pickup';
 
 export const SELLING_METHODS: Array<{
   value: SellingMethod;
@@ -214,17 +235,25 @@ export const SELLING_METHODS: Array<{
   {
     value: 'on-farm-pickup',
     label: 'On-Farm Pickup',
-    description: 'Customers come to me',
+    description: 'Customers come to your farm to pick up their orders',
   },
   {
     value: 'local-delivery',
     label: 'Local Delivery',
-    description: 'I deliver to customers',
+    description:
+      'You deliver products to customers within your delivery radius',
   },
   {
     value: 'farmers-market',
-    label: "I sell at a Farmers' Market or other pickup point",
-    description: 'Market or pickup point sales',
+    label: "Farmers' Market",
+    description:
+      'Customers pick up orders at farmers markets or designated pickup points',
+  },
+  {
+    value: 'processor-pickup',
+    label: 'Processor Pickup',
+    description:
+      'Customers pick up processed products from your processor partners (for producer stores)',
   },
 ];
 

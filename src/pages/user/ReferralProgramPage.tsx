@@ -64,7 +64,9 @@ interface ReferralHistory {
 
 const ReferralProgramPage: React.FC = () => {
   const { user, updateReferralCode } = useAuth();
-  const [referralCode, setReferralCode] = useState<string>(user?.referralCode || '');
+  const [referralCode, setReferralCode] = useState<string>(
+    user?.referralCode || ''
+  );
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [history, setHistory] = useState<ReferralHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,13 +147,13 @@ const ReferralProgramPage: React.FC = () => {
   };
 
   const shareReferralCode = async () => {
-    const shareText = `Join me on Heartwood Trading Platform! Use my referral code: ${referralCode}`;
+    const shareText = `Join me on HelloNeighbors! Use my referral code: ${referralCode}`;
     const shareUrl = `${window.location.origin}?ref=${referralCode}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join Heartwood Trading Platform',
+          title: 'Join HelloNeighbors',
           text: shareText,
           url: shareUrl,
         });
@@ -171,26 +173,39 @@ const ReferralProgramPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'success';
-      case 'pending': return 'warning';
-      case 'failed': return 'error';
-      default: return 'default';
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'failed':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return 'Completed';
-      case 'pending': return 'Pending';
-      case 'failed': return 'Failed';
-      default: return status;
+      case 'completed':
+        return 'Completed';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Failed';
+      default:
+        return status;
     }
   };
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        <Box
+          display='flex'
+          justifyContent='center'
+          alignItems='center'
+          minHeight='400px'
+        >
           <CircularProgress />
         </Box>
       </Container>
@@ -198,19 +213,19 @@ const ReferralProgramPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth='lg' sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={600} gutterBottom>
+        <Typography variant='h4' fontWeight={600} gutterBottom>
           Referral Program
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant='body1' color='text.secondary'>
           Invite friends and earn rewards when they join our platform!
         </Typography>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity='error' sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
@@ -222,13 +237,13 @@ const ReferralProgramPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <People color="primary" />
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box display='flex' alignItems='center' gap={1}>
+                    <People color='primary' />
+                    <Typography variant='h6' fontWeight={600}>
                       {stats?.totalReferrals || 0}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Total Referrals
                   </Typography>
                 </CardContent>
@@ -237,13 +252,13 @@ const ReferralProgramPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CheckCircle color="success" />
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box display='flex' alignItems='center' gap={1}>
+                    <CheckCircle color='success' />
+                    <Typography variant='h6' fontWeight={600}>
                       {stats?.successfulReferrals || 0}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Successful Referrals
                   </Typography>
                 </CardContent>
@@ -252,13 +267,13 @@ const ReferralProgramPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <AttachMoney color="success" />
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box display='flex' alignItems='center' gap={1}>
+                    <AttachMoney color='success' />
+                    <Typography variant='h6' fontWeight={600}>
                       ${stats?.totalEarnings || 0}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Total Earnings
                   </Typography>
                 </CardContent>
@@ -267,13 +282,13 @@ const ReferralProgramPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CardGiftcard color="primary" />
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box display='flex' alignItems='center' gap={1}>
+                    <CardGiftcard color='primary' />
+                    <Typography variant='h6' fontWeight={600}>
                       ${stats?.availableCredits || 0}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Available Credits
                   </Typography>
                 </CardContent>
@@ -285,7 +300,7 @@ const ReferralProgramPage: React.FC = () => {
         {/* Your Referral Code */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+            <Typography variant='h6' fontWeight={600} gutterBottom>
               Your Referral Code
             </Typography>
 
@@ -298,11 +313,19 @@ const ReferralProgramPage: React.FC = () => {
                     readOnly: true,
                     endAdornment: (
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton onClick={copyToClipboard} size="small" title="Copy">
-                          <ContentCopy fontSize="small" />
+                        <IconButton
+                          onClick={copyToClipboard}
+                          size='small'
+                          title='Copy'
+                        >
+                          <ContentCopy fontSize='small' />
                         </IconButton>
-                        <IconButton onClick={shareReferralCode} size="small" title="Share">
-                          <Share fontSize="small" />
+                        <IconButton
+                          onClick={shareReferralCode}
+                          size='small'
+                          title='Share'
+                        >
+                          <Share fontSize='small' />
                         </IconButton>
                       </Box>
                     ),
@@ -318,27 +341,27 @@ const ReferralProgramPage: React.FC = () => {
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
-                    variant="outlined"
+                    variant='outlined'
                     startIcon={<ContentCopy />}
                     onClick={copyToClipboard}
-                    size="small"
+                    size='small'
                   >
                     Copy Code
                   </Button>
                   <Button
-                    variant="outlined"
+                    variant='outlined'
                     startIcon={<Share />}
                     onClick={shareReferralCode}
-                    size="small"
+                    size='small'
                   >
                     Share Link
                   </Button>
                   <Button
-                    variant="text"
+                    variant='text'
                     startIcon={<Refresh />}
                     onClick={generateReferralCode}
                     disabled={isGenerating}
-                    size="small"
+                    size='small'
                   >
                     Generate New
                   </Button>
@@ -346,14 +369,16 @@ const ReferralProgramPage: React.FC = () => {
               </Box>
             ) : (
               <Box sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="body1" sx={{ mb: 2 }}>
+                <Typography variant='body1' sx={{ mb: 2 }}>
                   You don't have a referral code yet.
                 </Typography>
                 <Button
-                  variant="contained"
+                  variant='contained'
                   onClick={generateReferralCode}
                   disabled={isGenerating}
-                  startIcon={isGenerating ? <CircularProgress size={16} /> : <Refresh />}
+                  startIcon={
+                    isGenerating ? <CircularProgress size={16} /> : <Refresh />
+                  }
                 >
                   {isGenerating ? 'Generating...' : 'Generate Referral Code'}
                 </Button>
@@ -365,7 +390,7 @@ const ReferralProgramPage: React.FC = () => {
         {/* How It Works */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+            <Typography variant='h6' fontWeight={600} gutterBottom>
               How It Works
             </Typography>
             <List dense>
@@ -388,7 +413,7 @@ const ReferralProgramPage: React.FC = () => {
                     1
                   </Box>
                 </ListItemIcon>
-                <ListItemText primary="Share your unique referral code with friends" />
+                <ListItemText primary='Share your unique referral code with friends' />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
@@ -409,7 +434,7 @@ const ReferralProgramPage: React.FC = () => {
                     2
                   </Box>
                 </ListItemIcon>
-                <ListItemText primary="They sign up using your referral code" />
+                <ListItemText primary='They sign up using your referral code' />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
@@ -430,13 +455,14 @@ const ReferralProgramPage: React.FC = () => {
                     3
                   </Box>
                 </ListItemIcon>
-                <ListItemText primary="You both earn rewards when they complete their first purchase" />
+                <ListItemText primary='You both earn rewards when they complete their first purchase' />
               </ListItem>
             </List>
 
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                <strong>Reward:</strong> Earn $10 credit for each successful referral!
+            <Alert severity='info' sx={{ mt: 2 }}>
+              <Typography variant='body2'>
+                <strong>Reward:</strong> Earn $10 credit for each successful
+                referral!
               </Typography>
             </Alert>
           </Paper>
@@ -445,7 +471,7 @@ const ReferralProgramPage: React.FC = () => {
         {/* Referral History */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+            <Typography variant='h6' fontWeight={600} gutterBottom>
               Referral History
             </Typography>
 
@@ -457,29 +483,32 @@ const ReferralProgramPage: React.FC = () => {
                       <TableCell>Friend</TableCell>
                       <TableCell>Date Referred</TableCell>
                       <TableCell>Status</TableCell>
-                      <TableCell align="right">Earnings</TableCell>
+                      <TableCell align='right'>Earnings</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {history.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Person fontSize="small" color="action" />
+                          <Box display='flex' alignItems='center' gap={1}>
+                            <Person fontSize='small' color='action' />
                             <Box>
-                              <Typography variant="body2">
+                              <Typography variant='body2'>
                                 {item.referredName || 'Anonymous User'}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant='caption'
+                                color='text.secondary'
+                              >
                                 {item.referredEmail}
                               </Typography>
                             </Box>
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <CalendarToday fontSize="small" color="action" />
-                            <Typography variant="body2">
+                          <Box display='flex' alignItems='center' gap={1}>
+                            <CalendarToday fontSize='small' color='action' />
+                            <Typography variant='body2'>
                               {new Date(item.dateReferred).toLocaleDateString()}
                             </Typography>
                           </Box>
@@ -488,12 +517,12 @@ const ReferralProgramPage: React.FC = () => {
                           <Chip
                             label={getStatusText(item.status)}
                             color={getStatusColor(item.status) as any}
-                            size="small"
-                            variant="outlined"
+                            size='small'
+                            variant='outlined'
                           />
                         </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight={600}>
+                        <TableCell align='right'>
+                          <Typography variant='body2' fontWeight={600}>
                             ${item.earnings}
                           </Typography>
                         </TableCell>
@@ -505,7 +534,7 @@ const ReferralProgramPage: React.FC = () => {
             ) : (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <People sx={{ fontSize: 48, color: 'grey.300', mb: 2 }} />
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant='body1' color='text.secondary'>
                   No referrals yet. Start sharing your referral code!
                 </Typography>
               </Box>
@@ -516,7 +545,7 @@ const ReferralProgramPage: React.FC = () => {
         {/* FAQ */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+            <Typography variant='h6' fontWeight={600} gutterBottom>
               Frequently Asked Questions
             </Typography>
 
@@ -525,8 +554,10 @@ const ReferralProgramPage: React.FC = () => {
                 <Typography>How do I earn referral rewards?</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" color="text.secondary">
-                  You earn $10 credit for each friend who signs up using your referral code and completes their first purchase on our platform.
+                <Typography variant='body2' color='text.secondary'>
+                  You earn $10 credit for each friend who signs up using your
+                  referral code and completes their first purchase on our
+                  platform.
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -536,8 +567,9 @@ const ReferralProgramPage: React.FC = () => {
                 <Typography>When do I receive my referral credits?</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" color="text.secondary">
-                  Referral credits are added to your account within 24-48 hours after your referred friend completes their first purchase.
+                <Typography variant='body2' color='text.secondary'>
+                  Referral credits are added to your account within 24-48 hours
+                  after your referred friend completes their first purchase.
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -547,19 +579,23 @@ const ReferralProgramPage: React.FC = () => {
                 <Typography>How can I use my referral credits?</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" color="text.secondary">
-                  Your referral credits can be used towards any purchase on our platform. They will be automatically applied at checkout.
+                <Typography variant='body2' color='text.secondary'>
+                  Your referral credits can be used towards any purchase on our
+                  platform. They will be automatically applied at checkout.
                 </Typography>
               </AccordionDetails>
             </Accordion>
 
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography>Is there a limit to how many people I can refer?</Typography>
+                <Typography>
+                  Is there a limit to how many people I can refer?
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" color="text.secondary">
-                  No! There's no limit to the number of friends you can refer. The more you refer, the more you earn.
+                <Typography variant='body2' color='text.secondary'>
+                  No! There's no limit to the number of friends you can refer.
+                  The more you refer, the more you earn.
                 </Typography>
               </AccordionDetails>
             </Accordion>

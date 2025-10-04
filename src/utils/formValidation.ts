@@ -185,7 +185,7 @@ export const businessAddressValidation: ValidationRules = {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.businessAddress.streetLine': commonValidations.streetAddress,
+  'locationLogistics.businessAddress.streetAddress': commonValidations.streetAddress,
   'locationLogistics.businessAddress.city': commonValidations.city,
   'locationLogistics.businessAddress.state': commonValidations.state,
   'locationLogistics.businessAddress.zipCode': {
@@ -201,7 +201,7 @@ export const farmgateAddressValidation: ValidationRules = {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.farmgateAddress.streetLine': commonValidations.streetAddress,
+  'locationLogistics.farmgateAddress.streetAddress': commonValidations.streetAddress,
   'locationLogistics.farmgateAddress.city': commonValidations.city,
   'locationLogistics.farmgateAddress.state': commonValidations.state,
   'locationLogistics.farmgateAddress.zipCode': {
@@ -217,7 +217,7 @@ export const pickupPointAddressValidation: ValidationRules = {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.pickupPointAddress.streetLine': commonValidations.streetAddress,
+  'locationLogistics.pickupPointAddress.streetAddress': commonValidations.streetAddress,
   'locationLogistics.pickupPointAddress.city': commonValidations.city,
   'locationLogistics.pickupPointAddress.state': commonValidations.state,
   'locationLogistics.pickupPointAddress.zipCode': {

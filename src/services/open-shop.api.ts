@@ -68,7 +68,7 @@ interface AddressCreationRequest {
   AddressType: string;
   LocationName: string;
   ContactPhone: string;
-  StreetLine: string;
+  StreetAddress: string;
   City: string;
   State: string;
   ZipCode: string;
@@ -333,6 +333,74 @@ export class OpenShopApiService {
     console.log('✅ Application status retrieved successfully');
     console.log('Response:', result);
     return result;
+  }
+
+  // Update store setup data (for processor logistics and other setup preferences)
+  static async updateStoreSetupData(
+    storeId: number,
+    setupData: any
+  ): Promise<void> {
+    console.log('=== UPDATING STORE SETUP DATA ===');
+    console.log('Store ID:', storeId);
+    console.log('Setup Data Keys:', Object.keys(setupData));
+    console.log('Setup Data:', JSON.stringify(setupData, null, 2));
+
+    try {
+      const response = await apiService.put(
+        `/api/stores/${storeId}/setup-data`,
+        setupData
+      );
+      console.log('✅ Store setup data updated successfully');
+      console.log('Response:', response);
+    } catch (error) {
+      console.error('❌ Failed to update store setup data:', error);
+      console.error('Error details:', {
+        storeId,
+        setupDataKeys: Object.keys(setupData),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  // Search potential partners (for processor partnerships)
+  static async searchPotentialPartners(
+    storeId: number,
+    partnerType: string,
+    radiusMiles: number = 50
+  ): Promise<any[]> {
+    console.log('🔍 Searching for potential partners...');
+    console.log('Store ID:', storeId);
+    console.log('Partner Type:', partnerType);
+    console.log('Radius:', radiusMiles);
+
+    try {
+      // Use authenticated API service
+      const { authApi } = await import('../utils/api');
+
+      const result = await authApi.get(
+        `/api/stores/${storeId}/potential-partners?partnerType=${partnerType}&radiusMiles=${radiusMiles}`
+      );
+
+      return result;
+    } catch (error) {
+      console.error('🔴 Failed to search potential partners:', error);
+      throw error;
+    }
+  }
+
+  // Create partnership (for processor partnerships)
+  static async createPartnership(partnershipData: {
+    ProducerStoreId: number;
+    ProcessorStoreId: number;
+    InitiatedByStoreId: number;
+  }): Promise<void> {
+    console.log('=== CREATING PARTNERSHIP ===');
+    console.log('Partnership Data:', partnershipData);
+
+    await apiService.post('/api/partnerships', partnershipData);
+
+    console.log('✅ Partnership created successfully');
   }
 }
 

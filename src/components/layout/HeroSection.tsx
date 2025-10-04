@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -10,9 +10,15 @@ import {
   Grid,
   useTheme,
   useMediaQuery,
+  Paper,
+  Chip,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import { Search, Store, LocalOffer, Category } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { debounce } from '../../utils/debounce';
+import StorefrontApiService, {
+  type SearchSuggestion,
+} from '../../services/storefront.api';
 
 interface HeroSectionProps {
   onSearch?: (query: string) => void;
@@ -24,6 +30,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [popularTerms, setPopularTerms] = useState<string[]>([]);
 
   const handleSearch = () => {
     if (searchQuery.trim() && onSearch) {
@@ -34,6 +43,72 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  // Load popular search terms
+  useEffect(() => {
+    const loadPopularTerms = async () => {
+      try {
+        const response = await StorefrontApiService.getPopularSearchTerms(6);
+        setPopularTerms(response.terms);
+      } catch (error) {
+        console.error('Failed to load popular search terms:', error);
+      }
+    };
+
+    loadPopularTerms();
+  }, []);
+
+  // Debounced search suggestions
+  const debouncedGetSuggestions = useMemo(
+    () =>
+      debounce(async (query: string) => {
+        if (query.trim().length < 2) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
+
+        try {
+          const response = await StorefrontApiService.getSearchSuggestions({
+            query: query.trim(),
+            limit: 6,
+            entityTypes: ['product', 'store', 'category'],
+          });
+          setSuggestions(response.suggestions);
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error('Failed to get search suggestions:', error);
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      }, 300),
+    []
+  );
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      debouncedGetSuggestions(value);
+    } else {
+      setShowSuggestions(false);
+      setSuggestions([]);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    setSearchQuery(suggestion.text);
+    setShowSuggestions(false);
+    if (onSearch) {
+      onSearch(suggestion.text);
+    }
+  };
+
+  const handlePopularTermClick = (term: string) => {
+    setSearchQuery(term);
+    if (onSearch) {
+      onSearch(term);
     }
   };
 
@@ -111,62 +186,207 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
               color: 'primary.main',
             }}
           >
-            HeartWood
+            HelloNeighbors
           </Typography>
 
-          <TextField
-            fullWidth
-            variant='outlined'
-            placeholder='Search for goods... (e.g., fresh vegetables, handmade crafts, organic fruits)'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
+          <Box
             sx={{
               maxWidth: '600px',
               mx: 'auto',
               mb: { xs: 5, md: 6 },
-              '& .MuiOutlinedInput-root': {
-                fontSize: { xs: '1.1rem', md: '1.3rem' },
-                py: { xs: 1, md: 1.5 },
-                borderRadius: 3,
-                backgroundColor: 'white',
-                boxShadow: theme.shadows[4],
-                '&:hover': {
-                  boxShadow: theme.shadows[8],
-                },
-                '&.Mui-focused': {
-                  boxShadow: theme.shadows[12],
-                },
-              },
-              '& .MuiOutlinedInput-input': {
-                py: { xs: 2, md: 2.5 },
-                textAlign: 'center',
-              },
+              position: 'relative',
             }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position='end'>
-                  <IconButton
-                    onClick={handleSearch}
-                    edge='end'
-                    disabled={!searchQuery.trim()}
+          >
+            <TextField
+              fullWidth
+              variant='outlined'
+              placeholder='Search for goods... (e.g., fresh vegetables, handmade crafts, organic fruits)'
+              value={searchQuery}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
+              onKeyPress={handleKeyPress}
+              onBlur={() => {
+                // Delay hiding suggestions to allow for clicks
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
+              onFocus={() => {
+                if (searchQuery.trim().length >= 2 && suggestions.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: { xs: '1.1rem', md: '1.3rem' },
+                  py: { xs: 1, md: 1.5 },
+                  borderRadius: 3,
+                  backgroundColor: 'white',
+                  boxShadow: theme.shadows[4],
+                  '&:hover': {
+                    boxShadow: theme.shadows[8],
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: theme.shadows[12],
+                  },
+                },
+                '& .MuiOutlinedInput-input': {
+                  py: { xs: 2, md: 2.5 },
+                  textAlign: 'center',
+                },
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <IconButton
+                      onClick={handleSearch}
+                      edge='end'
+                      disabled={!searchQuery.trim()}
+                      sx={{
+                        color: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.light',
+                          color: 'white',
+                        },
+                        '&.Mui-disabled': {
+                          color: 'grey.400',
+                        },
+                      }}
+                    >
+                      <Search fontSize='large' />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Search Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <Paper
+                sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 1000,
+                  maxHeight: 300,
+                  overflow: 'auto',
+                  mt: 1,
+                  borderRadius: 2,
+                  boxShadow: theme.shadows[8],
+                }}
+              >
+                {suggestions.map((suggestion, index) => (
+                  <Box
+                    key={index}
                     sx={{
-                      color: 'primary.main',
+                      p: 2,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      borderBottom:
+                        index < suggestions.length - 1
+                          ? '1px solid #f0f0f0'
+                          : 'none',
                       '&:hover': {
-                        backgroundColor: 'primary.light',
-                        color: 'white',
-                      },
-                      '&.Mui-disabled': {
-                        color: 'grey.400',
+                        bgcolor: 'action.hover',
+                        borderRadius:
+                          index === 0
+                            ? '8px 8px 0 0'
+                            : index === suggestions.length - 1
+                              ? '0 0 8px 8px'
+                              : '0',
                       },
                     }}
+                    onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <Search fontSize='large' />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+                    {suggestion.entityType === 'product' && (
+                      <LocalOffer
+                        sx={{ color: 'primary.main', fontSize: '1.2rem' }}
+                      />
+                    )}
+                    {suggestion.entityType === 'store' && (
+                      <Store
+                        sx={{ color: 'secondary.main', fontSize: '1.2rem' }}
+                      />
+                    )}
+                    {suggestion.entityType === 'category' && (
+                      <Category
+                        sx={{ color: 'info.main', fontSize: '1.2rem' }}
+                      />
+                    )}
+
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant='body1' sx={{ fontWeight: 500 }}>
+                        {suggestion.text}
+                      </Typography>
+                      {suggestion.category && (
+                        <Typography variant='caption' color='text.secondary'>
+                          in {suggestion.category}
+                        </Typography>
+                      )}
+                      {suggestion.store && (
+                        <Typography variant='caption' color='text.secondary'>
+                          from {suggestion.store}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <Chip
+                      label={suggestion.matchCount}
+                      size='small'
+                      sx={{
+                        bgcolor: 'primary.light',
+                        color: 'white',
+                        fontWeight: 600,
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Paper>
+            )}
+          </Box>
+
+          {/* Popular Search Terms */}
+          {!searchQuery && popularTerms.length > 0 && (
+            <Box sx={{ maxWidth: '600px', mx: 'auto', mb: { xs: 3, md: 4 } }}>
+              <Typography
+                variant='body2'
+                color='text.secondary'
+                gutterBottom
+                sx={{ textAlign: 'center', mb: 1 }}
+              >
+                Popular searches:
+              </Typography>
+              <Stack
+                direction='row'
+                spacing={1}
+                sx={{
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  gap: 1,
+                }}
+              >
+                {popularTerms.map((term) => (
+                  <Chip
+                    key={term}
+                    label={term}
+                    variant='outlined'
+                    size='small'
+                    clickable
+                    onClick={() => handlePopularTermClick(term)}
+                    sx={{
+                      bgcolor: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(46, 125, 50, 0.3)',
+                      '&:hover': {
+                        bgcolor: 'primary.light',
+                        color: 'white',
+                        border: '1px solid transparent',
+                      },
+                    }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
 
           {/* Platform Features - 6 Pillars Grid */}
           <Grid

@@ -8,7 +8,6 @@ import {
   Tab,
   Card,
   CardContent,
-  Chip,
   Button,
   CircularProgress,
   Alert,
@@ -20,17 +19,17 @@ import {
   CardGiftcard,
   Store,
   ShoppingCart,
-  Settings,
   Palette,
-  Home,
   Favorite,
   Star,
   Paid,
   TrendingUp,
   AccountBalanceWallet,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Header from '../../components/layout/Header';
 import ReferralProgramPage from './ReferralProgramPage';
 import BrandingVisualsSection from '../../components/dashboard/BrandingVisualsSection';
 import { useUserStore } from '../../hooks/useUserStore';
@@ -39,11 +38,11 @@ import StoreOverviewSection from '../../components/dashboard/StoreOverviewSectio
 import StoreSetupProgress from '../../components/dashboard/StoreSetupProgress';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import ProfilePictureUpload from '../../components/user/ProfilePictureUpload';
+import dashboardApiService, {
+  type DashboardMetrics,
+} from '../../services/dashboard.api';
 import {
   canAccessStoreFeatures,
-  debugUserType,
-  getUserRoleDisplayName,
-  getUserRoleBadgeColor,
   getDashboardMetricLabels,
   isAdminUser,
 } from '../../utils/userTypeUtils';
@@ -78,10 +77,16 @@ function a11yProps(index: number) {
 }
 
 const UserDashboard: React.FC = () => {
-  const { user, handleAuthenticationError, refreshUserProfile } = useAuth();
+  const { user, handleAuthenticationError } = useAuth();
 
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
 
   // Redirect admin users to admin dashboard
   useEffect(() => {
@@ -93,9 +98,6 @@ const UserDashboard: React.FC = () => {
 
   // Define tab configuration based on user type
   const getTabConfig = () => {
-    // Debug user type for troubleshooting
-    debugUserType(user?.userType, user?.hasStore, 'Dashboard');
-
     const canAccessStore = canAccessStoreFeatures(
       user?.userType,
       user?.hasStore
@@ -161,19 +163,53 @@ const UserDashboard: React.FC = () => {
       autoFetch: !!primaryStore?.storeId,
     });
 
-  // Temporarily disabled to reduce API calls during login
-  // useEffect(() => {
-  //   if (user?.userId) {
-  //     refreshUserProfile();
-  //   }
-  // }, []);
+  // Fetch dashboard metrics
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      if (!user) return;
+
+      setMetricsLoading(true);
+      try {
+        let dashboardMetrics: DashboardMetrics;
+
+        if (primaryStore) {
+          // Fetch store-specific metrics for store owners
+          dashboardMetrics = await dashboardApiService.getStoreMetrics(
+            primaryStore.storeId
+          );
+        } else {
+          // Fetch general user metrics for customers
+          dashboardMetrics = await dashboardApiService.getUserMetrics();
+        }
+
+        setMetrics(dashboardMetrics);
+        console.log('✅ Dashboard metrics loaded:', dashboardMetrics);
+      } catch (error) {
+        console.error('❌ Failed to load dashboard metrics:', error);
+        // Use default metrics on error
+        setMetrics({
+          ordersThisMonth: 0,
+          favoriteItems: 0,
+          totalTransactions: 0,
+          averageRating: 0,
+          productsListed: 0,
+          totalRevenue: 0,
+          referralCredits: 0,
+        });
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+
+    fetchMetrics();
+  }, [user, primaryStore]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   // Debug: Validate store type
-  React.useEffect(() => {
+  useEffect(() => {
     if (primaryStore) {
       console.log('✅ Store type validation:', {
         storeId: primaryStore.storeId,
@@ -214,319 +250,365 @@ const UserDashboard: React.FC = () => {
   }
 
   return (
-    <Container maxWidth='lg' sx={{ py: 4 }}>
-      {/* User Header */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display='flex' alignItems='center' gap={3}>
-          {/* Profile Picture Upload - Always Editable */}
-          <Box>
-            <ProfilePictureUpload
-              size='large'
-              editable={true}
-              onUploadSuccess={(url) => {
-                // Profile picture updated successfully
-              }}
-              onUploadError={(error) => {
-                console.error('Profile picture upload failed:', error);
-              }}
-            />
-          </Box>
-          <Box flex={1}>
-            <Typography variant='h4' fontWeight={600} gutterBottom>
-              Welcome, {user.firstName}!
-            </Typography>
-            <Box display='flex' alignItems='center' gap={2} flexWrap='wrap'>
-              <Typography variant='body1' color='text.secondary'>
-                {user.email}
-              </Typography>
-              <Chip
-                label={getUserRoleDisplayName(user.userType, user.hasStore)}
-                variant='filled'
-                size='small'
-                sx={{
-                  fontWeight: 600,
-                  backgroundColor: getUserRoleBadgeColor(
-                    user.userType,
-                    user.hasStore
-                  ),
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: (() => {
-                      const baseColor = getUserRoleBadgeColor(
-                        user.userType,
-                        user.hasStore
-                      );
-                      // Darken the color for hover effect
-                      switch (baseColor) {
-                        case '#1976d2':
-                          return '#1565c0'; // Blue -> Darker Blue
-                        case '#2e7d32':
-                          return '#1b5e20'; // Green -> Darker Green
-                        case '#d32f2f':
-                          return '#c62828'; // Red -> Darker Red
-                        default:
-                          return '#555';
-                      }
-                    })(),
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-          <Box display='flex' gap={1}>
-            <Button
-              variant='outlined'
-              startIcon={<Home />}
-              onClick={() => navigate('/')}
-              sx={{ textTransform: 'none' }}
-            >
-              Back to Homepage
-            </Button>
-            <Button
-              variant='outlined'
-              startIcon={<Settings />}
-              sx={{ textTransform: 'none' }}
-            >
-              Account Settings
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
+    <Box>
+      {/* Header */}
+      <Header onLoginClick={handleLoginClick} />
 
-      {/* Quick Stats */}
-      {user.hasStore ? (
-        // Store owner stats
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Store color='primary' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      1
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Active Store
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Dashboard color='success' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      24
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Products Listed
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <ShoppingCart color='warning' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      8
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Orders Today
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Paid color='info' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      $1,248
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Revenue
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        {/* Dashboard Content */}
+        <Box sx={{ mb: 3 }}>
+          <Box>
+            <Typography variant='h4' fontWeight={600}>
+              Dashboard
+            </Typography>
           </Box>
         </Box>
-      ) : (
-        // Regular customer stats
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <ShoppingCart color='primary' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      3
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Orders This Month
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Favorite color='error' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      12
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Favorite Items
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Tooltip title={metricLabels.spentDescription} arrow>
+
+        {/* Quick Stats */}
+        {user.hasStore ? (
+          // Store owner stats
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 3,
+              mb: 3,
+            }}
+          >
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
                   <Box display='flex' alignItems='center' gap={2}>
-                    {/* Dynamic icon based on user type:
-                        - Store Owners: TrendingUp (for transaction volume)
-                        - Customers: AccountBalanceWallet (for referral credits) */}
-                    {canAccessStoreFeatures(user?.userType, user?.hasStore) ? (
-                      <TrendingUp color='success' />
-                    ) : (
-                      <AccountBalanceWallet color='success' />
-                    )}
+                    <Store color='primary' />
                     <Box>
                       <Typography variant='h6' fontWeight={600}>
-                        {/* Dynamic values:
-                            - Store Owners: Higher transaction volume ($2,340)
-                            - Customers: Referral credit amount ($45) */}
-                        {canAccessStoreFeatures(user?.userType, user?.hasStore)
-                          ? '$2,340'
-                          : '$45'}
+                        1
                       </Typography>
                       <Typography variant='body2' color='text.secondary'>
-                        {/* Dynamic label from getDashboardMetricLabels utility */}
-                        {metricLabels.spentLabel}
+                        Active Store
                       </Typography>
                     </Box>
                   </Box>
-                </Tooltip>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <Card>
-              <CardContent>
-                <Box display='flex' alignItems='center' gap={2}>
-                  <Star color='warning' />
-                  <Box>
-                    <Typography variant='h6' fontWeight={600}>
-                      4.8
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Average Rating
-                    </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <Dashboard color='success' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading
+                          ? '...'
+                          : (metrics?.productsListed ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Products Listed
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <ShoppingCart color='warning' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading
+                          ? '...'
+                          : (metrics?.ordersThisMonth ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Total Orders
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <Paid color='info' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading
+                          ? '...'
+                          : `$${metrics?.totalRevenue ?? 0}`}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Total Revenue
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
           </Box>
-        </Box>
-      )}
-
-      {/* Main Dashboard Content */}
-      <Paper sx={{ p: 0 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label='dashboard tabs'
-            variant='scrollable'
-            scrollButtons='auto'
-            sx={{ px: 3 }}
+        ) : (
+          // Regular customer stats
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 3,
+              mb: 3,
+            }}
           >
-            {tabConfig.map((tab, index) => (
-              <Tab
-                key={tab.key}
-                icon={tab.icon}
-                label={tab.label}
-                iconPosition='start'
-                sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
-                {...a11yProps(index)}
-              />
-            ))}
-          </Tabs>
-        </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <ShoppingCart color='primary' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading
+                          ? '...'
+                          : (metrics?.ordersThisMonth ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Orders This Month
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <Favorite color='error' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading
+                          ? '...'
+                          : primaryStore
+                            ? (metrics?.productsListed ?? 0)
+                            : (metrics?.favoriteItems ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        {primaryStore ? 'Products Listed' : 'Favorite Items'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Tooltip title={metricLabels.spentDescription} arrow>
+                    <Box display='flex' alignItems='center' gap={2}>
+                      {/* Dynamic icon based on user type:
+                        - Store Owners: TrendingUp (for transaction volume)
+                        - Customers: AccountBalanceWallet (for referral credits) */}
+                      {canAccessStoreFeatures(
+                        user?.userType,
+                        user?.hasStore
+                      ) ? (
+                        <TrendingUp color='success' />
+                      ) : (
+                        <AccountBalanceWallet color='success' />
+                      )}
+                      <Box>
+                        <Typography variant='h6' fontWeight={600}>
+                          {metricsLoading
+                            ? '...'
+                            : canAccessStoreFeatures(
+                                  user?.userType,
+                                  user?.hasStore
+                                )
+                              ? `$${metrics?.totalRevenue ?? 0}`
+                              : `$${metrics?.referralCredits ?? 0}`}
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary'>
+                          {/* Dynamic label from getDashboardMetricLabels utility */}
+                          {metricLabels.spentLabel}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Tooltip>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <Star color='warning' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading ? '...' : (metrics?.averageRating ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Average Rating
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+        )}
 
-        {/* Tab Panels */}
-        {tabConfig.map((tab, index) => (
-          <TabPanel key={tab.key} value={tabValue} index={index}>
-            {tab.key === 'overview' && (
-              <Box sx={{ p: 3 }}>
-                {user.hasStore ? (
-                  <StoreSetupProgress
-                    storeId={primaryStore?.storeId || 0}
-                    storeName={primaryStore?.storeName || 'Your Store'}
-                    completionPercentage={getCompletionPercentage()}
-                    storeData={comprehensiveStoreData}
-                    approvalStatus={comprehensiveStoreData?.approvalStatus}
-                    onNavigateToStep={(step) => {
-                      if (step === 'branding') {
-                        const brandingIndex = tabConfig.findIndex(
-                          (t) => t.key === 'branding'
-                        );
-                        if (brandingIndex !== -1) setTabValue(brandingIndex);
-                      }
-                    }}
-                    onCompleteSetup={() => console.log('Complete setup')}
-                  />
-                ) : (
-                  <>
+        {/* Main Dashboard Content */}
+        <Paper sx={{ p: 0 }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              aria-label='dashboard tabs'
+              variant='scrollable'
+              scrollButtons='auto'
+              sx={{ px: 3 }}
+            >
+              {tabConfig.map((tab, index) => (
+                <Tab
+                  key={tab.key}
+                  icon={tab.icon}
+                  label={tab.label}
+                  iconPosition='start'
+                  sx={{ textTransform: 'none', minHeight: 'auto', py: 2 }}
+                  {...a11yProps(index)}
+                />
+              ))}
+            </Tabs>
+          </Box>
+
+          {/* Tab Panels */}
+          {tabConfig.map((tab, index) => (
+            <TabPanel key={tab.key} value={tabValue} index={index}>
+              {tab.key === 'overview' && (
+                <Box sx={{ p: 3 }}>
+                  {/* Store Management Section - Only show setup progress if store is incomplete */}
+                  {primaryStore && getCompletionPercentage() < 100 ? (
+                    <Box sx={{ mb: 4 }}>
+                      <StoreSetupProgress
+                        storeId={primaryStore?.storeId || 0}
+                        storeName={primaryStore?.storeName || 'Your Store'}
+                        completionPercentage={getCompletionPercentage()}
+                        storeData={comprehensiveStoreData}
+                        approvalStatus={comprehensiveStoreData?.approvalStatus}
+                        onNavigateToStep={(step) => {
+                          if (step === 'branding') {
+                            const brandingIndex = tabConfig.findIndex(
+                              (t) => t.key === 'branding'
+                            );
+                            if (brandingIndex !== -1)
+                              setTabValue(brandingIndex);
+                          }
+                        }}
+                        onCompleteSetup={() => console.log('Complete setup')}
+                      />
+                    </Box>
+                  ) : primaryStore && getCompletionPercentage() === 100 ? (
+                    <Box sx={{ mb: 4 }}>
+                      <Card
+                        sx={{
+                          bgcolor: 'success.50',
+                          border: '1px solid',
+                          borderColor: 'success.200',
+                        }}
+                      >
+                        <CardContent sx={{ p: 3 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              mb: 2,
+                            }}
+                          >
+                            <CheckCircle
+                              sx={{
+                                color: 'success.main',
+                                mr: 2,
+                                fontSize: 32,
+                              }}
+                            />
+                            <Box>
+                              <Typography
+                                variant='h6'
+                                fontWeight={600}
+                                color='success.main'
+                              >
+                                Store Setup Complete! 🎉
+                              </Typography>
+                              <Typography
+                                variant='body2'
+                                color='text.secondary'
+                              >
+                                {primaryStore.storeName} is ready and live
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box
+                            sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}
+                          >
+                            <Button
+                              variant='contained'
+                              color='success'
+                              startIcon={<Store />}
+                              onClick={() =>
+                                setTabValue(
+                                  tabConfig.findIndex((t) => t.key === 'store')
+                                )
+                              }
+                            >
+                              View Store Overview
+                            </Button>
+                            <Button
+                              variant='outlined'
+                              color='success'
+                              onClick={() =>
+                                navigate(
+                                  `/stores/${primaryStore.storeId}/customize`
+                                )
+                              }
+                            >
+                              Preview Live Store
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                  ) : primaryStore ? null : user.hasStore ? (
+                    <Box sx={{ mb: 4 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          py: 4,
+                        }}
+                      >
+                        <CircularProgress />
+                        <Typography variant='body2' sx={{ ml: 2 }}>
+                          Loading your store...
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ) : null}
+
+                  {/* Customer Dashboard Section - Always show for all users */}
+                  <Box>
                     <Typography variant='h6' gutterBottom>
-                      Dashboard Overview
+                      {primaryStore || user.hasStore
+                        ? 'Shopping Dashboard'
+                        : 'Dashboard Overview'}
                     </Typography>
                     <Typography
                       variant='body2'
                       color='text.secondary'
                       sx={{ mb: 3 }}
                     >
-                      Welcome to your dashboard! Here you can manage your
-                      account, track orders, and explore our referral program.
+                      {primaryStore || user.hasStore
+                        ? 'Browse products, track your orders, and manage your shopping experience.'
+                        : 'Welcome to your dashboard! Here you can manage your account, track orders, and explore our referral program.'}
                     </Typography>
 
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -588,119 +670,139 @@ const UserDashboard: React.FC = () => {
                         </Card>
                       </Box>
                     </Box>
-                  </>
-                )}
-              </Box>
-            )}
-
-            {tab.key === 'store' && (
-              <Box sx={{ p: 3 }}>
-                <StoreOverviewSection
-                  onNavigateToBranding={() => {
-                    const brandingIndex = tabConfig.findIndex(
-                      (t) => t.key === 'branding'
-                    );
-                    if (brandingIndex !== -1) setTabValue(brandingIndex);
-                  }}
-                />
-              </Box>
-            )}
-
-            {tab.key === 'branding' && (
-              <Box sx={{ p: 3 }}>
-                {storeLoading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
-                  >
-                    <CircularProgress />
-                    <Typography variant='body2' sx={{ ml: 2 }}>
-                      Loading store data...
-                    </Typography>
                   </Box>
-                ) : storeError ? (
-                  <Alert severity='error' sx={{ mb: 2 }}>
-                    Store Error: {storeError}
-                    <br />
-                    <Button
-                      size='small'
-                      onClick={() => window.location.reload()}
-                      sx={{ mt: 1 }}
-                    >
-                      Reload Page
-                    </Button>
-                  </Alert>
-                ) : !primaryStore ? (
-                  <Alert severity='warning' sx={{ mb: 2 }}>
-                    No store found. Please create a store first to manage
-                    branding.
-                  </Alert>
-                ) : (
-                  <BrandingVisualsSection
-                    storeId={primaryStore.storeId}
-                    onUpdate={(data: unknown) => {
-                      console.log('Branding data updated:', data);
-                      // TODO: Save to backend or update local state
-                    }}
-                    onError={(error: unknown) => {
-                      // Handle authentication errors
-                      if (!handleAuthenticationError(error, navigate)) {
-                        // If not an auth error, show generic error
-                        console.error('Branding section error:', error);
-                      }
+                </Box>
+              )}
+
+              {tab.key === 'store' && (
+                <Box sx={{ p: 3 }}>
+                  <StoreOverviewSection
+                    onNavigateToBranding={() => {
+                      const brandingIndex = tabConfig.findIndex(
+                        (t) => t.key === 'branding'
+                      );
+                      if (brandingIndex !== -1) setTabValue(brandingIndex);
                     }}
                   />
-                )}
-              </Box>
-            )}
+                </Box>
+              )}
 
-            {tab.key === 'orders' && (
-              <Box sx={{ p: 3 }}>
-                <Typography variant='h6' gutterBottom>
-                  My Orders
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  Your order history and current orders will be displayed here.
-                </Typography>
-              </Box>
-            )}
+              {tab.key === 'branding' && (
+                <Box sx={{ p: 3 }}>
+                  {storeLoading ? (
+                    <Box
+                      sx={{ display: 'flex', justifyContent: 'center', py: 4 }}
+                    >
+                      <CircularProgress />
+                      <Typography variant='body2' sx={{ ml: 2 }}>
+                        Loading store data...
+                      </Typography>
+                    </Box>
+                  ) : storeError ? (
+                    <Alert severity='error' sx={{ mb: 2 }}>
+                      Store Error: {storeError}
+                      <br />
+                      <Button
+                        size='small'
+                        onClick={() => window.location.reload()}
+                        sx={{ mt: 1 }}
+                      >
+                        Reload Page
+                      </Button>
+                    </Alert>
+                  ) : !primaryStore ? (
+                    <Alert severity='warning' sx={{ mb: 2 }}>
+                      No store found. Please create a store first to manage
+                      branding.
+                    </Alert>
+                  ) : (
+                    <BrandingVisualsSection
+                      storeId={primaryStore.storeId}
+                      onUpdate={(data: unknown) => {
+                        console.log('Branding data updated:', data);
+                        // TODO: Save to backend or update local state
+                      }}
+                      onError={(error: unknown) => {
+                        // Handle authentication errors
+                        if (!handleAuthenticationError(error, navigate)) {
+                          // If not an auth error, show generic error
+                          console.error('Branding section error:', error);
+                        }
+                      }}
+                    />
+                  )}
+                </Box>
+              )}
 
-            {tab.key === 'referral' && (
-              <Box sx={{ p: 0 }}>
-                <ReferralProgramPage />
-              </Box>
-            )}
-
-            {tab.key === 'profile' && (
-              <Box sx={{ p: 3 }}>
-                <Typography variant='h6' gutterBottom>
-                  Profile Settings
-                </Typography>
-                <Typography
-                  variant='body2'
-                  color='text.secondary'
-                  sx={{ mb: 3 }}
-                >
-                  Update your personal information and account preferences.
-                </Typography>
-
-                {/* Profile Picture Section */}
-
-                {/* Additional profile settings can be added here */}
-                <Box sx={{ mt: 4 }}>
+              {tab.key === 'orders' && (
+                <Box sx={{ p: 3 }}>
                   <Typography variant='h6' gutterBottom>
-                    Account Information
+                    My Orders
                   </Typography>
                   <Typography variant='body2' color='text.secondary'>
-                    Additional profile settings and account management options
-                    will be available here.
+                    Your order history and current orders will be displayed
+                    here.
                   </Typography>
                 </Box>
-              </Box>
-            )}
-          </TabPanel>
-        ))}
-      </Paper>
-    </Container>
+              )}
+
+              {tab.key === 'referral' && (
+                <Box sx={{ p: 0 }}>
+                  <ReferralProgramPage />
+                </Box>
+              )}
+
+              {tab.key === 'profile' && (
+                <Box sx={{ p: 3 }}>
+                  <Typography variant='h6' gutterBottom>
+                    Profile Settings
+                  </Typography>
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    sx={{ mb: 3 }}
+                  >
+                    Update your personal information and account preferences.
+                  </Typography>
+
+                  {/* Profile Picture Section */}
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant='subtitle1' gutterBottom>
+                      Profile Picture
+                    </Typography>
+                    <ProfilePictureUpload
+                      size='large'
+                      editable={true}
+                      showUploadButton={true}
+                      onUploadSuccess={(url) => {
+                        console.log(
+                          'Profile picture uploaded successfully:',
+                          url
+                        );
+                      }}
+                      onUploadError={(error) => {
+                        console.error('Profile picture upload failed:', error);
+                      }}
+                    />
+                  </Box>
+
+                  {/* Additional profile settings can be added here */}
+                  <Box sx={{ mt: 4 }}>
+                    <Typography variant='h6' gutterBottom>
+                      Account Information
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Additional profile settings and account management options
+                      will be available here.
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            </TabPanel>
+          ))}
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

@@ -38,38 +38,53 @@ h6 {
   margin: 0;
 }
 
-/* Ensure full width for all containers */
-.MuiContainer-root {
-  width: 100%;
-  max-width: none !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+/* Aggressive full width overrides for My Stores page */
+body.my-stores-page * {
+  box-sizing: border-box !important;
 }
 
-/* Override Material-UI container max-width only for specific cases */
-.MuiContainer-maxWidthLg {
+body.my-stores-page .MuiContainer-root,
+body.my-stores-page .MuiContainer-maxWidthXl,
+body.my-stores-page .MuiContainer-maxWidthLg,
+body.my-stores-page .MuiContainer-maxWidthMd,
+body.my-stores-page .MuiContainer-maxWidthSm {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+body.my-stores-page .MuiGrid-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+body.my-stores-page .MuiGrid-item {
+  flex-grow: 1 !important;
+}
+
+body.my-stores-page .MuiBox-root {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Force full viewport width */
+body.my-stores-page > div,
+body.my-stores-page main,
+body.my-stores-page article,
+body.my-stores-page section {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Default Material-UI container constraints for other pages */
+body:not(.my-stores-page) .MuiContainer-maxWidthLg {
   max-width: 1200px !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-}
 
-.MuiContainer-maxWidthMd {
-  max-width: 960px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-}
-
-.MuiContainer-maxWidthSm {
-  max-width: 600px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-}
 
 /* Responsive padding */
 @media (max-width: 768px) {
@@ -100,8 +115,8 @@ a:hover {
 /* Focus styles for accessibility */
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
+input:focus-visible:not(.MuiOutlinedInput-input),
+textarea:focus-visible:not(.MuiOutlinedInput-input) {
   outline: 2px solid #2e7d32;
   outline-offset: 2px;
 }
@@ -113,3 +128,11 @@ input:focus:not(:focus-visible),
 textarea:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Disable global focus styles for Material-UI inputs */
+.MuiOutlinedInput-input:focus,
+.MuiOutlinedInput-input:focus-visible {
+  outline: none !important;
+}
+
+/* Removed all CSS that was interfering with header layout */

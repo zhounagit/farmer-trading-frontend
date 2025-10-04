@@ -63,7 +63,7 @@ const TestStoreSubmission: React.FC = () => {
     setError(null);
 
     try {
-      console.log('=== TESTING STORE SUBMISSION ===');
+      // Testing store submission
 
       const submissionRequest: StoreSubmissionRequest = {
         storeId: parseInt(testStoreId),
@@ -72,13 +72,12 @@ const TestStoreSubmission: React.FC = () => {
         submissionNotes: submissionNotes || undefined,
       };
 
-      console.log('Request payload:', submissionRequest);
+      // Request payload prepared
 
-      const response = await OpenShopApiService.submitStoreForReview(
-        submissionRequest
-      );
+      const response =
+        await OpenShopApiService.submitStoreForReview(submissionRequest);
 
-      console.log('Submission response:', response);
+      // Store submitted successfully
       setSubmissionResult(response);
       toast.success('Store submitted successfully!');
 
@@ -87,7 +86,7 @@ const TestStoreSubmission: React.FC = () => {
         handleFetchStatus(parseInt(testStoreId));
       }, 1000);
     } catch (err) {
-      console.error('Submission error:', err);
+      // Submission error occurred
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to submit store';
       setError(errorMessage);
@@ -108,16 +107,15 @@ const TestStoreSubmission: React.FC = () => {
     setError(null);
 
     try {
-      console.log('=== TESTING STATUS FETCH ===');
-      console.log('Store ID:', id);
+      // Testing status fetch
 
       const response = await OpenShopApiService.getApplicationStatus(id);
 
-      console.log('Status response:', response);
+      // Status fetched successfully
       setStatusResult(response);
       toast.success('Status fetched successfully!');
     } catch (err) {
-      console.error('Status fetch error:', err);
+      // Status fetch error occurred
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch status';
       setError(errorMessage);
@@ -153,43 +151,49 @@ const TestStoreSubmission: React.FC = () => {
 
   return (
     <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+      <Typography variant='h4' gutterBottom sx={{ fontWeight: 600 }}>
         Store Submission API Test
       </Typography>
 
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
         Test the store submission and status tracking API endpoints.
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <Typography variant="body2">{error}</Typography>
+        <Alert severity='error' sx={{ mb: 3 }}>
+          <Typography variant='body2'>{error}</Typography>
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', lg: 'row' },
+          gap: 4,
+        }}
+      >
         {/* Left Panel - Test Controls */}
         <Box sx={{ flex: 1 }}>
           {/* Test Configuration */}
           <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               Test Configuration
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
             <TextField
               fullWidth
-              label="Store ID"
+              label='Store ID'
               value={testStoreId}
               onChange={(e) => setTestStoreId(e.target.value)}
-              type="number"
+              type='number'
               sx={{ mb: 2 }}
-              helperText="Enter a valid store ID to test with"
+              helperText='Enter a valid store ID to test with'
             />
 
             <TextField
               fullWidth
-              label="Submission Notes (Optional)"
+              label='Submission Notes (Optional)'
               value={submissionNotes}
               onChange={(e) => setSubmissionNotes(e.target.value)}
               multiline
@@ -204,13 +208,13 @@ const TestStoreSubmission: React.FC = () => {
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                 />
               }
-              label="Agree to Terms (Test Mode)"
+              label='Agree to Terms (Test Mode)'
               sx={{ mb: 2 }}
             />
 
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
-                variant="contained"
+                variant='contained'
                 startIcon={<SendIcon />}
                 onClick={handleTestSubmission}
                 disabled={isSubmitting || !testStoreId}
@@ -220,7 +224,7 @@ const TestStoreSubmission: React.FC = () => {
               </Button>
 
               <Button
-                variant="outlined"
+                variant='outlined'
                 startIcon={<RefreshIcon />}
                 onClick={() => handleFetchStatus()}
                 disabled={isFetchingStatus || !testStoreId}
@@ -229,11 +233,7 @@ const TestStoreSubmission: React.FC = () => {
                 {isFetchingStatus ? 'Fetching...' : 'Fetch Status'}
               </Button>
 
-              <Button
-                variant="text"
-                onClick={resetTest}
-                sx={{ minWidth: 100 }}
-              >
+              <Button variant='text' onClick={resetTest} sx={{ minWidth: 100 }}>
                 Reset
               </Button>
             </Box>
@@ -241,8 +241,14 @@ const TestStoreSubmission: React.FC = () => {
             {(isSubmitting || isFetchingStatus) && (
               <Box sx={{ mt: 2 }}>
                 <LinearProgress />
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {isSubmitting ? 'Submitting store application...' : 'Fetching application status...'}
+                <Typography
+                  variant='caption'
+                  color='text.secondary'
+                  sx={{ mt: 1, display: 'block' }}
+                >
+                  {isSubmitting
+                    ? 'Submitting store application...'
+                    : 'Fetching application status...'}
                 </Typography>
               </Box>
             )}
@@ -250,7 +256,7 @@ const TestStoreSubmission: React.FC = () => {
 
           {/* API Endpoints Info */}
           <Paper elevation={1} sx={{ p: 3, bgcolor: 'grey.50' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
               API Endpoints Being Tested
             </Typography>
             <Divider sx={{ mb: 2 }} />
@@ -258,18 +264,29 @@ const TestStoreSubmission: React.FC = () => {
             <List dense>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText
-                  primary={<Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                    POST /api/store-submissions/{'{storeId}'}/submit-for-review
-                  </Typography>}
-                  secondary="Submit store application for admin review"
+                  primary={
+                    <Typography
+                      variant='body2'
+                      sx={{ fontFamily: 'monospace', fontWeight: 500 }}
+                    >
+                      POST /api/store-submissions/{'{storeId}'}
+                      /submit-for-review
+                    </Typography>
+                  }
+                  secondary='Submit store application for admin review'
                 />
               </ListItem>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText
-                  primary={<Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                    GET /api/store-submissions/{'{storeId}'}/submission-status
-                  </Typography>}
-                  secondary="Get current application status and history"
+                  primary={
+                    <Typography
+                      variant='body2'
+                      sx={{ fontFamily: 'monospace', fontWeight: 500 }}
+                    >
+                      GET /api/store-submissions/{'{storeId}'}/submission-status
+                    </Typography>
+                  }
+                  secondary='Get current application status and history'
                 />
               </ListItem>
             </List>
@@ -283,40 +300,63 @@ const TestStoreSubmission: React.FC = () => {
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <CheckIcon color="success" sx={{ mr: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <CheckIcon color='success' sx={{ mr: 1 }} />
+                  <Typography variant='h6' sx={{ fontWeight: 600 }}>
                     Submission Successful
                   </Typography>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, mb: 2 }}>
-                  <Typography variant="caption" color="text.secondary">Submission ID:</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto 1fr',
+                    gap: 1,
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant='caption' color='text.secondary'>
+                    Submission ID:
+                  </Typography>
+                  <Typography variant='body2' sx={{ fontFamily: 'monospace' }}>
                     {submissionResult.submissionId}
                   </Typography>
 
-                  <Typography variant="caption" color="text.secondary">Store ID:</Typography>
-                  <Typography variant="body2">{submissionResult.storeId}</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Store ID:
+                  </Typography>
+                  <Typography variant='body2'>
+                    {submissionResult.storeId}
+                  </Typography>
 
-                  <Typography variant="caption" color="text.secondary">Status:</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Status:
+                  </Typography>
                   <Chip
-                    label={submissionResult.status.replace('_', ' ').toUpperCase()}
+                    label={submissionResult.status
+                      .replace('_', ' ')
+                      .toUpperCase()}
                     color={getStatusColor(submissionResult.status)}
-                    size="small"
+                    size='small'
                   />
 
-                  <Typography variant="caption" color="text.secondary">Submitted At:</Typography>
-                  <Typography variant="body2">
+                  <Typography variant='caption' color='text.secondary'>
+                    Submitted At:
+                  </Typography>
+                  <Typography variant='body2'>
                     {new Date(submissionResult.submittedAt).toLocaleString()}
                   </Typography>
 
-                  <Typography variant="caption" color="text.secondary">Est. Review Time:</Typography>
-                  <Typography variant="body2">{submissionResult.estimatedReviewTime}</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Est. Review Time:
+                  </Typography>
+                  <Typography variant='body2'>
+                    {submissionResult.estimatedReviewTime}
+                  </Typography>
                 </Box>
 
                 <Button
-                  size="small"
+                  size='small'
                   onClick={() => setShowStatusTracker(true)}
                   startIcon={<InfoIcon />}
                   sx={{ mt: 1 }}
@@ -332,30 +372,45 @@ const TestStoreSubmission: React.FC = () => {
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <InfoIcon color="info" sx={{ mr: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <InfoIcon color='info' sx={{ mr: 1 }} />
+                  <Typography variant='h6' sx={{ fontWeight: 600 }}>
                     Status Information
                   </Typography>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, mb: 2 }}>
-                  <Typography variant="caption" color="text.secondary">Submission ID:</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto 1fr',
+                    gap: 1,
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant='caption' color='text.secondary'>
+                    Submission ID:
+                  </Typography>
+                  <Typography variant='body2' sx={{ fontFamily: 'monospace' }}>
                     {statusResult.submissionId}
                   </Typography>
 
-                  <Typography variant="caption" color="text.secondary">Current Status:</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Current Status:
+                  </Typography>
                   <Chip
-                    label={statusResult.currentStatus.replace('_', ' ').toUpperCase()}
+                    label={statusResult.currentStatus
+                      .replace('_', ' ')
+                      .toUpperCase()}
                     color={getStatusColor(statusResult.currentStatus)}
-                    size="small"
+                    size='small'
                   />
 
                   {statusResult.submittedAt && (
                     <>
-                      <Typography variant="caption" color="text.secondary">Submitted At:</Typography>
-                      <Typography variant="body2">
+                      <Typography variant='caption' color='text.secondary'>
+                        Submitted At:
+                      </Typography>
+                      <Typography variant='body2'>
                         {new Date(statusResult.submittedAt).toLocaleString()}
                       </Typography>
                     </>
@@ -363,17 +418,23 @@ const TestStoreSubmission: React.FC = () => {
 
                   {statusResult.reviewStartedAt && (
                     <>
-                      <Typography variant="caption" color="text.secondary">Review Started:</Typography>
-                      <Typography variant="body2">
-                        {new Date(statusResult.reviewStartedAt).toLocaleString()}
+                      <Typography variant='caption' color='text.secondary'>
+                        Review Started:
+                      </Typography>
+                      <Typography variant='body2'>
+                        {new Date(
+                          statusResult.reviewStartedAt
+                        ).toLocaleString()}
                       </Typography>
                     </>
                   )}
 
                   {statusResult.completedAt && (
                     <>
-                      <Typography variant="caption" color="text.secondary">Completed At:</Typography>
-                      <Typography variant="body2">
+                      <Typography variant='caption' color='text.secondary'>
+                        Completed At:
+                      </Typography>
+                      <Typography variant='body2'>
                         {new Date(statusResult.completedAt).toLocaleString()}
                       </Typography>
                     </>
@@ -381,31 +442,44 @@ const TestStoreSubmission: React.FC = () => {
 
                   {statusResult.reviewerNotes && (
                     <>
-                      <Typography variant="caption" color="text.secondary">Reviewer Notes:</Typography>
-                      <Typography variant="body2">{statusResult.reviewerNotes}</Typography>
+                      <Typography variant='caption' color='text.secondary'>
+                        Reviewer Notes:
+                      </Typography>
+                      <Typography variant='body2'>
+                        {statusResult.reviewerNotes}
+                      </Typography>
                     </>
                   )}
                 </Box>
 
-                {statusResult.requiredActions && statusResult.requiredActions.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
-                      Required Actions:
-                    </Typography>
-                    <List dense>
-                      {statusResult.requiredActions.map((action, index) => (
-                        <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
-                          <ListItemText
-                            primary={<Typography variant="body2">• {action}</Typography>}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                )}
+                {statusResult.requiredActions &&
+                  statusResult.requiredActions.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography
+                        variant='caption'
+                        color='text.secondary'
+                        gutterBottom
+                      >
+                        Required Actions:
+                      </Typography>
+                      <List dense>
+                        {statusResult.requiredActions.map((action, index) => (
+                          <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
+                            <ListItemText
+                              primary={
+                                <Typography variant='body2'>
+                                  • {action}
+                                </Typography>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Box>
+                  )}
 
                 <Button
-                  size="small"
+                  size='small'
                   onClick={() => setShowStatusTracker(true)}
                   startIcon={<InfoIcon />}
                   sx={{ mt: 1 }}
@@ -417,21 +491,30 @@ const TestStoreSubmission: React.FC = () => {
           )}
 
           {/* Console Output Info */}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>Check Browser Console:</strong> Detailed API request/response logs are available in the browser developer console.
+          <Alert severity='info' sx={{ mb: 2 }}>
+            <Typography variant='body2'>
+              <strong>Check Browser Console:</strong> Detailed API
+              request/response logs are available in the browser developer
+              console.
             </Typography>
           </Alert>
 
           {/* Status Tracker */}
           {showStatusTracker && testStoreId && (
             <Box sx={{ mt: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   Live Status Tracker
                 </Typography>
                 <Button
-                  size="small"
+                  size='small'
                   onClick={() => setShowStatusTracker(false)}
                 >
                   Hide

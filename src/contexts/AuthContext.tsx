@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authApi, handleApiError, tokenUtils, userApi } from '../utils/api';
+import {
+  authApi,
+  handleApiError,
+  tokenUtils,
+  STORAGE_KEYS,
+} from '../utils/api';
 import { apiService } from '../services/api';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
@@ -25,42 +30,79 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingProfilePicture, setIsLoadingProfilePicture] = useState(false);
 
+  // Cross-tab login detection
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.USER_DATA && e.newValue !== e.oldValue) {
+        // Another tab has logged in/out, sync our state
+        if (e.newValue) {
+          try {
+            const newUserData = JSON.parse(e.newValue);
+            setUser(newUserData);
+            toast.info('Session updated from another tab');
+          } catch (error) {
+            console.error(
+              'Failed to parse user data from storage event:',
+              error
+            );
+          }
+        } else {
+          // User data was cleared (logout)
+          setUser(null);
+          setError(null);
+          toast.info('Logged out from another tab');
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Check for existing token on mount
   useEffect(() => {
-    const token = tokenUtils.getAccessToken();
-    const userData = localStorage.getItem('heartwood_user_data');
-
-    if (token && userData) {
+    const initializeAuth = async () => {
       try {
-        // Check if token is expired
-        if (tokenUtils.isTokenExpired(token)) {
-          tokenUtils.clearAllTokens();
-          return;
+        const token = tokenUtils.getAccessToken();
+        const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+
+        if (token && userData) {
+          // Check if token is expired
+          if (tokenUtils.isTokenExpired(token)) {
+            tokenUtils.clearAllTokens();
+            return;
+          }
+
+          const parsedUser = JSON.parse(userData);
+
+          // Always initialize profile picture from localStorage if available
+          const storedProfilePicture = initializeProfilePicture(
+            parsedUser.userId
+          );
+          if (storedProfilePicture) {
+            parsedUser.profilePictureUrl = storedProfilePicture;
+          }
+
+          setUser(parsedUser);
+
+          // Try to load profile picture from backend API
+          loadProfilePictureFromBackend(parsedUser);
         }
-
-        const parsedUser = JSON.parse(userData);
-
-        // Always initialize profile picture from localStorage if available
-        const storedProfilePicture = initializeProfilePicture(
-          parsedUser.userId
-        );
-        if (storedProfilePicture) {
-          parsedUser.profilePictureUrl = storedProfilePicture;
-        }
-
-        setUser(parsedUser);
-
-        // Try to load profile picture from backend API
-        loadProfilePictureFromBackend(parsedUser);
       } catch (error) {
         // If parsing fails, clear the invalid data
         tokenUtils.clearAllTokens();
         console.error('Error parsing stored user data:', error);
+      } finally {
+        // Mark initialization as complete
+        setIsInitializing(false);
       }
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   // Helper function to load profile picture from backend
@@ -86,7 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           setUser(updatedUser);
           localStorage.setItem(
-            'heartwood_user_data',
+            STORAGE_KEYS.USER_DATA,
             JSON.stringify(updatedUser)
           );
         }
@@ -98,19 +140,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<User> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await authApi.login(email, password);
+      // Clear all existing tokens and user data before login
+      // This prevents issues when users switch accounts in duplicated tabs
+      tokenUtils.clearAllTokens();
+      setUser(null);
+      setError(null);
+      const data = (await authApi.login(email, password)) as {
+        userId: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        userType: string;
+        referralCode?: string;
+        hasStore?: boolean;
+        accessToken: string;
+        refreshToken?: string;
+      };
 
       const userData: User = {
         userId: data.userId,
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
-        userType: data.userType,
+        userType: data.userType as 'Customer' | 'Store Owner' | 'Admin',
         referralCode: data.referralCode,
         hasStore: data.hasStore,
       };
@@ -121,12 +178,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userData.profilePictureUrl = storedProfilePicture;
       }
 
-      // Store token and user data
+      // Store token and user data (previous tokens already cleared above)
       tokenUtils.setAccessToken(data.accessToken);
       if (data.refreshToken) {
         tokenUtils.setRefreshToken(data.refreshToken);
       }
-      localStorage.setItem('heartwood_user_data', JSON.stringify(userData));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
       setUser(userData);
 
@@ -134,6 +191,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       loadProfilePictureFromBackend(userData);
 
       toast.success('Welcome back!');
+
+      return userData;
     } catch (err) {
       const errorMessage = handleApiError(err, 'login');
       setError(errorMessage);
@@ -149,21 +208,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const responseData = await authApi.register(data);
+      const responseData = (await authApi.register(data)) as {
+        userId: string;
+        email: string;
+        accessToken: string;
+        referralCode?: string;
+      };
 
       const userData: User = {
         userId: responseData.userId,
         email: responseData.email,
         firstName: data.firstName,
         lastName: data.lastName,
-        userType: 'User', // Default user type
+        userType: 'Customer', // Default user type
         referralCode: responseData.referralCode,
         hasStore: false,
       };
 
       // Store token and user data
       tokenUtils.setAccessToken(responseData.accessToken);
-      localStorage.setItem('heartwood_user_data', JSON.stringify(userData));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
       setUser(userData);
       toast.success('Account created successfully!');
@@ -207,7 +271,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const data = await authApi.refresh(refreshTokenValue);
+      const data = (await authApi.refresh(refreshTokenValue)) as {
+        accessToken: string;
+        refreshToken?: string;
+      };
 
       tokenUtils.setAccessToken(data.accessToken);
       if (data.refreshToken) {
@@ -229,7 +296,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user) {
       const updatedUser = { ...user, referralCode };
       setUser(updatedUser);
-      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
     }
   };
 
@@ -237,7 +304,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user) {
       const updatedUser = { ...user, hasStore };
       setUser(updatedUser);
-      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
     }
   };
 
@@ -245,7 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
-      localStorage.setItem('heartwood_user_data', JSON.stringify(updatedUser));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
     }
   };
 
@@ -280,7 +347,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Update both context and localStorage
         setUser(refreshedUser);
         localStorage.setItem(
-          'heartwood_user_data',
+          STORAGE_KEYS.USER_DATA,
           JSON.stringify(refreshedUser)
         );
       }
@@ -301,7 +368,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setUser(refreshedUser);
           localStorage.setItem(
-            'heartwood_user_data',
+            STORAGE_KEYS.USER_DATA,
             JSON.stringify(refreshedUser)
           );
         }
@@ -341,7 +408,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
-    isLoading,
+    isLoading: isLoading || isInitializing,
     login,
     register,
     logout,
