@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { removeStoredProfilePicture } from '@/utils/profilePictureStorage';
+import { profilePictureCache } from '@/services/profilePictureCache';
 import {
   Box,
   Avatar,
@@ -116,6 +117,14 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         const uuid = crypto.randomUUID();
         finalProfilePictureUrl = `/uploads/profilepictures/${user.userId}_${uuid}.jpg`;
       }
+
+      // ✅ CRITICAL FIX: Invalidate profile picture cache to ensure fresh load next time
+      // This fixes the intermittent "profile photo not showing" issue caused by stale cache
+      profilePictureCache.invalidateUser(user.userId);
+      console.log(
+        '🔄 ProfilePictureUpload: Cache invalidated after successful upload for user:',
+        user.userId
+      );
 
       // Force immediate state update with timestamp to ensure components re-render
       updateProfile({
@@ -272,6 +281,14 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         URL.revokeObjectURL(previewUrl);
       }
       setPreviewUrl(null);
+
+      // ✅ CRITICAL FIX: Invalidate profile picture cache when removing picture
+      // This ensures the next load fetches fresh data instead of stale cache
+      profilePictureCache.invalidateUser(user.userId);
+      console.log(
+        '🔄 ProfilePictureUpload: Cache invalidated after picture removal for user:',
+        user.userId
+      );
 
       // Clear localStorage profile picture cache
       try {

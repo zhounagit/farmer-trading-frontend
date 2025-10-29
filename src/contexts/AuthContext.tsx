@@ -21,6 +21,7 @@ import type {
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
 import { useProfile } from '../hooks/useProfile';
 import { normalizeToFrontendUserType } from '../utils/typeMapping';
+import { profilePictureCache } from '../services/profilePictureCache';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -369,7 +370,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           STORAGE_KEYS.USER_DATA,
           JSON.stringify(updatedUser)
         );
-      } else {
+
+        // ✅ CRITICAL FIX: Invalidate profile picture cache when profile is updated
+        // This ensures the next profile picture load fetches fresh data from the backend
+        // instead of using stale cached data, fixing intermittent display issues
+        if (updates.profilePictureUrl !== undefined) {
+          profilePictureCache.invalidateUser(user.userId);
+          console.log(
+            '🔄 AuthContext: Profile picture cache invalidated for user:',
+            user.userId
+          );
+        }
       }
     },
     [user, userVersion]

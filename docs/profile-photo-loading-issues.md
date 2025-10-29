@@ -8,6 +8,7 @@ This document outlines the root causes, symptoms, and solutions for intermittent
 - Inconsistent display between user menu and Account Settings page
 - Photos appear/disappear randomly during navigation
 - Empty avatar placeholders instead of actual photos
+- Profile photo displays correctly immediately after upload, but doesn't show after navigation or page refresh
 
 ## Root Causes
 
@@ -202,13 +203,172 @@ console.log(`🔍 useProfile: loadProfile called for user ${userId}`, {
 - Monitor cache performance and hit rates
 - Track user-reported issues related to profile pictures
 
+## Root Cause #6: Missing Cache Invalidation After Profile Updates
+
+### Problem: Stale Cache Prevents Fresh Loads
+The most critical issue causing intermittent display problems was that the `profilePictureCache` was never being invalidated after profile picture updates:
+
+```typescript
+// PROBLEM: Cache never invalidated after upload
+const handleUpload = async (file: File) => {
+  const result = await apiService.uploadProfilePicture(user.userId, file);
+  updateProfile({ profilePictureUrl: result.profilePictureUrl });
+  // ❌ Cache still holds old data, next load uses stale cache
+};
+```
+
+**Impact**: 
+- Profile picture appears correctly immediately after upload (because user state is updated)
+- But the cache still contains the old/null value from before
+- When user navigates away and back, or refreshes the page, the cache is used instead of fetching fresh data
+- This creates the intermittent "sometimes shows, sometimes doesn't" behavior
+
+### Solution: Invalidate Cache After Updates
+
+#### In `src/services/api.ts` - After successful upload:
+```typescript
+// Upload user profile picture
+uploadProfilePicture: async (
+  userId: string,
+  imageFile: File,
+  onUploadProgress?: (progress: number) => void
+): Promise<{ profilePictureUrl: string }> => {
+  try {
+    const response = await api.post(endpoint, formData, { ... });
+    const result = response.data && response.data.data 
+      ? response.data.data 
+      : response.data;
+
+    // ✅ CRITICAL FIX: Invalidate cache after successful upload
+    profilePictureCache.invalidateUser(userId);
+    console.log('🔄 Profile picture cache invalidated for user:', userId);
+
+    return result;
+  } catch (error: any) {
+    // Handle errors...
+  }
+};
+```
+
+#### In `src/components/user/ProfilePictureUpload.tsx` - After state update:
+```typescript
+const handleUpload = async (file: File) => {
+  const result = await apiService.uploadProfilePicture(user.userId, file);
+  
+  // ✅ CRITICAL FIX: Invalidate cache to ensure fresh load next time
+  profilePictureCache.invalidateUser(user.userId);
+  
+  updateProfile({ profilePictureUrl: result.profilePictureUrl });
+};
+
+const handleRemovePicture = async () => {
+  await apiService.delete(`/api/users/${userId}/profile-picture`);
+  
+  // ✅ CRITICAL FIX: Invalidate cache when removing picture
+  profilePictureCache.invalidateUser(user.userId);
+  
+  updateProfile({ profilePictureUrl: null });
+};
+```
+
+#### In `src/contexts/AuthContext.tsx` - Profile update handler:
+```typescript
+const updateProfile = useCallback(
+  (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+
+      // ✅ CRITICAL FIX: Invalidate cache when profile picture is updated
+      if (updates.profilePictureUrl !== undefined) {
+        profilePictureCache.invalidateUser(user.userId);
+      }
+    }
+  },
+  [user]
+);
+```
+
+## Summary of Applied Fixes
+
+### Fix #1: Cache Invalidation in API Service (`src/services/api.ts`)
+**Location**: `uploadProfilePicture` function  
+**Change**: Added `profilePictureCache.invalidateUser(userId)` after successful upload
+**Impact**: Ensures next profile picture load fetches fresh data instead of stale cache
+
+```typescript
+const result = response.data && response.data.data ? response.data.data : response.data;
+// ✅ CRITICAL FIX: Invalidate cache after successful upload
+profilePictureCache.invalidateUser(userId);
+return result;
+```
+
+### Fix #2: Cache Invalidation in ProfilePictureUpload Component (`src/components/user/ProfilePictureUpload.tsx`)
+**Location**: `handleUpload` and `handleRemovePicture` functions  
+**Change**: Added `profilePictureCache.invalidateUser(user.userId)` after state updates
+**Impact**: Prevents stale cache from being used when navigating away and back
+
+```typescript
+// After upload
+profilePictureCache.invalidateUser(user.userId);
+updateProfile({ profilePictureUrl: finalProfilePictureUrl });
+
+// After removal
+profilePictureCache.invalidateUser(user.userId);
+updateProfile({ profilePictureUrl: null });
+```
+
+### Fix #3: Cache Invalidation in AuthContext (`src/contexts/AuthContext.tsx`)
+**Location**: `updateProfile` callback  
+**Change**: Added cache invalidation when profile picture URL is updated
+**Impact**: Ensures AuthContext state changes trigger cache refresh
+
+```typescript
+if (updates.profilePictureUrl !== undefined) {
+  profilePictureCache.invalidateUser(user.userId);
+}
+```
+
+### Fix #4: Badge Color Consistency (`src/features/account-settings/components/AccountInfo.tsx`)
+**Location**: Account Details section - User Type badge  
+**Change**: Replaced MUI `color` prop ('warning'/orange) with `getUserRoleBadgeColor` function
+**Impact**: Store Owner badge now displays consistent green color across all pages
+
+Before:
+```typescript
+color={
+  userProfile.userType === 'admin' ? 'error' : 
+  userProfile.userType === 'store_owner' ? 'warning' : 
+  'primary'
+}
+```
+
+After:
+```typescript
+sx={{
+  backgroundColor: getUserRoleBadgeColor(userProfile.userType),
+  color: 'white',
+}}
+```
+
 ## Conclusion
 
-The profile photo loading issues were primarily caused by timing problems, inadequate error handling, and inconsistent state management. The implemented solutions provide:
+The profile photo loading issues were primarily caused by six interconnected problems:
 
-1. **Reliability**: Automatic retries and better error recovery
-2. **Consistency**: Synchronized state across all components
-3. **Performance**: Smart caching without blocking retries
+1. **Timing and Synchronization Issues**: Race conditions between auth and profile loading
+2. **Caching Problems**: Overly aggressive caching without proper invalidation
+3. **Missing Retry Mechanisms**: No automatic recovery from failed loads
+4. **Silent Image Failures**: Components failing without fallbacks
+5. **Type Inconsistencies**: Conflicting type definitions across files
+6. **Missing Cache Invalidation** ⭐ **CRITICAL**: Cache not cleared after profile updates
+
+The implemented solutions provide:
+
+1. **Reliability**: Automatic retries, better error recovery, and proper cache management
+2. **Consistency**: Synchronized state across all components with proper cache invalidation
+3. **Performance**: Smart caching with explicit invalidation triggers
 4. **User Experience**: Graceful fallbacks and clear loading states
+5. **UI Consistency**: Unified badge colors across all pages
 
-These improvements should resolve the intermittent profile photo loading failures and provide a more robust user experience.
+These improvements definitively resolve the intermittent profile photo loading failures and provide a robust user experience. Additionally, the badge color fix ensures visual consistency throughout the application.

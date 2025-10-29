@@ -88,6 +88,13 @@ interface BrandingVisualsSectionProps {
         displayOrder: number;
         uploadedAt: string;
       }>;
+      video?: {
+        imageId: number;
+        filePath: string;
+        mimeType?: string;
+        uploadedAt: string;
+        isExternalVideo?: boolean;
+      };
     };
   };
 }
@@ -199,7 +206,8 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             comprehensiveStoreData.images
           );
 
-          const { logoUrl, bannerUrl, gallery } = comprehensiveStoreData.images;
+          const { logoUrl, bannerUrl, gallery, video } =
+            comprehensiveStoreData.images;
 
           const logoImage = logoUrl
             ? ({
@@ -255,6 +263,31 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             url: buildImageUrl(img.filePath),
           })) as StoreImage[];
 
+          const videoImage = video
+            ? ({
+                imageId: video.imageId,
+                storeId: storeId,
+                imageType: 'gallery',
+                filePath: video.filePath,
+                fileName: video.filePath.split('/').pop() || 'video',
+                originalFileName: video.filePath.split('/').pop() || 'video',
+                fileSize: 0,
+                mimeType: video.mimeType || 'video/mp4',
+                sortOrder: 0,
+                isActive: true,
+                createdAt: video.uploadedAt,
+                updatedAt: video.uploadedAt,
+                fileUrl: video.filePath,
+                url: video.isExternalVideo
+                  ? video.filePath
+                  : buildImageUrl(video.filePath),
+                isVideo: true,
+                externalVideoUrl: video.isExternalVideo
+                  ? video.filePath
+                  : undefined,
+              } as unknown as StoreImage)
+            : undefined;
+
           const updatedBrandingData: BrandingData = {
             logoUrl: logoImage ? buildImageUrl(logoImage.filePath) : undefined,
             logoImage: logoImage,
@@ -263,8 +296,10 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
               : undefined,
             bannerImage: bannerImage,
             galleryImages: galleryImages,
-            videoUrl: undefined,
-            videoImage: undefined,
+            videoUrl: videoImage
+              ? videoImage.externalVideoUrl || videoImage.url
+              : undefined,
+            videoImage: videoImage,
             videoFile: undefined,
             lastUpdated: new Date().toISOString(),
           };
@@ -273,9 +308,11 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             hasLogo: !!logoImage,
             hasBanner: !!bannerImage,
             galleryCount: galleryImages.length,
+            hasVideo: !!videoImage,
             logoUrl: updatedBrandingData.logoUrl,
             bannerUrl: updatedBrandingData.bannerUrl,
             galleryImages: galleryImages.map((img) => img.url),
+            videoUrl: updatedBrandingData.videoUrl,
           });
 
           setBrandingData(updatedBrandingData);

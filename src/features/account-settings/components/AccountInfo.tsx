@@ -28,6 +28,7 @@ import { apiService } from '@/shared/services/api-service';
 import { API_ENDPOINTS } from '@/shared/types/api-contracts';
 import type { UserProfileResponse } from '@/shared/types/api-contracts';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserRoleBadgeColor } from '@/utils/userTypeUtils';
 
 interface AccountInfoProps {
   onDataChange?: () => void;
@@ -306,13 +307,12 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ onDataChange }) => {
                   <Chip
                     label={getUserTypeDisplay(userProfile.userType)}
                     size='small'
-                    color={
-                      userProfile.userType === 'admin'
-                        ? 'error'
-                        : userProfile.userType === 'store_owner'
-                          ? 'warning'
-                          : 'primary'
-                    }
+                    sx={{
+                      backgroundColor: getUserRoleBadgeColor(
+                        userProfile.userType
+                      ),
+                      color: 'white',
+                    }}
                   />
                 </Box>
 

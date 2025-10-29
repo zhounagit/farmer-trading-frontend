@@ -423,12 +423,17 @@ export const apiService = {
 
       // Handle ApiResponse wrapper structure from backend
       // Backend returns: { data: { profilePictureUrl: string, ... }, success: boolean, ... }
-      if (response.data && response.data.data) {
-        return response.data.data;
-      }
+      const result =
+        response.data && response.data.data
+          ? response.data.data
+          : response.data;
 
-      // Fallback for direct response (if backend changes)
-      return response.data;
+      // ✅ CRITICAL FIX: Invalidate profile picture cache after successful upload
+      // This ensures the next load fetches fresh data from the backend instead of stale cache
+      profilePictureCache.invalidateUser(userId);
+      console.log('🔄 Profile picture cache invalidated for user:', userId);
+
+      return result;
     } catch (error: any) {
       console.error('❌ Profile picture upload failed in apiService:', error);
 
@@ -455,6 +460,13 @@ export const apiService = {
           const localImageData = await storeProfilePicture(
             userId.toString(),
             imageFile
+          );
+
+          // ✅ Invalidate cache for localStorage fallback too
+          profilePictureCache.invalidateUser(userId);
+          console.log(
+            '🔄 Profile picture cache invalidated for user (localStorage fallback):',
+            userId
           );
 
           return {
