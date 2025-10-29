@@ -520,12 +520,14 @@ export const apiService = {
         }
 
         if (responseData) {
-          return {
+          const result = {
             profilePictureUrl: responseData.profilePictureUrl || null,
-            hasProfilePicture: responseData.hasProfilePicture || false,
+            hasProfilePicture:
+              responseData.hasProfilePicture ||
+              !!responseData.profilePictureUrl,
           };
+          return result;
         }
-
         return {
           profilePictureUrl: null,
           hasProfilePicture: false,

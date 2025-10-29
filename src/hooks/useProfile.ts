@@ -115,7 +115,6 @@ export const useProfile = (): UseProfileReturn => {
                   STORAGE_KEYS.USER_DATA,
                   JSON.stringify(updatedUser)
                 );
-                // Profile picture URL loaded and saved to localStorage
               }
             } catch (error) {
               console.error(
