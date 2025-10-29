@@ -40,7 +40,7 @@ import {
 import {
   Add,
   Search,
-  Store,
+  Store as StoreIcon,
   Edit,
   Preview,
   Inventory,
@@ -71,6 +71,7 @@ import Header from '../../../components/layout/Header';
 import { useAuth } from '../../../contexts/AuthContext';
 import { StoresApiService } from '../services/storesApi';
 import type { Store } from '../../../shared/types/store';
+import type { EnhancedStoreDto } from '../services/open-shop.types';
 import toast from 'react-hot-toast';
 
 interface FeaturedProduct {
@@ -113,7 +114,7 @@ const MyStoresPage: React.FC = () => {
       try {
         // Fetching stores for user ID: ${user.userId}
         // Try to fetch stores specifically for the current user
-        stores = await storeApiService.getMyStores();
+        stores = await StoresApiService.getUserStores(user.userId);
       } catch (userStoresError) {
         console.warn(
           'getUserStores failed, falling back to getMyStores:',
@@ -233,7 +234,7 @@ const MyStoresPage: React.FC = () => {
                   store.storeCreatorId ||
                   user?.userId ||
                   0,
-              } as ComprehensiveStoreData;
+              } as EnhancedStoreDto;
             }
           })
         );
@@ -307,7 +308,7 @@ const MyStoresPage: React.FC = () => {
 
   const handleMenuClick = (
     event: React.MouseEvent<HTMLElement>,
-    store: ComprehensiveStoreData
+    store: EnhancedStoreDto
   ) => {
     setAnchorEl(event.currentTarget);
     setSelectedStore(store);
@@ -318,7 +319,7 @@ const MyStoresPage: React.FC = () => {
     setSelectedStore(null);
   };
 
-  const handleImageGalleryOpen = (store: ComprehensiveStoreData) => {
+  const handleImageGalleryOpen = (store: EnhancedStoreDto) => {
     const galleryImages =
       store.images
         ?.filter((img) => img.imageType === 'gallery' && img.isActive)
@@ -397,9 +398,7 @@ const MyStoresPage: React.FC = () => {
     return addresses.find((addr) => addr.isPrimary) || addresses[0];
   };
 
-  const StoreCard: React.FC<{ store: ComprehensiveStoreData }> = ({
-    store,
-  }) => {
+  const StoreCard: React.FC<{ store: EnhancedStoreDto }> = ({ store }) => {
     const primaryAddress = getPrimaryAddress(store.addresses);
     const featuredProducts = mockFeaturedProducts[store.storeId] || [];
     const galleryImages =
@@ -460,7 +459,7 @@ const MyStoresPage: React.FC = () => {
                 }}
                 onClick={() => handleImageGalleryOpen(store)}
               >
-                <Store />
+                <StoreIcon />
               </Avatar>
             </Badge>
 

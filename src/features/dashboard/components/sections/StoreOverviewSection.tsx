@@ -337,11 +337,11 @@ const StoreOverviewSection: React.FC = () => {
     return primaryStore?.approvalStatus || 'pending';
   };
 
-  // Show loading while fetching store data
+  // Show loading while fetching store data or waiting for primary store
   const shouldShowLoading = storesLoading || isLoading;
 
-  // Show loading while data is being fetched
-  if (shouldShowLoading) {
+  // Show loading while data is being fetched or if primary store hasn't loaded yet
+  if (shouldShowLoading || !primaryStore) {
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
@@ -357,8 +357,8 @@ const StoreOverviewSection: React.FC = () => {
     );
   }
 
-  // If no store data is available at all
-  if (!primaryStore) {
+  // If no store data is available after loading completed
+  if (!comprehensiveStoreData) {
     return (
       <Box>
         <Typography variant='h5' fontWeight={600} gutterBottom>
