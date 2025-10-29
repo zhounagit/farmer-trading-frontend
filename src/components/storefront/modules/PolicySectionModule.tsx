@@ -30,7 +30,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface PolicySectionModuleProps {
   module: StorefrontModule;
@@ -51,10 +51,13 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
   const showReturns = (settings.showReturns as boolean) !== false;
 
   // Check if there's already a contact-form module in the storefront to prevent duplication
+  // Check if there's a contact form module
   const hasContactFormModule =
-    storefront.customization?.modules?.some(
-      (mod) => mod.type === 'contact-form' && mod.isVisible !== false
-    ) || false;
+    (Array.isArray(storefront.customization?.modules)
+      ? storefront.customization.modules.some(
+          (mod) => mod.type === 'contact-form' && mod.isVisible !== false
+        )
+      : false) || false;
 
   // Only show contact section if explicitly enabled AND no dedicated contact form module exists
   // This prevents redundant contact information when users have added a separate Contact Form module

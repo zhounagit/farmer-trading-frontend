@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { apiService } from '@/shared/services/api-service';
+import { API_ENDPOINTS } from '@/shared/types/api-contracts';
+import type { UserPreferences } from '@/shared/types/api-contracts';
 import {
   AppBar,
   Toolbar,
@@ -22,7 +26,6 @@ import {
   Store,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import Logo from '../common/Logo';
 import UserProfilePictureAvatar from '../user/UserProfilePictureAvatar';
 import {
@@ -37,17 +40,112 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
-  const { user, isAuthenticated, logout, triggerProfilePictureLoad } =
-    useAuth();
+  const {
+    user,
+    isAuthenticated,
+    logout,
+    refreshProfilePicture,
+    userVersion,
+    userPreferences,
+    isLoadingPreferences,
+    preferencesError,
+    updateUserPreferences,
+  } = useAuth();
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const profilePictureRetryCountRef = useRef(0);
+  const [maxProfilePictureRetries] = useState(2); // Maximum retry attempts
+  const [profilePictureExists, setProfilePictureExists] = useState<
+    boolean | null
+  >(null);
+
+  const profilePictureLoadingRef = useRef(false);
 
   const navigate = useNavigate();
+  const profilePictureRetryRef = useRef<NodeJS.Timeout | null>(null);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  // Function to immediately update privacy settings without API call
+  const updatePrivacySettingsImmediately = useCallback(
+    (showEmail: boolean) => {
+      if (!userPreferences) {
+        // If no preferences exist yet, create default with the updated privacy setting
+        const newPreferences = {
+          privacy: {
+            showEmail,
+            showPhone: false,
+            allowMessages: true,
+          },
+          notifications: {
+            email: true,
+            push: true,
+            sms: false,
+            marketing: false,
+          },
+          display: {
+            theme: 'auto' as const,
+            language: 'en',
+            timezone: 'UTC',
+          },
+          referralCredits: {
+            handling: 'bank_transfer',
+          },
+        };
+        updateUserPreferences(newPreferences);
+      } else {
+        // Update only the privacy settings
+        const updatedPreferences = {
+          ...userPreferences,
+          privacy: {
+            ...userPreferences.privacy,
+            showEmail,
+          },
+        };
+        updateUserPreferences(updatedPreferences);
+      }
+    },
+    [userPreferences, updateUserPreferences]
+  );
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
+  // Expose refresh function globally so other components can call it
+  React.useEffect(() => {
+    (
+      window as typeof window & {
+        updatePrivacySettingsImmediately?: (showEmail: boolean) => void;
+      }
+    ).updatePrivacySettingsImmediately = updatePrivacySettingsImmediately;
+
+    // Expose function to reset profile picture state when new photo is uploaded
+    (
+      window as typeof window & {
+        refreshHeaderPreferences?: () => void;
+        resetHeaderProfilePictureState?: () => void;
+        updatePrivacySettingsImmediately?: (showEmail: boolean) => void;
+      }
+    ).resetHeaderProfilePictureState = () => {
+      setProfilePictureExists(null);
+      profilePictureRetryCountRef.current = 0;
+      profilePictureLoadingRef.current = false;
+      // Don't call refreshProfilePicture - it overrides the new URL with old backend data
+      // The updateProfile call already has the correct new URL
+    };
+
+    return () => {
+      delete (
+        window as typeof window & {
+          updatePrivacySettingsImmediately?: (showEmail: boolean) => void;
+        }
+      ).updatePrivacySettingsImmediately;
+    };
+  }, [updatePrivacySettingsImmediately]);
 
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
@@ -74,14 +172,64 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
     navigate('/');
   };
 
-  // Trigger profile picture loading when Header mounts (for Landing page)
+  // Profile picture loading with retry mechanism
   useEffect(() => {
-    if (isAuthenticated && user && triggerProfilePictureLoad) {
-      triggerProfilePictureLoad().catch(() => {
-        // Silently handle errors - profile picture loading is non-critical
-      });
+    if (!user || !user.userId) {
+      return;
     }
-  }, [isAuthenticated, user?.userId, triggerProfilePictureLoad]);
+
+    // Clear any existing retry timer
+    if (profilePictureRetryRef.current) {
+      clearTimeout(profilePictureRetryRef.current);
+    }
+
+    // If user has no profile picture URL, we haven't exceeded max retries, and we don't know that no picture exists
+    // OR if profilePictureExists is null (indicating a forced refresh)
+    if (
+      (!user?.profilePictureUrl || profilePictureExists === null) &&
+      profilePictureRetryCountRef.current < maxProfilePictureRetries &&
+      !profilePictureLoadingRef.current &&
+      profilePictureExists !== false
+    ) {
+      profilePictureLoadingRef.current = true;
+
+      profilePictureRetryRef.current = setTimeout(
+        async () => {
+          try {
+            // Don't call refreshProfilePicture - it overrides the correct new URL with stale backend data
+            profilePictureRetryCountRef.current += 1;
+          } catch (error) {
+            // Only log error on first attempt to prevent spam
+            if (profilePictureRetryCountRef.current === 0) {
+            }
+            profilePictureRetryCountRef.current += 1;
+          } finally {
+            profilePictureLoadingRef.current = false;
+          }
+        },
+        1000 * (profilePictureRetryCountRef.current + 1)
+      ); // Exponential backoff
+    } else if (
+      profilePictureRetryCountRef.current >= maxProfilePictureRetries
+    ) {
+    } else if (profilePictureExists === false) {
+    } else {
+    }
+  }, [
+    user,
+    user?.userId,
+    maxProfilePictureRetries,
+    refreshProfilePicture,
+    profilePictureExists,
+    userVersion,
+  ]);
+
+  // Reset retry count and completion state when user changes or profile picture updates
+  useEffect(() => {
+    profilePictureRetryCountRef.current = 0;
+    profilePictureLoadingRef.current = false;
+    setProfilePictureExists(null); // Reset existence check when user changes
+  }, [user?.userId, user?.profilePictureUrl, userVersion]);
 
   return (
     <AppBar
@@ -115,24 +263,27 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
             justifyContent: 'center',
           }}
         >
-          <Button
-            variant='text'
-            startIcon={<Info />}
-            onClick={handleHowItWorks}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              color: 'text.primary',
-              px: 3,
-              py: 1.5,
-              fontSize: '1rem',
-              '&:hover': {
-                bgcolor: 'grey.100',
-              },
-            }}
-          >
-            How It Works
-          </Button>
+          {/* Navigation Links */}
+          {isLandingPage && (
+            <Button
+              variant='text'
+              startIcon={<Info />}
+              onClick={handleHowItWorks}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 500,
+                color: 'text.primary',
+                px: 3,
+                py: 1.5,
+                fontSize: '1rem',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                },
+              }}
+            >
+              How It Works
+            </Button>
+          )}
         </Box>
 
         {/* Navigation Actions */}
@@ -210,13 +361,14 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                 aria-label='account of current user'
                 aria-controls='profile-menu'
                 aria-haspopup='true'
-                onClick={handleProfileMenuOpen}
+                onClick={handleMenuOpen}
                 color='inherit'
                 sx={{ p: { xs: 1, md: 1.5 } }}
               >
                 <UserProfilePictureAvatar
                   user={user}
-                  size={isMobile ? 28 : 32}
+                  size={isMobile ? 28 : 64}
+                  retryCount={3}
                 />
               </IconButton>
 
@@ -247,7 +399,9 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                     {user.firstName} {user.lastName}
                   </Typography>
                   <Typography variant='body2' color='text.secondary'>
-                    {user.email}
+                    {userPreferences?.privacy?.showEmail
+                      ? user.email
+                      : 'Email hidden'}
                   </Typography>
                 </Box>
 
@@ -257,7 +411,7 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   onClick={() => {
                     // Redirect admin users to admin dashboard, others to regular dashboard
                     const dashboardPath =
-                      user.userType === 'Admin'
+                      user.userType === 'admin'
                         ? '/admin/dashboard'
                         : '/dashboard';
                     navigate(dashboardPath);
@@ -288,9 +442,14 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                   </MenuItem>
                 )}
 
-                <MenuItem onClick={handleProfileMenuClose}>
+                <MenuItem
+                  onClick={() => {
+                    handleProfileMenuClose();
+                    navigate('/account-settings');
+                  }}
+                >
                   <Settings sx={{ mr: 2 }} />
-                  Settings
+                  Account Settings
                 </MenuItem>
 
                 <Divider />
@@ -312,42 +471,40 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
             </>
           ) : (
             <>
-              {/* How It Works Button for Mobile */}
-              <Button
-                variant='text'
-                startIcon={<Info />}
-                onClick={handleHowItWorks}
-                sx={{
-                  display: { xs: 'flex', md: 'none' },
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  color: 'text.primary',
-                  px: 2,
-                  py: 1,
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                  },
-                }}
-              >
-                How It Works
-              </Button>
+              {/* How It Works Button for Mobile - Only show on landing page */}
+              {isLandingPage && (
+                <Button
+                  variant='text'
+                  startIcon={<Info />}
+                  onClick={handleHowItWorks}
+                  sx={{
+                    display: { xs: 'flex', md: 'none' },
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    color: 'text.primary',
+                    px: 2,
+                    py: 1,
+                    fontSize: '0.9rem',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                >
+                  How It Works
+                </Button>
+              )}
 
               {/* Login Button for Guests */}
               <Button
-                variant='text'
+                variant='contained'
                 startIcon={<Login />}
                 onClick={onLoginClick}
                 sx={{
                   textTransform: 'none',
-                  fontWeight: 500,
-                  color: 'text.primary',
-                  px: { xs: 2, md: 3 },
-                  py: { xs: 1, md: 1.5 },
-                  fontSize: { xs: '0.875rem', md: '1rem' },
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                  },
+                  fontWeight: 600,
+                  px: 3,
+                  py: 1.5,
+                  fontSize: '1rem',
                 }}
               >
                 Sign In

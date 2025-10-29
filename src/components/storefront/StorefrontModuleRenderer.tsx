@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 // Module Components
 import HeroBannerModule from './modules/HeroBannerModule';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar } from '@mui/material';
 import type { User } from '../../types/auth';
 
@@ -7,6 +7,7 @@ interface UserProfilePictureAvatarProps {
   size?: 'small' | 'medium' | 'large' | number;
   sx?: Record<string, unknown>;
   onClick?: () => void;
+  retryCount?: number;
 }
 
 const UserProfilePictureAvatar: React.FC<UserProfilePictureAvatarProps> = ({
@@ -14,7 +15,10 @@ const UserProfilePictureAvatar: React.FC<UserProfilePictureAvatarProps> = ({
   size = 'medium',
   sx,
   onClick,
+  retryCount = 3,
 }) => {
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [imageError, setImageError] = useState(false);
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -59,21 +63,60 @@ const UserProfilePictureAvatar: React.FC<UserProfilePictureAvatarProps> = ({
     return url;
   };
 
-  const imageUrl = getFullImageUrl(user.profilePictureUrl);
+  // Use stable image URL without dynamic cache-busting
+  const imageUrl = user.profilePictureUrl
+    ? getFullImageUrl(user.profilePictureUrl)
+    : undefined;
+
+  // Reset error state when user or profile picture changes
+  useEffect(() => {
+    setImageError(false);
+    setRetryAttempts(0);
+  }, [user.userId, user.profilePictureUrl]);
+
+  const handleImageError = () => {
+    setImageError(true);
+
+    // Retry loading if we haven't exceeded the retry count
+    if (retryAttempts < retryCount) {
+      setRetryAttempts((prev) => prev + 1);
+      // Retrying profile picture load (attempt ${retryAttempts + 1}/${retryCount})
+    }
+  };
+
+  const handleImageLoad = () => {
+    setImageError(false);
+    setRetryAttempts(0);
+  };
 
   return (
     <Avatar
-      src={imageUrl}
+      key={`avatar-${user.userId}-${user.profilePictureUrl || 'no-image'}`}
+      src={
+        imageError || (imageUrl && imageUrl.startsWith('blob:'))
+          ? undefined
+          : imageUrl
+      }
       onClick={onClick}
+      onError={handleImageError}
+      onLoad={handleImageLoad}
       sx={{
         ...avatarSize,
-        bgcolor: user.profilePictureUrl ? 'transparent' : 'primary.main',
+        bgcolor:
+          user.profilePictureUrl &&
+          !imageError &&
+          !(imageUrl && imageUrl.startsWith('blob:'))
+            ? 'transparent'
+            : 'primary.main',
         fontWeight: 600,
         cursor: onClick ? 'pointer' : 'default',
         ...sx,
       }}
     >
-      {!user.profilePictureUrl && getInitials(user.firstName, user.lastName)}
+      {(!user.profilePictureUrl ||
+        imageError ||
+        (imageUrl && imageUrl.startsWith('blob:'))) &&
+        getInitials(user.firstName, user.lastName)}
     </Avatar>
   );
 };

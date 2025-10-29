@@ -11,7 +11,7 @@ import {
   Stack,
 } from '@mui/material';
 import { CloudUpload, Delete, Image as ImageIcon } from '@mui/icons-material';
-import StorefrontApiService from '../../services/storefront.api';
+import StorefrontApiService from '@/features/search/services/storefront.api';
 
 interface HeroBannerImageUploadProps {
   storeId: number;

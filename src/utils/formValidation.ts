@@ -13,9 +13,12 @@ export interface ValidationRules {
 }
 
 export class FormValidator {
-  static validateField(value: any, rule: ValidationRule): string | null {
+  static validateField(value: unknown, rule: ValidationRule): string | null {
     // Check required
-    if (rule.required && (!value || (typeof value === 'string' && !value.trim()))) {
+    if (
+      rule.required &&
+      (!value || (typeof value === 'string' && !value.trim()))
+    ) {
       return 'This field is required';
     }
 
@@ -47,10 +50,13 @@ export class FormValidator {
     return null;
   }
 
-  static validateForm(data: any, rules: ValidationRules): { [key: string]: string } {
+  static validateForm(
+    data: any,
+    rules: ValidationRules
+  ): { [key: string]: string } {
     const errors: { [key: string]: string } = {};
 
-    Object.keys(rules).forEach(fieldName => {
+    Object.keys(rules).forEach((fieldName) => {
       const fieldValue = this.getNestedValue(data, fieldName);
       const rule = rules[fieldName];
       const error = this.validateField(fieldValue, rule);
@@ -79,7 +85,7 @@ export const commonValidations = {
         return 'Please enter a valid email address';
       }
       return null;
-    }
+    },
   },
 
   phone: {
@@ -89,7 +95,7 @@ export const commonValidations = {
         return 'Please enter a valid phone number';
       }
       return null;
-    }
+    },
   },
 
   zipCode: {
@@ -99,7 +105,7 @@ export const commonValidations = {
         return 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)';
       }
       return null;
-    }
+    },
   },
 
   url: {
@@ -109,7 +115,7 @@ export const commonValidations = {
         return 'Please enter a valid URL starting with http:// or https://';
       }
       return null;
-    }
+    },
   },
 
   storeName: {
@@ -120,11 +126,11 @@ export const commonValidations = {
       if (value && value.trim().length < 3) {
         return 'Store name must be at least 3 characters';
       }
-      if (value && /^\s/.test(value) || /\s$/.test(value)) {
+      if ((value && /^\s/.test(value)) || /\s$/.test(value)) {
         return 'Store name cannot start or end with spaces';
       }
       return null;
-    }
+    },
   },
 
   description: {
@@ -155,7 +161,7 @@ export const commonValidations = {
         return 'City name can only contain letters, spaces, hyphens, apostrophes, and periods';
       }
       return null;
-    }
+    },
   },
 
   state: {
@@ -168,8 +174,8 @@ export const commonValidations = {
         return 'Please enter a valid 2-letter state code (e.g., CA, NY)';
       }
       return null;
-    }
-  }
+    },
+  },
 };
 
 // Store Basics validation rules
@@ -180,12 +186,14 @@ export const storeBasicsValidation: ValidationRules = {
 
 // Business Address validation rules
 export const businessAddressValidation: ValidationRules = {
-  'locationLogistics.businessAddress.locationName': commonValidations.locationName,
+  'locationLogistics.businessAddress.locationName':
+    commonValidations.locationName,
   'locationLogistics.businessAddress.contactPhone': {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.businessAddress.streetAddress': commonValidations.streetAddress,
+  'locationLogistics.businessAddress.streetAddress':
+    commonValidations.streetAddress,
   'locationLogistics.businessAddress.city': commonValidations.city,
   'locationLogistics.businessAddress.state': commonValidations.state,
   'locationLogistics.businessAddress.zipCode': {
@@ -196,12 +204,14 @@ export const businessAddressValidation: ValidationRules = {
 
 // Farmgate Address validation rules (conditional)
 export const farmgateAddressValidation: ValidationRules = {
-  'locationLogistics.farmgateAddress.locationName': commonValidations.locationName,
+  'locationLogistics.farmgateAddress.locationName':
+    commonValidations.locationName,
   'locationLogistics.farmgateAddress.contactPhone': {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.farmgateAddress.streetAddress': commonValidations.streetAddress,
+  'locationLogistics.farmgateAddress.streetAddress':
+    commonValidations.streetAddress,
   'locationLogistics.farmgateAddress.city': commonValidations.city,
   'locationLogistics.farmgateAddress.state': commonValidations.state,
   'locationLogistics.farmgateAddress.zipCode': {
@@ -212,12 +222,14 @@ export const farmgateAddressValidation: ValidationRules = {
 
 // Pickup Point Address validation rules (conditional)
 export const pickupPointAddressValidation: ValidationRules = {
-  'locationLogistics.pickupPointAddress.locationName': commonValidations.locationName,
+  'locationLogistics.pickupPointAddress.locationName':
+    commonValidations.locationName,
   'locationLogistics.pickupPointAddress.contactPhone': {
     ...commonValidations.phone,
     required: true,
   },
-  'locationLogistics.pickupPointAddress.streetAddress': commonValidations.streetAddress,
+  'locationLogistics.pickupPointAddress.streetAddress':
+    commonValidations.streetAddress,
   'locationLogistics.pickupPointAddress.city': commonValidations.city,
   'locationLogistics.pickupPointAddress.state': commonValidations.state,
   'locationLogistics.pickupPointAddress.zipCode': {
@@ -263,12 +275,14 @@ export const storeHoursValidation = {
     });
 
     return errors;
-  }
+  },
 };
 
 // Payment Methods validation
 export const paymentMethodsValidation = {
-  validatePaymentMethods: (selectedMethods: string[]): { [key: string]: string } => {
+  validatePaymentMethods: (
+    selectedMethods: string[]
+  ): { [key: string]: string } => {
     const errors: { [key: string]: string } = {};
 
     if (!selectedMethods || selectedMethods.length === 0) {
@@ -276,12 +290,14 @@ export const paymentMethodsValidation = {
     }
 
     return errors;
-  }
+  },
 };
 
 // Selling Methods validation
 export const sellingMethodsValidation = {
-  validateSellingMethods: (selectedMethods: string[]): { [key: string]: string } => {
+  validateSellingMethods: (
+    selectedMethods: string[]
+  ): { [key: string]: string } => {
     const errors: { [key: string]: string } = {};
 
     if (!selectedMethods || selectedMethods.length === 0) {
@@ -289,21 +305,24 @@ export const sellingMethodsValidation = {
     }
 
     return errors;
-  }
+  },
 };
 
 // File validation utilities
 export const fileValidation = {
-  validateImageFile: (file: File, options: {
-    maxSize?: number;
-    allowedTypes?: string[];
-    minWidth?: number;
-    minHeight?: number;
-    maxWidth?: number;
-    maxHeight?: number;
-    aspectRatio?: number;
-    aspectRatioTolerance?: number;
-  } = {}): Promise<string | null> => {
+  validateImageFile: (
+    file: File,
+    options: {
+      maxSize?: number;
+      allowedTypes?: string[];
+      minWidth?: number;
+      minHeight?: number;
+      maxWidth?: number;
+      maxHeight?: number;
+      aspectRatio?: number;
+      aspectRatioTolerance?: number;
+    } = {}
+  ): Promise<string | null> => {
     const {
       maxSize = 5 * 1024 * 1024, // 5MB default
       allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
@@ -312,13 +331,15 @@ export const fileValidation = {
       maxWidth,
       maxHeight,
       aspectRatio,
-      aspectRatioTolerance = 0.1
+      aspectRatioTolerance = 0.1,
     } = options;
 
     return new Promise((resolve) => {
       // Check file size
       if (file.size > maxSize) {
-        resolve(`File size must be less than ${Math.round(maxSize / (1024 * 1024))}MB`);
+        resolve(
+          `File size must be less than ${Math.round(maxSize / (1024 * 1024))}MB`
+        );
         return;
       }
 
@@ -353,7 +374,9 @@ export const fileValidation = {
           const fileAspectRatio = img.width / img.height;
           const difference = Math.abs(fileAspectRatio - aspectRatio);
           if (difference > aspectRatioTolerance) {
-            resolve(`Image aspect ratio should be approximately ${aspectRatio.toFixed(1)}:1`);
+            resolve(
+              `Image aspect ratio should be approximately ${aspectRatio.toFixed(1)}:1`
+            );
             return;
           }
         }
@@ -369,25 +392,30 @@ export const fileValidation = {
     });
   },
 
-  validateMultipleFiles: async (files: File[], options: any = {}): Promise<{ [key: number]: string }> => {
+  validateMultipleFiles: async (
+    files: File[],
+    options: any = {}
+  ): Promise<{ [key: number]: string }> => {
     const errors: { [key: number]: string } = {};
     const promises = files.map((file, index) =>
-      fileValidation.validateImageFile(file, options)
-        .then(error => {
-          if (error) {
-            errors[index] = error;
-          }
-        })
+      fileValidation.validateImageFile(file, options).then((error) => {
+        if (error) {
+          errors[index] = error;
+        }
+      })
     );
 
     await Promise.all(promises);
     return errors;
-  }
+  },
 };
 
 // Complete form validation
 export const validateOpenShopForm = {
-  validateStep: (stepNumber: number, formState: any): { [key: string]: string } => {
+  validateStep: (
+    stepNumber: number,
+    formState: any
+  ): { [key: string]: string } => {
     let errors: { [key: string]: string } = {};
 
     switch (stepNumber) {
@@ -399,7 +427,7 @@ export const validateOpenShopForm = {
         // Business address (always required)
         errors = {
           ...errors,
-          ...FormValidator.validateForm(formState, businessAddressValidation)
+          ...FormValidator.validateForm(formState, businessAddressValidation),
         };
 
         // Selling methods
@@ -407,40 +435,35 @@ export const validateOpenShopForm = {
           ...errors,
           ...sellingMethodsValidation.validateSellingMethods(
             formState.locationLogistics?.sellingMethods || []
-          )
+          ),
         };
 
         // Conditional validations based on selling methods
-        const sellingMethods = formState.locationLogistics?.sellingMethods || [];
+        const sellingMethods =
+          formState.locationLogistics?.sellingMethods || [];
 
-        if (sellingMethods.includes('on-farm-pickup') &&
-            !formState.locationLogistics?.farmgateSameAsBusinessAddress) {
-          errors = {
-            ...errors,
-            ...FormValidator.validateForm(formState, farmgateAddressValidation)
-          };
-        }
+        // No pickup location validation needed - farmgate addresses are no longer used
+        // Producer stores use processor partner locations, independent stores use business address
 
         if (sellingMethods.includes('local-delivery')) {
-          if (!formState.locationLogistics?.deliveryRadiusMi ||
-              formState.locationLogistics.deliveryRadiusMi <= 0) {
+          if (
+            !formState.locationLogistics?.deliveryRadiusMi ||
+            formState.locationLogistics.deliveryRadiusMi <= 0
+          ) {
             errors.deliveryRadius = 'Please specify delivery radius';
           }
         }
 
-        if (sellingMethods.includes('farmers-market')) {
-          errors = {
-            ...errors,
-            ...FormValidator.validateForm(formState, pickupPointAddressValidation)
-          };
-        }
+        // No pickup point validation needed - farmgate addresses are no longer used
         break;
 
       case 2: // Store Policies
         // Store hours validation
         errors = {
           ...errors,
-          ...storeHoursValidation.validateStoreHours(formState.storeHours || {})
+          ...storeHoursValidation.validateStoreHours(
+            formState.storeHours || {}
+          ),
         };
 
         // Payment methods validation
@@ -448,7 +471,7 @@ export const validateOpenShopForm = {
           ...errors,
           ...paymentMethodsValidation.validatePaymentMethods(
             formState.paymentMethods?.selectedMethods || []
-          )
+          ),
         };
         break;
 
@@ -477,5 +500,5 @@ export const validateOpenShopForm = {
     }
 
     return allErrors;
-  }
+  },
 };

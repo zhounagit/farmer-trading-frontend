@@ -20,7 +20,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface FeaturedProductsModuleProps {
   module: StorefrontModule;
@@ -185,7 +185,10 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
             <CardMedia
               component='img'
               height='240'
-              image={imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTIwTDE4MCA5MEwyMjAgOTBMMjAwIDEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHN2ZyBpZD0iSWNvbmx5YWZpbGwtUGhvdG8iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Im0xOSAzaDRjMS4xIDAgMiAuOSAyIDJ2MTRjMCAxLjEtLjkgMi0yIDJoLTE0Yy0xLjEgMC0yLS45L/placeholder/400/240'}
+              image={
+                imageUrl ||
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTIwTDE4MCA5MEwyMjAgOTBMMjAwIDEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHN2ZyBpZD0iSWNvbmx5YWZpbGwtUGhvdG8iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Im0xOSAzaDRjMS4xIDAgMiAuOSAyIDJ2MTRjMCAxLjEtLjkgMi0yIDJoLTE0Yy0xLjEgMC0yLS45L/placeholder/400/240'
+              }
               alt={(product.productName as string) || 'Product'}
               sx={{ objectFit: 'cover' }}
             />

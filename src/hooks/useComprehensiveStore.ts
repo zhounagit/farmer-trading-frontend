@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import StoreApiService, {
-  type ComprehensiveStoreData,
-  type StoreUpdateRequest,
-  type StoreAddressRequest,
-  type StoreOpenHoursRequest,
-} from '../services/store.api';
+import OpenShopApiService from '../features/stores/services/open-shop.api';
+import { StoresApiService } from '../shared/services';
+import type { EnhancedStoreDto } from '../features/stores/services/open-shop.types';
+import type { StoreAddress, StoreOpenHours } from '../shared/types/store';
 import toast from 'react-hot-toast';
 
 interface UseComprehensiveStoreOptions {
@@ -16,7 +14,7 @@ interface UseComprehensiveStoreOptions {
 }
 
 interface UseComprehensiveStoreReturn {
-  storeData: ComprehensiveStoreData | null;
+  storeData: EnhancedStoreDto | null;
   isLoading: boolean;
   error: string | null;
   isUpdating: boolean;
@@ -26,15 +24,13 @@ interface UseComprehensiveStoreReturn {
   refetchStoreData: () => Promise<void>;
 
   // Store updates
-  updateStore: (updateData: StoreUpdateRequest) => Promise<void>;
+  updateStore: (updateData: Partial<Store>) => Promise<void>;
   updateStoreAddress: (
     addressId: number,
-    addressData: Partial<StoreAddressRequest>
+    addressData: Partial<StoreAddress>
   ) => Promise<void>;
-  createStoreAddress: (addressData: StoreAddressRequest) => Promise<void>;
-  updateOpenHours: (
-    hoursData: Omit<StoreOpenHoursRequest, 'storeId'>
-  ) => Promise<void>;
+  createStoreAddress: (addressData: StoreAddress) => Promise<void>;
+  updateOpenHours: (hoursData: StoreOpenHours[]) => Promise<void>;
   updatePaymentMethods: (methodIds: number[]) => Promise<void>;
 
   // Utility functions
@@ -65,9 +61,7 @@ export const useComprehensiveStore = (
   } = options;
 
   const { isAuthenticated } = useAuth();
-  const [storeData, setStoreData] = useState<ComprehensiveStoreData | null>(
-    null
-  );
+  const [storeData, setStoreData] = useState<EnhancedStoreDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +104,7 @@ export const useComprehensiveStore = (
 
       try {
         const comprehensiveData =
-          await StoreApiService.getComprehensiveStoreDetails(currentStoreId);
+          await OpenShopApiService.getComprehensiveStoreDetails(currentStoreId);
 
         console.log(
           '✅ Comprehensive store data fetched successfully:',
@@ -122,8 +116,9 @@ export const useComprehensiveStore = (
         console.error('❌ Failed to fetch comprehensive store data:', error);
 
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to load store data';
         setError(errorMessage);
 
@@ -144,7 +139,7 @@ export const useComprehensiveStore = (
   }, [fetchStoreData]);
 
   const updateStore = useCallback(
-    async (updateData: StoreUpdateRequest) => {
+    async (updateData: Partial<EnhancedStoreDto>) => {
       if (!storeData) {
         toast.error('No store data available to update');
         return;
@@ -157,15 +152,14 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoreApiService.updateStore(storeData.storeId, updateData);
+        await StoresApiService.updateStore(storeData.storeId, updateData);
 
         // Update local state optimistically
-        setStoreData((prev) =>
+        setStoreData((prev: EnhancedStoreDto | null) =>
           prev
             ? {
                 ...prev,
                 ...updateData,
-                updatedAt: new Date().toISOString(),
               }
             : null
         );
@@ -179,8 +173,9 @@ export const useComprehensiveStore = (
       } catch (error: unknown) {
         console.error('❌ Failed to update store:', error);
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to update store';
         setError(errorMessage);
         toast.error(errorMessage);
@@ -193,7 +188,7 @@ export const useComprehensiveStore = (
   );
 
   const createStoreAddress = useCallback(
-    async (addressData: StoreAddressRequest) => {
+    async (addressData: Partial<StoreAddress>) => {
       if (!storeData) {
         toast.error('No store data available');
         return;
@@ -205,7 +200,7 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoreApiService.createStoreAddress(
+        await StoresApiService.createStoreAddress(
           storeData.storeId,
           addressData
         );
@@ -216,8 +211,9 @@ export const useComprehensiveStore = (
       } catch (error: unknown) {
         console.error('❌ Failed to create address:', error);
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to add address';
         setError(errorMessage);
         toast.error(errorMessage);
@@ -230,7 +226,7 @@ export const useComprehensiveStore = (
   );
 
   const updateStoreAddress = useCallback(
-    async (addressId: number, addressData: Partial<StoreAddressRequest>) => {
+    async (addressId: number, addressData: Partial<StoreAddress>) => {
       if (!storeData) {
         toast.error('No store data available');
         return;
@@ -242,7 +238,7 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoreApiService.updateStoreAddress(
+        await StoresApiService.updateStoreAddress(
           storeData.storeId,
           addressId,
           addressData
@@ -254,8 +250,9 @@ export const useComprehensiveStore = (
       } catch (error: unknown) {
         console.error('❌ Failed to update address:', error);
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to update address';
         setError(errorMessage);
         toast.error(errorMessage);
@@ -268,7 +265,7 @@ export const useComprehensiveStore = (
   );
 
   const updateOpenHours = useCallback(
-    async (hoursData: Omit<StoreOpenHoursRequest, 'storeId'>) => {
+    async (hoursData: Partial<StoreOpenHours>[]) => {
       if (!storeData) {
         toast.error('No store data available');
         return;
@@ -280,10 +277,10 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoreApiService.updateStoreOpenHours({
-          storeId: storeData.storeId,
-          ...hoursData,
-        });
+        await StoresApiService.updateStoreOpenHours(
+          storeData.storeId,
+          hoursData
+        );
         toast.success('Business hours updated successfully!');
 
         // Refetch to get updated hours data
@@ -291,8 +288,9 @@ export const useComprehensiveStore = (
       } catch (error: unknown) {
         console.error('❌ Failed to update hours:', error);
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to update business hours';
         setError(errorMessage);
         toast.error(errorMessage);
@@ -317,10 +315,10 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoreApiService.updateStorePaymentMethods({
-          storeId: storeData.storeId,
-          methodIds,
-        });
+        await StoresApiService.updateStorePaymentMethods(
+          storeData.storeId,
+          methodIds
+        );
         toast.success('Payment methods updated successfully!');
 
         // Refetch to get updated payment method data
@@ -328,8 +326,9 @@ export const useComprehensiveStore = (
       } catch (error: unknown) {
         console.error('❌ Failed to update payment methods:', error);
         const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (error as Error)?.message ||
           'Failed to update payment methods';
         setError(errorMessage);
         toast.error(errorMessage);
@@ -358,26 +357,46 @@ export const useComprehensiveStore = (
       openHours: storeData.openHours?.length,
       paymentMethods: storeData.paymentMethods?.length,
       imagesTotal: storeData.images?.length,
-      imagesBreakdown: storeData.images?.map((img) => ({
-        imageId: img.imageId,
-        imageType: img.imageType,
-        fileName: img.fileName,
-        isActive: img.isActive,
-      })),
+      imagesBreakdown:
+        storeData.images?.gallery && Array.isArray(storeData.images.gallery)
+          ? storeData.images.gallery.map(
+              (img: {
+                imageId: number;
+                imageType: string;
+                filePath?: string;
+                isActive?: boolean;
+              }) => ({
+                imageId: img.imageId,
+                imageType: img.imageType,
+                fileName: img.filePath,
+                isActive: img.isActive,
+              })
+            )
+          : [],
     });
 
     const logoImages =
-      storeData.images?.filter(
-        (img) => img.imageType === 'logo' && img.isActive
-      ) || [];
+      storeData.images?.gallery && Array.isArray(storeData.images.gallery)
+        ? storeData.images.gallery.filter(
+            (img: { imageType: string; isActive?: boolean }) =>
+              img.imageType === 'logo' && img.isActive
+          )
+        : [];
     const galleryImages =
-      storeData.images?.filter(
-        (img) => img.imageType === 'gallery' && img.isActive
-      ) || [];
+      storeData.images?.gallery && Array.isArray(storeData.images.gallery)
+        ? storeData.images.gallery.filter(
+            (img: { imageType: string; isActive?: boolean }) =>
+              img.imageType === 'gallery' && img.isActive
+          )
+        : [];
 
     // Also check for any gallery images regardless of isActive status
     const allGalleryImages =
-      storeData.images?.filter((img) => img.imageType === 'gallery') || [];
+      storeData.images?.gallery && Array.isArray(storeData.images.gallery)
+        ? storeData.images.gallery.filter(
+            (img: { imageType: string }) => img.imageType === 'gallery'
+          )
+        : [];
 
     console.log('🖼️ Image Analysis:', {
       logoImages: logoImages.length,
@@ -388,20 +407,33 @@ export const useComprehensiveStore = (
       allGalleryImageDetails: allGalleryImages,
       logoUrlExists: !!storeData.logoUrl,
       logoUrlValue: storeData.logoUrl,
-      totalImages: storeData.images?.length || 0,
+      totalImages: storeData.images?.gallery?.length || 0,
       allImagesBreakdown:
-        storeData.images?.map((img) => ({
-          imageId: img.imageId,
-          imageType: img.imageType,
-          fileName: img.fileName,
-          isActive: img.isActive,
-        })) || [],
+        storeData.images?.gallery && Array.isArray(storeData.images.gallery)
+          ? storeData.images.gallery.map(
+              (img: {
+                imageId: number;
+                imageType: string;
+                filePath?: string;
+                isActive?: boolean;
+              }) => ({
+                imageId: img.imageId,
+                imageType: img.imageType,
+                fileName: img.filePath,
+                isActive: img.isActive,
+              })
+            )
+          : [],
     });
 
     // Get contact info from store data or primary address fallback
     const primaryAddress =
-      storeData.addresses?.find((addr) => addr.isPrimary) ||
-      storeData.addresses?.[0];
+      storeData.addresses?.pickupLocations &&
+      Array.isArray(storeData.addresses.pickupLocations)
+        ? storeData.addresses.pickupLocations.find(
+            (addr: StoreAddress) => addr.isPrimary
+          ) || storeData.addresses.pickupLocations[0]
+        : undefined;
     const hasContactPhone = !!(
       storeData.contactPhone || primaryAddress?.contactPhone
     );
@@ -470,16 +502,23 @@ export const useComprehensiveStore = (
 
     const hoursMap: Record<string, string> = {};
 
-    storeData.openHours.forEach((hour) => {
-      const dayName = DAY_NAMES[hour.dayOfWeek];
-      if (hour.isClosed) {
-        hoursMap[dayName] = 'Closed';
-      } else if (hour.openTime && hour.closeTime) {
-        hoursMap[dayName] = `${hour.openTime} - ${hour.closeTime}`;
-      } else {
-        hoursMap[dayName] = 'Hours not set';
+    storeData.operations?.openHours?.forEach(
+      (hour: {
+        dayOfWeek: string;
+        openTime?: string;
+        closeTime?: string;
+        isClosed: boolean;
+      }) => {
+        const dayName = hour.dayOfWeek.toLowerCase();
+        if (hour.isClosed) {
+          hoursMap[dayName] = 'Closed';
+        } else if (hour.openTime && hour.closeTime) {
+          hoursMap[dayName] = `${hour.openTime} - ${hour.closeTime}`;
+        } else {
+          hoursMap[dayName] = 'Hours not set';
+        }
       }
-    });
+    );
 
     return hoursMap;
   }, [storeData]);

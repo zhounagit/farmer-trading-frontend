@@ -1,0 +1,64 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Validating commit message..."
+
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,50}'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "❌ Invalid commit message format!"
+    echo ""
+    echo "Commit message must follow Conventional Commits specification:"
+    echo "  <type>[optional scope]: <description>"
+    echo ""
+    echo "Types:"
+    echo "  feat:     A new feature"
+    echo "  fix:      A bug fix"
+    echo "  docs:     Documentation only changes"
+    echo "  style:    Changes that do not affect the meaning of the code"
+    echo "  refactor: A code change that neither fixes a bug nor adds a feature"
+    echo "  perf:     A code change that improves performance"
+    echo "  test:     Adding missing tests or correcting existing tests"
+    echo "  build:    Changes that affect the build system or external dependencies"
+    echo "  ci:       Changes to CI configuration files and scripts"
+    echo "  chore:    Other changes that don't modify src or test files"
+    echo "  revert:   Reverts a previous commit"
+    echo ""
+    echo "Examples:"
+    echo "  feat(auth): add OAuth2 authentication"
+    echo "  fix: resolve memory leak in performance monitor"
+    echo "  docs: update API documentation"
+    echo "  perf(bundle): optimize chunk splitting strategy"
+    echo ""
+    echo "Your commit message:"
+    cat "$1"
+    echo ""
+    exit 1
+fi
+
+# Check for performance-related commits
+if grep -qE "(perf|performance|optimize|slow|fast|bundle|memory)" "$1"; then
+    echo "⚡ Performance-related commit detected"
+    echo "💡 Consider running: npm run test:performance"
+fi
+
+# Check for breaking changes
+if grep -qE "BREAKING CHANGE|!" "$1"; then
+    echo "🚨 Breaking change detected"
+    echo "💡 Make sure to update documentation and version"
+fi
+
+# Check for security-related commits
+if grep -qE "(security|vulnerability|auth|permission)" "$1"; then
+    echo "🔒 Security-related commit detected"
+    echo "💡 Consider running: npm audit"
+fi
+
+# Check message length
+message_length=$(wc -c < "$1")
+if [ $message_length -gt 72 ]; then
+    echo "⚠️  Commit message is quite long (${message_length} characters)"
+    echo "💡 Consider keeping the subject line under 50 characters"
+fi
+
+echo "✅ Commit message format is valid!"

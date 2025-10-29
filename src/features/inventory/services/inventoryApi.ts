@@ -1,0 +1,696 @@
+import { apiClient } from '../../../shared/services/apiClient';
+import { API_ENDPOINTS } from '../../../shared/types/api-contracts';
+import type {
+  InventoryItem,
+  InventoryImage,
+  InventoryCategory,
+  InventoryVariant,
+  InventoryPricing,
+  CreateInventoryItemRequest,
+  UpdateInventoryItemRequest,
+  InventoryFilters,
+  InventorySearchParams,
+  InventoryListResponse,
+  InventoryStatsResponse,
+  InventoryActivity,
+  InventorySummary,
+  BulkInventoryOperation,
+  BulkInventoryResult,
+  InventoryImageUploadRequest,
+  InventoryImageUpdateRequest,
+  InventoryImportRequest,
+  InventoryImportResult,
+  InventoryExportRequest,
+} from '../../../shared/types/inventory';
+import type { ApiResponse } from '../../../shared/types/api';
+
+export class InventoryApiService {
+  private static readonly BASE_PATH = API_ENDPOINTS.INVENTORY.BASE;
+  private static readonly CATEGORIES_PATH = '/api/inventory-categories';
+
+  // Enhanced error handling and logging
+  private static logOperation(operation: string, details?: unknown): void {
+    console.log(`📦 InventoryAPI: ${operation}`, details || '');
+  }
+
+  private static logError(operation: string, error: unknown): void {
+    console.error(`❌ InventoryAPI: Error in ${operation}:`, error);
+  }
+
+  // Inventory Item CRUD Operations
+  static async getInventoryItems(
+    storeId: number,
+    searchParams?: InventorySearchParams
+  ): Promise<InventoryListResponse> {
+    try {
+      this.logOperation('Fetching inventory items', { storeId, searchParams });
+
+      // Enhanced validation to catch [object Object] issues
+      if (typeof storeId !== 'number' || isNaN(storeId)) {
+        throw new Error(
+          `Invalid storeId parameter: expected number, got ${typeof storeId}`
+        );
+      }
+
+      const params = new URLSearchParams({
+        storeId: storeId.toString(),
+      });
+
+      if (searchParams) {
+        Object.entries(searchParams).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach((item) =>
+                params.append(`${key}[]`, item.toString())
+              );
+            } else if (typeof value === 'object' && value !== null) {
+              Object.entries(value).forEach(([subKey, subValue]) => {
+                if (subValue !== undefined && subValue !== null) {
+                  params.set(`${key}.${subKey}`, subValue.toString());
+                }
+              });
+            } else {
+              params.set(key, value.toString());
+            }
+          }
+        });
+      }
+
+      const response = await apiClient.get<InventoryListResponse>(
+        `${this.BASE_PATH}?${params.toString()}`
+      );
+
+      this.logOperation('Inventory items fetched successfully', {
+        count: response.items?.length || 0,
+        totalItems: response.totalCount,
+      });
+
+      return response;
+    } catch (error: unknown) {
+      this.logError('getInventoryItems', error);
+      // Enhanced fallback response with comprehensive structure
+      return {
+        items: [],
+        totalCount: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      };
+    }
+  }
+
+  static async getInventoryItem(
+    itemId: number,
+    includeRelations: boolean = true
+  ): Promise<InventoryItem> {
+    const queryParams = includeRelations
+      ? '?include=images,variants,pricing,seasonality'
+      : '';
+    const response = await apiClient.get<InventoryItem>(
+      `${this.BASE_PATH}/${itemId}${queryParams}`
+    );
+    return response;
+  }
+
+  static async createInventoryItem(
+    itemData: CreateInventoryItemRequest
+  ): Promise<InventoryItem> {
+    const response = await apiClient.post<InventoryItem>(
+      this.BASE_PATH,
+      itemData
+    );
+    return response;
+  }
+
+  static async updateInventoryItem(
+    itemId: number,
+    updateData: UpdateInventoryItemRequest
+  ): Promise<InventoryItem> {
+    const response = await apiClient.put<InventoryItem>(
+      `${this.BASE_PATH}/${itemId}`,
+      updateData
+    );
+    return response;
+  }
+
+  static async deleteInventoryItem(itemId: number): Promise<ApiResponse> {
+    const response = await apiClient.delete<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}`
+    );
+    return response;
+  }
+
+  static async duplicateInventoryItem(
+    itemId: number,
+    newItemName: string
+  ): Promise<InventoryItem> {
+    const response = await apiClient.post<InventoryItem>(
+      `${this.BASE_PATH}/${itemId}/duplicate`,
+      {
+        newItemName,
+      }
+    );
+    return response;
+  }
+
+  // Inventory Search and Filtering
+  static async searchInventory(
+    searchParams: InventorySearchParams
+  ): Promise<InventoryListResponse> {
+    const response = await apiClient.post<InventoryListResponse>(
+      `${this.BASE_PATH}/search`,
+      searchParams
+    );
+    return response;
+  }
+
+  static async getInventorySuggestions(
+    query: string,
+    storeId: number,
+    limit: number = 10
+  ): Promise<string[]> {
+    const response = await apiClient.get<string[]>(
+      `${this.BASE_PATH}/suggestions?query=${encodeURIComponent(query)}&storeId=${storeId}&limit=${limit}`
+    );
+    return response;
+  }
+
+  static async getPopularItems(
+    storeId: number,
+    limit: number = 20
+  ): Promise<InventoryItem[]> {
+    const response = await apiClient.get<InventoryItem[]>(
+      `${this.BASE_PATH}/popular?storeId=${storeId}&limit=${limit}`
+    );
+    return response;
+  }
+
+  static async getLowStockItems(
+    storeId: number,
+    threshold: number = 10
+  ): Promise<InventoryItem[]> {
+    const response = await apiClient.get<InventoryItem[]>(
+      `${this.BASE_PATH}/low-stock?storeId=${storeId}&threshold=${threshold}`
+    );
+    return response;
+  }
+
+  static async getExpiringSoonItems(
+    storeId: number,
+    daysAhead: number = 7
+  ): Promise<InventoryItem[]> {
+    const response = await apiClient.get<InventoryItem[]>(
+      `${this.BASE_PATH}/expiring-soon?storeId=${storeId}&daysAhead=${daysAhead}`
+    );
+    return response;
+  }
+
+  // Inventory Statistics and Analytics
+  static async getInventoryStats(
+    storeId: number,
+    startDate?: string,
+    endDate?: string
+  ): Promise<InventoryStatsResponse> {
+    const params = new URLSearchParams({ storeId: storeId.toString() });
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+
+    const response = await apiClient.get<InventoryStatsResponse>(
+      `${this.BASE_PATH}/stats?${params.toString()}`
+    );
+    return response;
+  }
+
+  static async getInventorySummary(
+    storeId: number,
+    filters?: InventoryFilters
+  ): Promise<InventorySummary> {
+    const params = new URLSearchParams({ storeId: storeId.toString() });
+
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            value.forEach((item) => params.append(`${key}[]`, item.toString()));
+          } else if (typeof value === 'object' && value !== null) {
+            Object.entries(value).forEach(([subKey, subValue]) => {
+              if (subValue !== undefined && subValue !== null) {
+                params.set(`${key}.${subKey}`, subValue.toString());
+              }
+            });
+          } else {
+            params.set(key, value.toString());
+          }
+        }
+      });
+    }
+
+    const response = await apiClient.get<InventorySummary>(
+      `${this.BASE_PATH}/summary?${params.toString()}`
+    );
+    return response;
+  }
+
+  static async getInventoryActivity(
+    storeId: number,
+    itemId?: number,
+    limit: number = 50
+  ): Promise<InventoryActivity[]> {
+    const params = new URLSearchParams({
+      storeId: storeId.toString(),
+      limit: limit.toString(),
+    });
+    if (itemId) params.set('itemId', itemId.toString());
+
+    const response = await apiClient.get<InventoryActivity[]>(
+      `${this.BASE_PATH}/activity?${params.toString()}`
+    );
+    return response;
+  }
+
+  // Image Management
+  static async getInventoryItemImages(
+    itemId: number
+  ): Promise<InventoryImage[]> {
+    const response = await apiClient.get<InventoryImage[]>(
+      API_ENDPOINTS.INVENTORY.IMAGES(itemId)
+    );
+    return response;
+  }
+
+  static async uploadInventoryImage(
+    itemId: number,
+    file: File,
+    uploadRequest: InventoryImageUploadRequest,
+    onUploadProgress?: (progress: number) => void
+  ): Promise<InventoryImage> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('imageType', uploadRequest.imageType);
+    if (uploadRequest.sortOrder !== undefined) {
+      formData.append('sortOrder', uploadRequest.sortOrder.toString());
+    }
+    if (uploadRequest.isPrimary !== undefined) {
+      formData.append('isPrimary', uploadRequest.isPrimary.toString());
+    }
+    if (uploadRequest.altText) {
+      formData.append('altText', uploadRequest.altText);
+    }
+
+    const response = await apiClient.upload<InventoryImage>(
+      `${this.BASE_PATH}/${itemId}/images`,
+      formData,
+      onUploadProgress
+    );
+    return response;
+  }
+
+  static async updateInventoryImage(
+    itemId: number,
+    imageId: number,
+    updateData: InventoryImageUpdateRequest
+  ): Promise<InventoryImage> {
+    const response = await apiClient.put<InventoryImage>(
+      `${this.BASE_PATH}/${itemId}/images/${imageId}`,
+      updateData
+    );
+    return response;
+  }
+
+  static async deleteInventoryImage(
+    itemId: number,
+    imageId: number
+  ): Promise<ApiResponse> {
+    const response = await apiClient.delete<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}/images/${imageId}`
+    );
+    return response;
+  }
+
+  static async reorderInventoryImages(
+    itemId: number,
+    imageOrders: { imageId: number; sortOrder: number }[]
+  ): Promise<ApiResponse> {
+    const response = await apiClient.put<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}/images/reorder`,
+      {
+        imageOrders,
+      }
+    );
+    return response;
+  }
+
+  static async setPrimaryImage(
+    itemId: number,
+    imageId: number
+  ): Promise<ApiResponse> {
+    const response = await apiClient.put<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}/images/${imageId}/primary`
+    );
+    return response;
+  }
+
+  // Variants Management
+  static async getInventoryVariants(
+    itemId: number
+  ): Promise<InventoryVariant[]> {
+    const response = await apiClient.get<InventoryVariant[]>(
+      `${this.BASE_PATH}/${itemId}/variants`
+    );
+    return response;
+  }
+
+  static async createInventoryVariant(
+    itemId: number,
+    variantData: Partial<InventoryVariant>
+  ): Promise<InventoryVariant> {
+    const response = await apiClient.post<InventoryVariant>(
+      `${this.BASE_PATH}/${itemId}/variants`,
+      variantData
+    );
+    return response;
+  }
+
+  static async updateInventoryVariant(
+    itemId: number,
+    variantId: number,
+    updateData: Partial<InventoryVariant>
+  ): Promise<InventoryVariant> {
+    const response = await apiClient.put<InventoryVariant>(
+      `${this.BASE_PATH}/${itemId}/variants/${variantId}`,
+      updateData
+    );
+    return response;
+  }
+
+  static async deleteInventoryVariant(
+    itemId: number,
+    variantId: number
+  ): Promise<ApiResponse> {
+    const response = await apiClient.delete<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}/variants/${variantId}`
+    );
+    return response;
+  }
+
+  // Pricing Management
+  static async getInventoryPricing(
+    itemId: number,
+    variantId?: number
+  ): Promise<InventoryPricing[]> {
+    const queryParam = variantId ? `?variantId=${variantId}` : '';
+    const response = await apiClient.get<InventoryPricing[]>(
+      `${this.BASE_PATH}/${itemId}/pricing${queryParam}`
+    );
+    return response;
+  }
+
+  static async createInventoryPricing(
+    itemId: number,
+    pricingData: Partial<InventoryPricing>
+  ): Promise<InventoryPricing> {
+    const response = await apiClient.post<InventoryPricing>(
+      `${this.BASE_PATH}/${itemId}/pricing`,
+      pricingData
+    );
+    return response;
+  }
+
+  static async updateInventoryPricing(
+    itemId: number,
+    pricingId: number,
+    updateData: Partial<InventoryPricing>
+  ): Promise<InventoryPricing> {
+    const response = await apiClient.put<InventoryPricing>(
+      `${this.BASE_PATH}/${itemId}/pricing/${pricingId}`,
+      updateData
+    );
+    return response;
+  }
+
+  static async deleteInventoryPricing(
+    itemId: number,
+    pricingId: number
+  ): Promise<ApiResponse> {
+    const response = await apiClient.delete<ApiResponse>(
+      `${this.BASE_PATH}/${itemId}/pricing/${pricingId}`
+    );
+    return response;
+  }
+
+  // Categories Management
+  static async getInventoryCategories(): Promise<InventoryCategory[]> {
+    const response = await apiClient.get<InventoryCategory[]>(
+      this.CATEGORIES_PATH
+    );
+    return response;
+  }
+
+  static async createInventoryCategory(
+    categoryData: Partial<InventoryCategory>
+  ): Promise<InventoryCategory> {
+    const response = await apiClient.post<InventoryCategory>(
+      this.CATEGORIES_PATH,
+      categoryData
+    );
+    return response;
+  }
+
+  static async updateInventoryCategory(
+    categoryId: number,
+    updateData: Partial<InventoryCategory>
+  ): Promise<InventoryCategory> {
+    const response = await apiClient.put<InventoryCategory>(
+      `${this.CATEGORIES_PATH}/${categoryId}`,
+      updateData
+    );
+    return response;
+  }
+
+  static async deleteInventoryCategory(
+    categoryId: number
+  ): Promise<ApiResponse> {
+    const response = await apiClient.delete<ApiResponse>(
+      `${this.CATEGORIES_PATH}/${categoryId}`
+    );
+    return response;
+  }
+
+  // SKU Management
+  static async checkSkuAvailability(
+    sku: string,
+    storeId: number,
+    excludeItemId?: number
+  ): Promise<{ available: boolean }> {
+    const params = new URLSearchParams({
+      sku,
+      storeId: storeId.toString(),
+    });
+    if (excludeItemId) params.set('excludeItemId', excludeItemId.toString());
+
+    const response = await apiClient.get<{ available: boolean }>(
+      `${this.BASE_PATH}/check-sku?${params.toString()}`
+    );
+    return response;
+  }
+
+  static async generateSku(
+    storeId: number,
+    itemName: string,
+    category: string
+  ): Promise<{ sku: string }> {
+    const response = await apiClient.post<{ sku: string }>(
+      `${this.BASE_PATH}/generate-sku`,
+      {
+        storeId,
+        itemName,
+        category,
+      }
+    );
+    return response;
+  }
+
+  // Bulk Operations
+  static async bulkInventoryOperation(
+    operation: BulkInventoryOperation
+  ): Promise<BulkInventoryResult> {
+    try {
+      this.logOperation('Performing bulk inventory operation', {
+        operation: operation.operation,
+        itemCount: operation.itemIds?.length || 0,
+      });
+
+      const response = await apiClient.post<BulkInventoryResult>(
+        `${this.BASE_PATH}/bulk`,
+        operation
+      );
+
+      this.logOperation('Bulk operation completed successfully', {
+        successCount: response.successCount || 0,
+        failedCount: response.failedCount || 0,
+      });
+
+      return response;
+    } catch (error: unknown) {
+      this.logError('bulkInventoryOperation', error);
+      // Enhanced fallback for bulk operations
+      return {
+        successCount: 0,
+        failedCount: operation.itemIds?.length || 0,
+        errors: ['Bulk operation failed due to network error'],
+        results: [],
+      };
+    }
+  }
+
+  static async bulkUpdateQuantities(
+    updates: {
+      itemId: number;
+      quantityChange: number;
+      operation: 'add' | 'subtract' | 'set';
+    }[]
+  ): Promise<BulkInventoryResult> {
+    const response = await apiClient.post<BulkInventoryResult>(
+      `${this.BASE_PATH}/bulk-update-quantities`,
+      {
+        updates,
+      }
+    );
+    return response;
+  }
+
+  static async bulkUpdatePrices(
+    updates: { itemId: number; newPrice: number }[]
+  ): Promise<BulkInventoryResult> {
+    const response = await apiClient.post<BulkInventoryResult>(
+      `${this.BASE_PATH}/bulk-update-prices`,
+      {
+        updates,
+      }
+    );
+    return response;
+  }
+
+  // Import/Export
+  static async importInventory(
+    importRequest: InventoryImportRequest
+  ): Promise<InventoryImportResult> {
+    const formData = new FormData();
+    formData.append('storeId', importRequest.storeId.toString());
+    formData.append('format', importRequest.format);
+
+    if (importRequest.data instanceof File) {
+      formData.append('file', importRequest.data);
+    } else {
+      formData.append('data', importRequest.data);
+    }
+
+    if (importRequest.options) {
+      Object.entries(importRequest.options).forEach(([key, value]) => {
+        if (value !== undefined) {
+          formData.append(`options.${key}`, value.toString());
+        }
+      });
+    }
+
+    const response = await apiClient.post<InventoryImportResult>(
+      `${this.BASE_PATH}/import`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+    return response;
+  }
+
+  static async exportInventory(
+    exportRequest: InventoryExportRequest
+  ): Promise<Blob> {
+    const response = await apiClient.post(
+      `${this.BASE_PATH}/export`,
+      exportRequest,
+      {
+        responseType: 'blob',
+      }
+    );
+    return response as unknown as Blob;
+  }
+
+  // Inventory Alerts and Notifications
+  static async getInventoryAlerts(storeId: number): Promise<{
+    lowStock: InventoryItem[];
+    expiringSoon: InventoryItem[];
+    outOfStock: InventoryItem[];
+  }> {
+    const response = await apiClient.get<{
+      lowStock: InventoryItem[];
+      expiringSoon: InventoryItem[];
+      outOfStock: InventoryItem[];
+    }>(`${this.BASE_PATH}/alerts?storeId=${storeId}`);
+    return response;
+  }
+
+  static async updateStockLevel(
+    itemId: number,
+    operation: 'add' | 'subtract' | 'set',
+    quantity: number,
+    reason?: string
+  ): Promise<InventoryItem> {
+    const response = await apiClient.post<InventoryItem>(
+      `${this.BASE_PATH}/${itemId}/stock`,
+      {
+        operation,
+        quantity,
+        reason,
+      }
+    );
+    return response;
+  }
+
+  // Validation Helpers
+  static async validateInventoryData(
+    itemData: CreateInventoryItemRequest | UpdateInventoryItemRequest
+  ): Promise<{
+    valid: boolean;
+    errors: Record<string, string[]>;
+  }> {
+    const response = await apiClient.post<{
+      valid: boolean;
+      errors: Record<string, string[]>;
+    }>(`${this.BASE_PATH}/validate`, itemData);
+    return response;
+  }
+
+  // Utility Methods
+  static formatPrice(price: number, currency: string = 'USD'): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+    }).format(price);
+  }
+
+  static calculateTotalValue(items: InventoryItem[]): number {
+    return items.reduce(
+      (total, item) => total + item.pricePerUnit * item.quantityAvailable,
+      0
+    );
+  }
+
+  static isLowStock(item: InventoryItem, threshold: number = 10): boolean {
+    return item.quantityAvailable <= threshold && item.quantityAvailable > 0;
+  }
+
+  static isOutOfStock(item: InventoryItem): boolean {
+    return item.quantityAvailable <= 0;
+  }
+
+  static isExpiringSoon(item: InventoryItem, daysAhead: number = 7): boolean {
+    if (!item.expirationDate) return false;
+    const expirationDate = new Date(item.expirationDate);
+    const alertDate = new Date();
+    alertDate.setDate(alertDate.getDate() + daysAhead);
+    return expirationDate <= alertDate;
+  }
+}
+
+export default InventoryApiService;

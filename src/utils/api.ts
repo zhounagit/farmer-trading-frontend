@@ -674,10 +674,88 @@ export const handleApiError = (
   error: unknown,
   context?: 'login' | 'auth' | 'general'
 ): string => {
+  // Handle ApiError from api-service.ts
+  if (
+    error &&
+    typeof error === 'object' &&
+    'status' in error &&
+    'error' in error
+  ) {
+    const apiError = error as any;
+
+    // First, try to use the specific error message from the API
+    if (apiError.message && apiError.message !== `HTTP ${apiError.status}`) {
+      return apiError.message;
+    }
+
+    // Check for specific error codes from backend
+    if (apiError.details && typeof apiError.details === 'object') {
+      const errorDetails = apiError.details as any;
+      if (
+        errorDetails.errors &&
+        Array.isArray(errorDetails.errors) &&
+        errorDetails.errors.length > 0
+      ) {
+        const firstError = errorDetails.errors[0];
+        if (firstError.code === 'ACCOUNT_INACTIVE') {
+          return 'Your account has been deactivated. Please contact support if you believe this is an error.';
+        }
+      }
+    }
+
+    // Check for ACCOUNT_INACTIVE in the error field directly
+    if (apiError.error === 'ACCOUNT_INACTIVE') {
+      return 'Your account has been deactivated. Please contact support if you believe this is an error.';
+    }
+
+    // Fall back to context-aware messages based on status code
+    switch (apiError.status) {
+      case HTTP_STATUS.UNAUTHORIZED:
+        if (context === 'login') {
+          return 'Incorrect username or password. Please try again.';
+        }
+        return 'Please log in to continue';
+      case HTTP_STATUS.FORBIDDEN:
+        return 'You do not have permission to perform this action';
+      case HTTP_STATUS.NOT_FOUND:
+        return 'The requested resource was not found';
+      case HTTP_STATUS.CONFLICT:
+        return 'This operation conflicts with existing data';
+      case HTTP_STATUS.UNPROCESSABLE_ENTITY:
+        return 'Please check your input and try again';
+      case HTTP_STATUS.TOO_MANY_REQUESTS:
+        return 'Too many requests. Please try again later';
+      case HTTP_STATUS.INTERNAL_SERVER_ERROR:
+        return 'Server error. Please try again later';
+      case HTTP_STATUS.SERVICE_UNAVAILABLE:
+        return 'Service is temporarily unavailable';
+      case 0:
+        return 'Network error - please check your connection';
+      default:
+        return apiError.message || 'An unexpected error occurred';
+    }
+  }
+
+  // Handle legacy ApiErrorClass for backward compatibility
   if (error instanceof ApiErrorClass) {
     // First, try to use the specific error message from the API
     if (error.message && error.message !== `HTTP ${error.status}`) {
       return error.message;
+    }
+
+    // Check for specific error codes from backend
+    if (error.data && typeof error.data === 'object') {
+      const apiError = error.data as any;
+      if (
+        apiError.errors &&
+        Array.isArray(apiError.errors) &&
+        apiError.errors.length > 0
+      ) {
+        const firstError = apiError.errors[0];
+        if (firstError.code === 'ACCOUNT_INACTIVE') {
+          return 'Your account has been deactivated. Please contact support if you believe this is an error.';
+        }
+      }
     }
 
     // Fall back to context-aware messages based on status code
@@ -778,4 +856,88 @@ export const setupApiInterceptors = () => {
   // This would be implemented if using axios or similar
   // For now, we handle it manually in the auth context
   console.log('API interceptors configured');
+};
+
+// Image URL utility functions
+export const imageUtils = {
+  /**
+   * Constructs a full image URL from a relative path
+   * @param imagePath - The image path from the API (e.g., "/uploads/stores/33/image.jpg")
+   * @param fallbackUrl - Fallback URL if imagePath is invalid (default: "/placeholder-product.jpg")
+   * @returns Full image URL
+   */
+  getImageUrl: (
+    imagePath: string | null | undefined,
+    fallbackUrl: string = '/placeholder-product.jpg'
+  ): string => {
+    if (!imagePath) {
+      return fallbackUrl;
+    }
+
+    // If it's already a full URL, return as-is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    // If it's a relative path, construct full URL using API base
+    if (imagePath.startsWith('/')) {
+      return `${API_CONFIG.BASE_URL}${imagePath}`;
+    }
+
+    // If it doesn't start with /, add it
+    return `${API_CONFIG.BASE_URL}/${imagePath}`;
+  },
+
+  /**
+   * Gets the primary image URL from an array of images
+   * @param images - Array of image objects with imageUrl and isPrimary properties
+   * @param fallbackUrl - Fallback URL if no images available
+   * @returns Primary image URL or first available image URL
+   */
+  getPrimaryImageUrl: (
+    images: Array<{ imageUrl: string; isPrimary?: boolean }> | null | undefined,
+    fallbackUrl: string = '/placeholder-product.jpg'
+  ): string => {
+    if (!images || images.length === 0) {
+      return fallbackUrl;
+    }
+
+    // Find primary image first
+    const primaryImage = images.find((img) => img.isPrimary);
+    if (primaryImage) {
+      return imageUtils.getImageUrl(primaryImage.imageUrl, fallbackUrl);
+    }
+
+    // Fall back to first image
+    const firstImage = images[0];
+    return imageUtils.getImageUrl(firstImage.imageUrl, fallbackUrl);
+  },
+
+  /**
+   * Checks if an image URL is accessible
+   * @param imageUrl - The image URL to check
+   * @returns Promise that resolves to true if image is accessible
+   */
+  isImageAccessible: async (imageUrl: string): Promise<boolean> => {
+    try {
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Preloads an image for better performance
+   * @param imageUrl - The image URL to preload
+   * @returns Promise that resolves when image is loaded
+   */
+  preloadImage: (imageUrl: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+  },
 };

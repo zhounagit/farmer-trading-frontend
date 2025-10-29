@@ -11,7 +11,7 @@ import { ArrowForward } from '@mui/icons-material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 import { API_CONFIG } from '../../../utils/api';
 
 interface HeroBannerModuleProps {

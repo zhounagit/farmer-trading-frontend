@@ -1,10 +1,9 @@
 import React from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-} from '@mui/material';
-import type { StorefrontModule, PublicStorefront } from '../../../services/storefront.api';
+import { Box, Container, Typography } from '@mui/material';
+import type {
+  StorefrontModule,
+  PublicStorefront,
+} from '@/features/search/services/storefront.api';
 
 interface SocialMediaModuleProps {
   module: StorefrontModule;
@@ -20,16 +19,16 @@ const SocialMediaModule: React.FC<SocialMediaModuleProps> = ({
 
   return (
     <Box sx={{ py: 6, backgroundColor: 'background.default' }}>
-      <Container maxWidth="lg">
+      <Container maxWidth='lg'>
         <Typography
-          variant="h3"
-          component="h2"
-          textAlign="center"
+          variant='h3'
+          component='h2'
+          textAlign='center'
           sx={{ mb: 4 }}
         >
           {title}
         </Typography>
-        <Typography variant="body1" textAlign="center" color="text.secondary">
+        <Typography variant='body1' textAlign='center' color='text.secondary'>
           Social Media module - Coming Soon
         </Typography>
       </Container>

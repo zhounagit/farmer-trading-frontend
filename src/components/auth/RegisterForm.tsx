@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../common/Logo';
+import type { RegisterData } from '../../types/auth';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -36,7 +37,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   onClose,
 }) => {
   const { register, isLoading, error, clearError } = useAuth();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterData>({
     email: '',
     password: '',
     confirmPassword: '',
@@ -44,7 +45,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     lastName: '',
     phone: '',
     referralCode: '',
-    userType: 'customer',
+    userType: 'Customer',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -128,16 +129,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     try {
-      await register({
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        phone: formData.phone.trim() || undefined,
-        referralCode: formData.referralCode.trim() || undefined,
-        userType: formData.userType,
-      });
+      await register(formData);
       onClose();
     } catch {
       // Error is handled by the auth context

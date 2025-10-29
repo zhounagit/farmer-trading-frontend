@@ -2,22 +2,45 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { api } from '../services/api';
+import { normalizeToFrontendUserType } from '../utils/typeMapping';
+
 import { STORAGE_KEYS } from '../utils/api';
 import axios from 'axios';
 
 // Define types inline to avoid import issues
 interface Store {
   storeId: number;
+  store_id?: number; // Handle snake_case from backend
   storeName: string;
+  store_name?: string; // Handle snake_case from backend
   description?: string;
-  ownerId: number;
-  logoUrl?: string;
-  bannerUrl?: string;
-  status: string;
-  isActive: boolean;
+  storeCreatorId: number;
+  store_creator_id?: number; // Handle snake_case from backend
+  approvalStatus: string;
+  approval_status?: string; // Handle snake_case from backend
   createdAt: string;
+  created_at?: string; // Handle snake_case from backend
   updatedAt: string;
+  updated_at?: string; // Handle snake_case from backend
+  contactPhone?: string;
+  contact_phone?: string; // Handle snake_case from backend
+  contactEmail?: string;
+  contact_email?: string; // Handle snake_case from backend
+  storeType: string;
+  store_type?: string; // Handle snake_case from backend
+  deliveryRadiusMi?: number;
+  delivery_radius_mi?: number; // Handle snake_case from backend
+  slug?: string;
+  canProduce: boolean;
+  can_produce?: boolean;
+  canProcess: boolean;
+  can_process?: boolean;
+  canRetail: boolean;
+  can_retail?: boolean;
+  partnershipRadiusMi: number;
+  partnership_radius_mi?: number;
+  autoAcceptPartnerships: boolean;
+  auto_accept_partnerships?: boolean;
 }
 
 interface UseUserStoreReturn {
@@ -39,7 +62,12 @@ export const useUserStore = (): UseUserStoreReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { isAuthenticated, user, handleAuthenticationError } = useAuth();
+  const {
+    isAuthenticated,
+    user,
+    handleAuthenticationError,
+    updateStoreStatus,
+  } = useAuth();
   const navigate = useNavigate();
   const isFetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -51,6 +79,21 @@ export const useUserStore = (): UseUserStoreReturn => {
   const fetchStores = useCallback(async () => {
     if (!isAuthenticated || !user) {
       console.log('👤 User not authenticated, skipping store fetch');
+      setStores([]);
+      setPrimaryStore(null);
+      hasInitializedRef.current = true;
+      return;
+    }
+
+    // Only fetch stores for StoreOwner users
+    // Use proper normalization to handle all user type variations
+
+    const normalizedUserType = normalizeToFrontendUserType(user.userType);
+
+    if (normalizedUserType !== 'store_owner') {
+      console.log(
+        `👤 User type "${user.userType}" (normalized: "${normalizedUserType}") - skipping store fetch`
+      );
       setStores([]);
       setPrimaryStore(null);
       hasInitializedRef.current = true;
@@ -302,12 +345,6 @@ export const useUserStore = (): UseUserStoreReturn => {
         }
       }
 
-      // EXTREME DEBUG: Check what axios instance we're actually using
-      console.log('🔍 useUserStore - About to make API call');
-      console.log('🔍 api.defaults.baseURL:', api.defaults.baseURL);
-      console.log('🔍 window.location.origin:', window.location.origin);
-      console.log('🔍 ALL localStorage keys:', Object.keys(localStorage));
-
       // Check all potential sources of the wrong URL
       console.log('🔍 Environment checks:');
       console.log(
@@ -378,8 +415,56 @@ export const useUserStore = (): UseUserStoreReturn => {
 
       try {
         response = await freshAxios.get('/api/stores/my-stores');
-        userStores = response.data;
-        console.log('✅ Fresh axios worked:', userStores);
+
+        // Handle different API response formats
+        // Format 1: { data: [...], success: true } (wrapped response)
+        // Format 2: [...] (direct array response)
+        if (response.data && Array.isArray(response.data)) {
+          userStores = response.data;
+        } else if (
+          response.data &&
+          response.data.data &&
+          Array.isArray(response.data.data)
+        ) {
+          userStores = response.data.data;
+        } else if (response.data && response.data.success !== undefined) {
+          // Look for stores array in various possible locations
+          userStores = response.data.stores || response.data.data || [];
+        } else {
+          userStores = [];
+        }
+
+        // Normalize store data to handle both camelCase and snake_case fields
+        if (userStores && Array.isArray(userStores)) {
+          userStores = userStores.map((store) => {
+            const normalizedStore = {
+              storeId: store.storeId || store.store_id,
+              storeName: store.storeName || store.store_name,
+              description: store.description,
+              storeCreatorId: store.storeCreatorId || store.store_creator_id,
+              approvalStatus: store.approvalStatus || store.approval_status,
+              createdAt: store.createdAt || store.created_at,
+              updatedAt: store.updatedAt || store.updated_at,
+              contactPhone: store.contactPhone || store.contact_phone,
+              contactEmail: store.contactEmail || store.contact_email,
+              storeType: store.storeType || store.store_type,
+              deliveryRadiusMi:
+                store.deliveryRadiusMi || store.delivery_radius_mi,
+              slug: store.slug,
+              canProduce: store.canProduce || store.can_produce || false,
+              canProcess: store.canProcess || store.can_process || false,
+              canRetail: store.canRetail || store.can_retail || true,
+              partnershipRadiusMi:
+                store.partnershipRadiusMi || store.partnership_radius_mi || 50,
+              autoAcceptPartnerships:
+                store.autoAcceptPartnerships ||
+                store.auto_accept_partnerships ||
+                false,
+            };
+
+            return normalizedStore;
+          });
+        }
       } catch (axiosError: any) {
         console.error(
           '❌ Fresh axios failed, trying native fetch:',
@@ -437,22 +522,54 @@ export const useUserStore = (): UseUserStoreReturn => {
           throw new Error(`HTTP error! status: ${fetchResponse.status}`);
         }
 
-        userStores = await fetchResponse.json();
-        console.log('✅ Native fetch worked:', userStores);
+        const fetchResponseData = await fetchResponse.json();
+        console.log('✅ Native fetch worked - Response:', {
+          status: fetchResponse.status,
+          statusText: fetchResponse.statusText,
+          url: fetchResponse.url,
+          data: fetchResponseData,
+        });
+        // Handle wrapped API response format: { data: [...], success: true }
+        userStores = fetchResponseData.data;
+        console.log('✅ Native fetch worked - userStores:', userStores);
+        console.log(
+          '✅ Native fetch worked - userStores type:',
+          typeof userStores
+        );
+        console.log(
+          '✅ Native fetch worked - userStores length:',
+          userStores?.length
+        );
+        console.log(
+          '✅ Native fetch worked - userStores is array:',
+          Array.isArray(userStores)
+        );
       }
-      console.log('✅ Stores fetched:', userStores);
+
+      if (userStores && Array.isArray(userStores)) {
+      } else {
+        console.log('❌ userStores is not an array:', userStores);
+      }
 
       setStores(userStores);
 
-      // Set primary store (first active store or first store)
-      const activeStore = userStores.find((store) => store.isActive);
-      const primary = activeStore || userStores[0] || null;
+      // Set primary store (use first store since there's no is_primary column)
+      const primary = userStores[0] || null;
 
       setPrimaryStore(primary);
       console.log('🎯 Primary store set:', primary);
 
+      // Update store status in auth context
+      const hasStores = userStores.length > 0;
+      if (updateStoreStatus && user?.hasStore !== hasStores) {
+        console.log(`🔄 Updating store status: ${hasStores}`);
+        updateStoreStatus(hasStores);
+      }
+
       if (userStores.length === 0) {
         console.log('ℹ️ No stores found for user');
+      } else {
+        console.log(`📊 Found ${userStores.length} stores for user`);
       }
     } catch (fetchError) {
       console.error('❌ Failed to fetch user stores:', fetchError);
@@ -511,7 +628,7 @@ export const useUserStore = (): UseUserStoreReturn => {
       setIsLoading(false);
       hasInitializedRef.current = true;
     }
-  }, [isAuthenticated, user?.email]); // Only depend on specific user property to reduce re-renders
+  }, [isAuthenticated, user, handleAuthenticationError, navigate]); // Include all dependencies used in fetchStores
 
   const refetchStores = useCallback(async () => {
     console.log('🔄 Manual store refetch requested');
@@ -519,16 +636,25 @@ export const useUserStore = (): UseUserStoreReturn => {
   }, [fetchStores]);
 
   // Auto-fetch stores when authentication state changes (only once per auth state)
-  // Add delay to prevent rate limiting during login
+  // Only fetch stores for StoreOwner users - customers don't have stores
   useEffect(() => {
     if (!hasInitializedRef.current && isAuthenticated && user?.email) {
-      const timer = setTimeout(() => {
-        fetchStores();
-      }, 1000); // 1 second delay
+      // Only fetch stores for StoreOwner users
+      if (normalizeToFrontendUserType(user.userType) === 'store_owner') {
+        const timer = setTimeout(() => {
+          fetchStores();
+        }, 1000); // 1 second delay
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      } else {
+        // For non-StoreOwner users (Customers, Admins), set empty stores and mark as initialized
+        console.log(`👤 User type "${user.userType}" - skipping store fetch`);
+        setStores([]);
+        setPrimaryStore(null);
+        hasInitializedRef.current = true;
+      }
     }
-  }, [isAuthenticated, user?.email, fetchStores]);
+  }, [isAuthenticated, user?.email, user?.userType, fetchStores]);
 
   // Removed debug logging to reduce console output and improve performance
 

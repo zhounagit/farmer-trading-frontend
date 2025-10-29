@@ -1,9 +1,4 @@
-export interface StoreOpenHours {
-  dayOfWeek: number;
-  openTime: string;
-  closeTime: string;
-  isClosed: boolean;
-}
+import type { StoreOpenHours } from '../features/stores/services/open-shop.types';
 
 export interface ConsolidatedHours {
   day: string;
@@ -38,6 +33,8 @@ export const consolidateBusinessHours = (
       dayHours[hour.dayOfWeek] = 'Closed';
     } else if (hour.openTime && hour.closeTime) {
       dayHours[hour.dayOfWeek] = `${hour.openTime} - ${hour.closeTime}`;
+    } else {
+      dayHours[hour.dayOfWeek] = 'Hours not set';
     }
   });
 
@@ -87,11 +84,16 @@ export const normalizeBusinessHours = (
   if (!hours || !Array.isArray(hours)) return [];
 
   return hours.map((hour) => ({
+    storeId: (hour.storeId as number) || 0,
     dayOfWeek: (hour.dayOfWeek as number) || (hour.dayIndex as number) || 0,
     openTime: (hour.openTime as string) || (hour.open_time as string) || '',
     closeTime: (hour.closeTime as string) || (hour.close_time as string) || '',
     isClosed:
       (hour.isClosed as boolean) || (hour.is_closed as boolean) || false,
+    isAllDay:
+      (hour.isAllDay as boolean) || (hour.is_all_day as boolean) || false,
+    createdAt: (hour.createdAt as string) || new Date().toISOString(),
+    updatedAt: (hour.updatedAt as string) || new Date().toISOString(),
   }));
 };
 

@@ -15,10 +15,10 @@ import {
 } from '@mui/material';
 import { Search, Store, LocalOffer, Category } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { debounce } from '../../utils/debounce';
+import { debounce } from '@/utils/debounce';
 import StorefrontApiService, {
   type SearchSuggestion,
-} from '../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface HeroSectionProps {
   onSearch?: (query: string) => void;
@@ -54,6 +54,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
         setPopularTerms(response.terms);
       } catch (error) {
         console.error('Failed to load popular search terms:', error);
+        // Set empty terms on error to prevent UI issues
+        setPopularTerms([]);
       }
     };
 

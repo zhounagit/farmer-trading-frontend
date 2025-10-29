@@ -1,20 +1,31 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import type { ReactNode } from 'react';
+import { handleApiError, tokenUtils, STORAGE_KEYS } from '../utils/api';
+import { apiService } from '../shared/services/api-service';
 import {
-  authApi,
-  handleApiError,
-  tokenUtils,
-  STORAGE_KEYS,
-} from '../utils/api';
-import { apiService } from '../services/api';
+  API_ENDPOINTS,
+  type UserPreferences,
+} from '../shared/types/api-contracts';
 import type { User, AuthContextType, RegisterData } from '../types/auth';
+import type {
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+} from '../types/auth';
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
-import { initializeProfilePicture } from '../utils/profilePictureStorage';
-
+import { useProfile } from '../hooks/useProfile';
+import { normalizeToFrontendUserType } from '../utils/typeMapping';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -32,7 +43,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoadingProfilePicture, setIsLoadingProfilePicture] = useState(false);
+  const [userVersion, setUserVersion] = useState(0); // Force re-renders when user data changes
+
+  // User preferences state
+  const [userPreferences, setUserPreferences] =
+    useState<UserPreferences | null>(null);
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
+  const [preferencesError, setPreferencesError] = useState<string | null>(null);
+
+  // Use the profile hook for profile picture management
+  const { loadProfile, getProfile } = useProfile();
+
+  // Controlled profile picture sync - only update user when explicitly needed
+  const syncProfilePicture = useCallback(
+    async (userId: string): Promise<void> => {
+      try {
+        // Force reload the profile to ensure we have the latest data
+        await loadProfile(userId);
+
+        // Give the profile hook a moment to update
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const profile = getProfile(userId);
+
+        if (profile?.profilePictureUrl) {
+          // Only update user if profile picture URL actually changed
+          setUser((prevUser) => {
+            if (!prevUser) {
+              return prevUser;
+            }
+
+            // Always update when we have a valid profile picture URL
+            // This ensures components get the latest data even if URL appears unchanged
+            // (URLs might be the same but components need refresh)
+
+            const updatedUser = {
+              ...prevUser,
+              profilePictureUrl: profile.profilePictureUrl,
+              profilePictureUpdatedAt: Date.now(), // Add timestamp to force re-renders
+            };
+
+            // Update localStorage to persist the change
+            localStorage.setItem(
+              STORAGE_KEYS.USER_DATA,
+              JSON.stringify(updatedUser)
+            );
+
+            return updatedUser;
+          });
+        }
+      } catch (error) {
+        console.warn('AuthContext: Failed to sync profile picture:', error);
+      }
+    },
+    [loadProfile, getProfile]
+  );
 
   // Cross-tab login detection
   useEffect(() => {
@@ -43,18 +108,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const newUserData = JSON.parse(e.newValue);
             setUser(newUserData);
-            toast.info('Session updated from another tab');
-          } catch (error) {
-            console.error(
-              'Failed to parse user data from storage event:',
-              error
-            );
+            toast('Session updated from another tab');
+          } catch {
+            // Silently handle parsing errors
           }
         } else {
           // User data was cleared (logout)
           setUser(null);
           setError(null);
-          toast.info('Logged out from another tab');
+          toast('Logged out from another tab');
         }
       }
     };
@@ -79,23 +141,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           const parsedUser = JSON.parse(userData);
 
-          // Always initialize profile picture from localStorage if available
-          const storedProfilePicture = initializeProfilePicture(
-            parsedUser.userId
-          );
-          if (storedProfilePicture) {
-            parsedUser.profilePictureUrl = storedProfilePicture;
+          // Normalize user type to handle any variations from localStorage
+          const normalizedUser = {
+            ...parsedUser,
+            userType: normalizeToFrontendUserType(parsedUser.userType),
+          };
+
+          // Check if user is active - if not, auto-logout
+          if (normalizedUser.isActive === false) {
+            console.warn('User account is inactive, auto-logging out');
+            tokenUtils.clearAllTokens();
+            setUser(null);
+            toast.error('Your account has been deactivated');
+            return;
           }
 
-          setUser(parsedUser);
+          setUser(normalizedUser);
 
-          // Try to load profile picture from backend API
-          loadProfilePictureFromBackend(parsedUser);
+          // Skip profile picture sync - it overrides correct data with stale backend data
         }
-      } catch (error) {
+      } catch {
         // If parsing fails, clear the invalid data
         tokenUtils.clearAllTokens();
-        console.error('Error parsing stored user data:', error);
       } finally {
         // Mark initialization as complete
         setIsInitializing(false);
@@ -103,42 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
-
-  // Helper function to load profile picture from backend
-  const loadProfilePictureFromBackend = async (userData: User) => {
-    // Prevent multiple concurrent calls
-    if (isLoadingProfilePicture) {
-      console.log('🔄 AuthContext: Profile picture already loading, skipping');
-      return;
-    }
-
-    setIsLoadingProfilePicture(true);
-    try {
-      const result = await apiService.getUserProfilePicture(
-        userData.userId.toString()
-      );
-
-      if (result.profilePictureUrl && result.hasProfilePicture) {
-        // Update user data if we got a different profile picture URL from backend
-        if (result.profilePictureUrl !== userData.profilePictureUrl) {
-          const updatedUser = {
-            ...userData,
-            profilePictureUrl: result.profilePictureUrl,
-          };
-          setUser(updatedUser);
-          localStorage.setItem(
-            STORAGE_KEYS.USER_DATA,
-            JSON.stringify(updatedUser)
-          );
-        }
-      }
-    } catch (error) {
-      // Don't throw error - just log it, we don't want to break the initialization
-    } finally {
-      setIsLoadingProfilePicture(false);
-    }
-  };
+  }, []); // Empty dependencies - only run once on mount
 
   const login = async (email: string, password: string): Promise<User> => {
     setIsLoading(true);
@@ -150,33 +182,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       tokenUtils.clearAllTokens();
       setUser(null);
       setError(null);
-      const data = (await authApi.login(email, password)) as {
-        userId: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        userType: string;
-        referralCode?: string;
-        hasStore?: boolean;
-        accessToken: string;
-        refreshToken?: string;
-      };
+      const loginRequest: LoginRequest = { email, password };
+      const data = await apiService.post<LoginResponse>(
+        API_ENDPOINTS.AUTH.LOGIN,
+        loginRequest
+      );
 
       const userData: User = {
-        userId: data.userId,
+        userId: data.userId.toString(),
         email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        userType: data.userType as 'Customer' | 'Store Owner' | 'Admin',
-        referralCode: data.referralCode,
-        hasStore: data.hasStore,
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        userType: normalizeToFrontendUserType(data.userType),
+        myReferralCode: '', // Will be updated from profile
+        hasStore: data.hasStore || false,
+        profilePictureUrl: data.profilePictureUrl, // Use from login response
+        isActive: true, // Assume active on login
       };
-
-      // Always initialize profile picture from localStorage if available
-      const storedProfilePicture = initializeProfilePicture(userData.userId);
-      if (storedProfilePicture) {
-        userData.profilePictureUrl = storedProfilePicture;
-      }
 
       // Store token and user data (previous tokens already cleared above)
       tokenUtils.setAccessToken(data.accessToken);
@@ -187,8 +209,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUser(userData);
 
-      // Try to load profile picture from backend API after login
-      loadProfilePictureFromBackend(userData);
+      // Load profile data and sync profile picture
+      try {
+        // Syncing profile picture after login for user ${userData.userId}
+        await syncProfilePicture(userData.userId.toString());
+      } catch (error) {
+        console.warn(
+          'AuthContext: Failed to sync profile picture after login:',
+          error
+        );
+      }
 
       toast.success('Welcome back!');
 
@@ -208,25 +238,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const responseData = (await authApi.register(data)) as {
-        userId: string;
-        email: string;
-        accessToken: string;
-        referralCode?: string;
+      const registerRequest: RegisterRequest = {
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        userType: data.userType,
+        referralCode: data.referralCode,
       };
+      const responseData = await apiService.post<LoginResponse>(
+        API_ENDPOINTS.AUTH.REGISTER,
+        registerRequest
+      );
 
       const userData: User = {
-        userId: responseData.userId,
+        userId: responseData.userId.toString(),
         email: responseData.email,
         firstName: data.firstName,
         lastName: data.lastName,
-        userType: 'Customer', // Default user type
-        referralCode: responseData.referralCode,
-        hasStore: false,
+        userType: responseData.userType.toLowerCase() as
+          | 'customer'
+          | 'store_owner'
+          | 'admin',
+        myReferralCode: '', // Will be updated from profile
+        hasStore: responseData.hasStore || false,
+        profilePictureUrl: undefined, // Will be updated from profile
+        isActive: true, // Assume active on login
       };
 
       // Store token and user data
       tokenUtils.setAccessToken(responseData.accessToken);
+      if (responseData.refreshToken) {
+        tokenUtils.setRefreshToken(responseData.refreshToken);
+      }
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
       setUser(userData);
@@ -241,17 +287,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (message?: string) => {
     try {
       const refreshToken = tokenUtils.getRefreshToken();
 
       // Call backend logout endpoint if refresh token exists
       if (refreshToken) {
         try {
-          await authApi.logout(refreshToken);
-        } catch (error) {
+          await apiService.post(API_ENDPOINTS.AUTH.LOGOUT, { refreshToken });
+        } catch {
           // Ignore errors on logout - we're clearing local state regardless
-          console.warn('Logout API call failed:', error);
         }
       }
     } finally {
@@ -259,7 +304,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       tokenUtils.clearAllTokens();
       setUser(null);
       setError(null);
-      toast.success('Logged out successfully');
+      // Profile tracking is now handled internally by useProfile hook
+      toast.success(message || 'Logged out successfully');
     }
   };
 
@@ -271,10 +317,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const data = (await authApi.refresh(refreshTokenValue)) as {
+      const data = await apiService.post<{
         accessToken: string;
         refreshToken?: string;
-      };
+      }>(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken: refreshTokenValue });
 
       tokenUtils.setAccessToken(data.accessToken);
       if (data.refreshToken) {
@@ -294,9 +340,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateReferralCode = (referralCode: string) => {
     if (user) {
-      const updatedUser = { ...user, referralCode };
+      const updatedUser = { ...user, myReferralCode: referralCode };
       setUser(updatedUser);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
     }
   };
 
@@ -308,78 +353,109 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateProfile = (updates: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+  const updateProfile = useCallback(
+    (updates: Partial<User>) => {
+      if (user) {
+        const updatedUser = {
+          ...user,
+          ...updates,
+          // Add a timestamp to force re-renders in all components
+          _lastUpdated: Date.now(),
+        };
+
+        setUser(updatedUser);
+        setUserVersion((prev) => prev + 1); // Force all components to re-render
+        localStorage.setItem(
+          STORAGE_KEYS.USER_DATA,
+          JSON.stringify(updatedUser)
+        );
+      } else {
+      }
+    },
+    [user, userVersion]
+  );
+
+  // Load user preferences function
+  const loadUserPreferences = useCallback(async (): Promise<void> => {
+    if (!user || isLoadingPreferences) {
+      return;
     }
-  };
+
+    setIsLoadingPreferences(true);
+    setPreferencesError(null);
+
+    try {
+      const preferences = await apiService.get<UserPreferences>(
+        API_ENDPOINTS.USERS.PREFERENCES(parseInt(user.userId))
+      );
+
+      setUserPreferences(preferences);
+      setPreferencesError(null);
+    } catch (error: unknown) {
+      setPreferencesError('Failed to load preferences');
+      // Set default preferences on error
+      setUserPreferences({
+        privacy: {
+          showEmail: false,
+          showPhone: false,
+          allowMessages: true,
+        },
+        notifications: {
+          email: true,
+          push: true,
+          sms: false,
+          marketing: false,
+        },
+        display: {
+          theme: 'auto' as const,
+          language: 'en',
+          timezone: 'UTC',
+        },
+        referralCredits: {
+          handling: 'bank_transfer',
+        },
+      });
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  }, [user, isLoadingPreferences]);
+
+  // Update user preferences function
+  const updateUserPreferences = useCallback((preferences: UserPreferences) => {
+    setUserPreferences(preferences);
+  }, []);
+
+  // Load preferences when user changes
+  useEffect(() => {
+    if (user && !userPreferences && !isLoadingPreferences) {
+      loadUserPreferences();
+    }
+  }, [user, userPreferences, isLoadingPreferences, loadUserPreferences]);
 
   const refreshUserProfile = async () => {
     if (!user) return;
 
+    const userId = user.userId.toString();
+
+    // Delegate to profile store for data refresh
     try {
-      // First try to get profile picture from backend API
-      const result = await apiService.getUserProfilePicture(
-        user.userId.toString()
-      );
+      // Force refresh profile data to get updated profile picture
+      await loadProfile(userId);
 
-      let updatedProfilePictureUrl = user.profilePictureUrl;
-
-      if (result.profilePictureUrl && result.hasProfilePicture) {
-        updatedProfilePictureUrl = result.profilePictureUrl;
-      } else {
-        // Fallback to localStorage if backend doesn't have profile picture
-        const storedProfilePicture = initializeProfilePicture(user.userId);
-        if (storedProfilePicture) {
-          updatedProfilePictureUrl = storedProfilePicture;
-        }
-      }
-
-      // Only update if the profile picture URL has changed
-      if (updatedProfilePictureUrl !== user.profilePictureUrl) {
-        const refreshedUser: User = {
-          ...user,
-          profilePictureUrl: updatedProfilePictureUrl,
-        };
-
-        // Update both context and localStorage
-        setUser(refreshedUser);
-        localStorage.setItem(
-          STORAGE_KEYS.USER_DATA,
-          JSON.stringify(refreshedUser)
-        );
-      }
-    } catch (error) {
-      console.error('Failed to refresh user profile:', error);
-
-      // Fallback to localStorage if API call fails
-      try {
-        const storedProfilePicture = initializeProfilePicture(user.userId);
-        if (
-          storedProfilePicture &&
-          storedProfilePicture !== user.profilePictureUrl
-        ) {
-          const refreshedUser: User = {
-            ...user,
-            profilePictureUrl: storedProfilePicture,
-          };
-
-          setUser(refreshedUser);
-          localStorage.setItem(
-            STORAGE_KEYS.USER_DATA,
-            JSON.stringify(refreshedUser)
-          );
-        }
-      } catch (storageError) {
+      // Check if user is still active after profile refresh
+      // Profile is loaded but not used for isActive check
+      getProfile(userId);
+      if (user?.isActive === false) {
         console.warn(
-          'Failed to load profile picture from storage:',
-          storageError
+          'User account is inactive after profile refresh, auto-logging out'
         );
+        await logout('Your account has been deactivated');
+        return;
       }
 
-      // Don't throw error - just log it, we don't want to break the UI
+      // Skip profile picture sync - it overrides correct data
+    } catch {
+      // Silently handle profile refresh errors
     }
   };
 
@@ -400,15 +476,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const triggerProfilePictureLoad = async () => {
-    if (user && !isLoadingProfilePicture) {
-      await loadProfilePictureFromBackend(user);
+    if (user) {
+      const userId = user.userId.toString();
+      await loadProfile(userId);
     }
+  };
+
+  const refreshProfilePicture = async (): Promise<void> => {
+    if (!user) {
+      return;
+    }
+
+    const userId = user.userId.toString();
+
+    try {
+      // Force reload the profile data
+      await loadProfile(userId);
+
+      // Skip profile picture sync - it overrides correct data
+    } catch (error) {}
   };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && user.isActive !== false,
     isLoading: isLoading || isInitializing,
+    userVersion, // Expose version to force component re-renders
+    userPreferences,
+    isLoadingPreferences,
+    preferencesError,
     login,
     register,
     logout,
@@ -420,6 +516,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile,
     refreshUserProfile,
     triggerProfilePictureLoad,
+    refreshProfilePicture,
+    loadUserPreferences,
+    updateUserPreferences,
     handleAuthenticationError,
   };
 

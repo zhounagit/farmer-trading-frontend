@@ -21,7 +21,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface ProductCategoriesModuleProps {
   module: StorefrontModule;

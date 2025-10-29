@@ -1,10 +1,9 @@
 import React from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-} from '@mui/material';
-import type { StorefrontModule, PublicStorefront } from '../../../services/storefront.api';
+import { Box, Container, Typography } from '@mui/material';
+import type {
+  StorefrontModule,
+  PublicStorefront,
+} from '@/features/search/services/storefront.api';
 
 interface NewsletterSignupModuleProps {
   module: StorefrontModule;
@@ -20,16 +19,16 @@ const NewsletterSignupModule: React.FC<NewsletterSignupModuleProps> = ({
 
   return (
     <Box sx={{ py: 6, backgroundColor: 'primary.main', color: 'white' }}>
-      <Container maxWidth="lg">
+      <Container maxWidth='lg'>
         <Typography
-          variant="h3"
-          component="h2"
-          textAlign="center"
+          variant='h3'
+          component='h2'
+          textAlign='center'
           sx={{ mb: 4 }}
         >
           {title}
         </Typography>
-        <Typography variant="body1" textAlign="center" color="inherit">
+        <Typography variant='body1' textAlign='center' color='inherit'>
           Newsletter Signup module - Coming Soon
         </Typography>
       </Container>

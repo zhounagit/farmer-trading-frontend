@@ -4,7 +4,7 @@ import { Store } from '@mui/icons-material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface StoreIntroductionModuleProps {
   module: StorefrontModule;

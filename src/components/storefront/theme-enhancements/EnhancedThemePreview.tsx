@@ -117,7 +117,13 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               category: 'Chemicals',
             },
           ],
-          categories: ['Equipment', 'Seeds', 'Chemicals', 'Tools', 'Safety Gear'],
+          categories: [
+            'Equipment',
+            'Seeds',
+            'Chemicals',
+            'Tools',
+            'Safety Gear',
+          ],
         };
 
       case 'rustic':
@@ -159,7 +165,13 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               category: 'Pantry',
             },
           ],
-          categories: ['Vegetables', 'Fruits', 'Dairy & Eggs', 'Pantry', 'Flowers'],
+          categories: [
+            'Vegetables',
+            'Fruits',
+            'Dairy & Eggs',
+            'Pantry',
+            'Flowers',
+          ],
         };
 
       case 'gallery':
@@ -201,7 +213,13 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               category: 'Textiles',
             },
           ],
-          categories: ['Paintings', 'Ceramics', 'Sculptures', 'Textiles', 'Photography'],
+          categories: [
+            'Paintings',
+            'Ceramics',
+            'Sculptures',
+            'Textiles',
+            'Photography',
+          ],
         };
 
       case 'minimalist':
@@ -312,7 +330,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               id: 1,
               name: 'Classic Strawberry Jam',
               price: '$8.50',
-              description: 'Made from Grandma\'s secret recipe',
+              description: "Made from Grandma's secret recipe",
               image: '/api/placeholder/300/300',
               year: 'Est. 1952',
               category: 'Preserves',
@@ -378,7 +396,13 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               category: 'Party Platters',
             },
           ],
-          categories: ['Veggie Boxes', 'Meal Kits', 'Party Platters', 'Snacks', 'Drinks'],
+          categories: [
+            'Veggie Boxes',
+            'Meal Kits',
+            'Party Platters',
+            'Snacks',
+            'Drinks',
+          ],
         };
     }
   };
@@ -402,31 +426,40 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               overflow: 'hidden',
               transition: 'var(--theme-transition-normal)',
               transform: isHovering === product.id ? 'scale(1.02)' : 'scale(1)',
-              boxShadow: isHovering === product.id ? 'var(--theme-shadow-lg)' : 'var(--theme-shadow-sm)',
+              boxShadow:
+                isHovering === product.id
+                  ? 'var(--theme-shadow-lg)'
+                  : 'var(--theme-shadow-sm)',
             }}
             onMouseEnter={() => handleHover(product.id)}
             onMouseLeave={handleLeave}
           >
             <CardMedia
-              component="img"
-              height="300"
+              component='img'
+              height='300'
               image={product.image}
               alt={product.name}
             />
             <CardContent>
-              <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 1 }}>
+              <Typography
+                variant='h6'
+                sx={{ fontFamily: 'var(--theme-font-primary)', mb: 1 }}
+              >
                 {product.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
                 {product.artist} • {product.year}
               </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <Typography variant='body2' sx={{ mb: 1 }}>
                 {product.medium}
               </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography variant='body2' sx={{ mb: 2 }}>
                 {product.dimensions}
               </Typography>
-              <Typography variant="h6" sx={{ color: 'var(--theme-primary)', fontWeight: 'bold' }}>
+              <Typography
+                variant='h6'
+                sx={{ color: 'var(--theme-primary)', fontWeight: 'bold' }}
+              >
                 {product.price}
               </Typography>
             </CardContent>
@@ -447,14 +480,14 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
           >
             <Box sx={{ position: 'relative' }}>
               <CardMedia
-                component="img"
-                height="200"
+                component='img'
+                height='200'
                 image={product.image}
                 alt={product.name}
               />
               {!product.inStock && (
                 <Chip
-                  label="OUT OF STOCK"
+                  label='OUT OF STOCK'
                   sx={{
                     position: 'absolute',
                     top: 10,
@@ -467,23 +500,45 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               )}
             </Box>
             <CardContent>
-              <Typography variant="caption" sx={{ color: 'var(--theme-text-muted)' }}>
+              <Typography
+                variant='caption'
+                sx={{ color: 'var(--theme-text-muted)' }}
+              >
                 {product.sku}
               </Typography>
-              <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', fontWeight: 'bold', mb: 1 }}>
+              <Typography
+                variant='h6'
+                sx={{
+                  fontFamily: 'var(--theme-font-primary)',
+                  fontWeight: 'bold',
+                  mb: 1,
+                }}
+              >
                 {product.name}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Rating value={product.rating} precision={0.1} size="small" readOnly />
-                <Typography variant="caption" sx={{ ml: 1 }}>
+                <Rating
+                  value={product.rating}
+                  precision={0.1}
+                  size='small'
+                  readOnly
+                />
+                <Typography variant='caption' sx={{ ml: 1 }}>
                   ({product.reviews} reviews)
                 </Typography>
               </Box>
-              <Typography variant="h5" sx={{ color: 'var(--theme-primary)', fontWeight: 'bold', mb: 2 }}>
+              <Typography
+                variant='h5'
+                sx={{
+                  color: 'var(--theme-primary)',
+                  fontWeight: 'bold',
+                  mb: 2,
+                }}
+              >
                 {product.price}
               </Typography>
               <Button
-                variant="contained"
+                variant='contained'
                 fullWidth
                 disabled={!product.inStock}
                 sx={{
@@ -510,7 +565,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
             }}
           >
             <CardMedia
-              component="img"
+              component='img'
               image={product.image}
               alt={product.name}
               sx={{
@@ -518,10 +573,16 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
                 mb: 2,
               }}
             />
-            <Typography variant="body1" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 0.5 }}>
+            <Typography
+              variant='body1'
+              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 0.5 }}
+            >
               {product.name}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'var(--theme-text-secondary)' }}>
+            <Typography
+              variant='body2'
+              sx={{ color: 'var(--theme-text-secondary)' }}
+            >
               {product.price}
             </Typography>
           </Card>
@@ -541,8 +602,8 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
             }}
           >
             <CardMedia
-              component="img"
-              height="250"
+              component='img'
+              height='250'
               image={product.image}
               alt={product.name}
               sx={{
@@ -566,10 +627,10 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               </Box>
             )}
             <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>
+              <Typography variant='h5' sx={{ fontWeight: 900, mb: 1 }}>
                 {product.name}
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 900 }}>
+              <Typography variant='h4' sx={{ fontWeight: 900 }}>
                 {product.price}
               </Typography>
             </CardContent>
@@ -587,23 +648,29 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               borderRadius: 'var(--theme-radius-lg)',
               overflow: 'hidden',
               transition: 'var(--theme-transition-normal)',
-              transform: isHovering === product.id ? 'translateY(-4px)' : 'translateY(0)',
-              boxShadow: isHovering === product.id ? 'var(--theme-shadow-lg)' : 'var(--theme-shadow-md)',
+              transform:
+                isHovering === product.id
+                  ? 'translateY(-4px)'
+                  : 'translateY(0)',
+              boxShadow:
+                isHovering === product.id
+                  ? 'var(--theme-shadow-lg)'
+                  : 'var(--theme-shadow-md)',
             }}
             onMouseEnter={() => handleHover(product.id)}
             onMouseLeave={handleLeave}
           >
             <Box sx={{ position: 'relative' }}>
               <CardMedia
-                component="img"
-                height="200"
+                component='img'
+                height='200'
                 image={product.image}
                 alt={product.name}
               />
               {product.badge && (
                 <Chip
                   label={product.badge}
-                  size="small"
+                  size='small'
                   sx={{
                     position: 'absolute',
                     top: 10,
@@ -625,35 +692,57 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
                     color: 'white',
                   },
                 }}
-                size="small"
+                size='small'
               >
                 <FavoriteBorder />
               </IconButton>
             </Box>
             <CardContent>
-              <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 1 }}>
+              <Typography
+                variant='h6'
+                sx={{ fontFamily: 'var(--theme-font-primary)', mb: 1 }}
+              >
                 {product.name}
               </Typography>
               {product.description && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mb: 1 }}
+                >
                   {product.description}
                 </Typography>
               )}
               {product.rating && (
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Rating value={product.rating} precision={0.1} size="small" readOnly />
-                  <Typography variant="caption" sx={{ ml: 1 }}>
+                  <Rating
+                    value={product.rating}
+                    precision={0.1}
+                    size='small'
+                    readOnly
+                  />
+                  <Typography variant='caption' sx={{ ml: 1 }}>
                     ({product.reviews})
                   </Typography>
                 </Box>
               )}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                <Typography variant="h6" sx={{ color: 'var(--theme-primary)', fontWeight: 'bold' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mt: 2,
+                }}
+              >
+                <Typography
+                  variant='h6'
+                  sx={{ color: 'var(--theme-primary)', fontWeight: 'bold' }}
+                >
                   {product.price}
                 </Typography>
                 <Button
-                  variant="contained"
-                  size="small"
+                  variant='contained'
+                  size='small'
                   sx={{
                     backgroundColor: 'var(--theme-primary)',
                     borderRadius: 'var(--theme-radius-lg)',
@@ -680,13 +769,19 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
         p: 2,
       }}
     >
-      <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Container maxWidth='lg'>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Store sx={{ fontSize: 32, color: 'var(--theme-primary)' }} />
             <Box>
               <Typography
-                variant="h5"
+                variant='h5'
                 sx={{
                   fontFamily: 'var(--theme-font-primary)',
                   fontWeight: 'bold',
@@ -696,7 +791,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
                 {mockData.storeName}
               </Typography>
               <Typography
-                variant="caption"
+                variant='caption'
                 sx={{
                   color: 'var(--theme-text-secondary)',
                   fontFamily: 'var(--theme-font-secondary)',
@@ -707,15 +802,15 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
             </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton size="small">
+            <IconButton size='small'>
               <Search />
             </IconButton>
-            <IconButton size="small">
-              <Badge badgeContent={3} color="primary">
+            <IconButton size='small'>
+              <Badge badgeContent={3} color='primary'>
                 <ShoppingCart />
               </Badge>
             </IconButton>
-            <IconButton size="small">
+            <IconButton size='small'>
               <Favorite />
             </IconButton>
           </Box>
@@ -752,10 +847,12 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
             mb: 2,
           }}
         >
-          {theme.category === 'minimalist' ? 'Welcome' : `Welcome to ${mockData.storeName}`}
+          {theme.category === 'minimalist'
+            ? 'Welcome'
+            : `Welcome to ${mockData.storeName}`}
         </Typography>
         <Typography
-          variant="h6"
+          variant='h6'
           sx={{
             fontFamily: 'var(--theme-font-secondary)',
             color: 'var(--theme-text-secondary)',
@@ -765,8 +862,8 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
           {mockData.tagline}
         </Typography>
         <Button
-          variant="contained"
-          size="large"
+          variant='contained'
+          size='large'
           sx={{
             backgroundColor: 'var(--theme-primary)',
             borderRadius: 'var(--theme-radius-lg)',
@@ -786,7 +883,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
   const renderCategories = () => (
     <Box sx={{ py: 4 }}>
       <Typography
-        variant="h5"
+        variant='h5'
         sx={{
           fontFamily: 'var(--theme-font-primary)',
           fontWeight: 'bold',
@@ -816,7 +913,10 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
               }}
             >
               <Category sx={{ fontSize: 30, mb: 1 }} />
-              <Typography variant="body2" sx={{ fontFamily: 'var(--theme-font-primary)' }}>
+              <Typography
+                variant='body2'
+                sx={{ fontFamily: 'var(--theme-font-primary)' }}
+              >
                 {category}
               </Typography>
             </Paper>
@@ -835,62 +935,69 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
         py: 3,
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth='lg'>
         <Grid container spacing={4}>
           <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}>
+            <Typography
+              variant='h6'
+              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
+            >
               Contact Us
             </Typography>
             <List dense>
               <ListItem>
                 <ListItemIcon>
-                  <Phone fontSize="small" />
+                  <Phone fontSize='small' />
                 </ListItemIcon>
-                <ListItemText primary="(555) 123-4567" />
+                <ListItemText primary='(555) 123-4567' />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <Email fontSize="small" />
+                  <Email fontSize='small' />
                 </ListItemIcon>
-                <ListItemText primary="hello@farm.com" />
+                <ListItemText primary='hello@farm.com' />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <LocationOn fontSize="small" />
+                  <LocationOn fontSize='small' />
                 </ListItemIcon>
-                <ListItemText primary="123 Farm Road, Rural Town" />
+                <ListItemText primary='123 Farm Road, Rural Town' />
               </ListItem>
             </List>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}>
+            <Typography
+              variant='h6'
+              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
+            >
               Store Hours
             </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <Typography variant='body2' sx={{ mb: 1 }}>
               Monday - Friday: 9:00 AM - 6:00 PM
             </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <Typography variant='body2' sx={{ mb: 1 }}>
               Saturday: 9:00 AM - 4:00 PM
             </Typography>
-            <Typography variant="body2">
-              Sunday: Closed
-            </Typography>
+            <Typography variant='body2'>Sunday: Closed</Typography>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Typography variant="h6" sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}>
+            <Typography
+              variant='h6'
+              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
+            >
               Follow Us
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton size="small" sx={{ color: 'var(--theme-primary)' }}>
+              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
                 <Facebook />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'var(--theme-primary)' }}>
+              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
                 <Instagram />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'var(--theme-primary)' }}>
+              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
                 <Twitter />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'var(--theme-primary)' }}>
+              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
                 <YouTube />
               </IconButton>
             </Box>
@@ -915,7 +1022,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
           }}
         >
           {renderHeader()}
-          <Container maxWidth="lg" sx={{ py: 3 }}>
+          <Container maxWidth='lg' sx={{ py: 3 }}>
             <Grid container spacing={3}>
               {mockData.products.slice(0, 3).map((product: any) => (
                 <Grid item xs={12} sm={4} key={product.id}>
@@ -937,4 +1044,16 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
       <Box
         sx={{
           backgroundColor: 'var(--theme-background)',
-          color: 'var(
+          color: 'var(--theme-text)',
+          minHeight: '100vh',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Content goes here */}
+      </Box>
+    </Box>
+  );
+};
+
+export default EnhancedThemePreview;

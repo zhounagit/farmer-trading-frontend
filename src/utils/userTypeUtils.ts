@@ -1,6 +1,6 @@
 // User type utility functions for consistent checking across components
 
-export type UserType = 'Customer' | 'Store Owner' | 'Admin';
+export type UserType = 'customer' | 'store_owner' | 'admin';
 
 export interface UserTypeCheckResult {
   isCustomer: boolean;
@@ -15,7 +15,7 @@ export interface UserTypeCheckResult {
  * Handles various possible formats from backend
  */
 export const normalizeUserType = (userType: string | undefined): UserType => {
-  if (!userType) return 'Customer';
+  if (!userType) return 'customer';
 
   const normalized = userType.toLowerCase().trim();
 
@@ -29,7 +29,7 @@ export const normalizeUserType = (userType: string | undefined): UserType => {
     normalized === 'seller' ||
     normalized === 'merchant'
   ) {
-    return 'Store Owner';
+    return 'store_owner';
   }
 
   // Handle admin variations
@@ -39,11 +39,11 @@ export const normalizeUserType = (userType: string | undefined): UserType => {
     normalized === 'superuser' ||
     normalized === 'super_user'
   ) {
-    return 'Admin';
+    return 'admin';
   }
 
   // Default to customer for any other value
-  return 'Customer';
+  return 'customer';
 };
 
 /**
@@ -58,14 +58,14 @@ export const checkUserType = (
   let normalizedType = normalizeUserType(userType);
 
   // If user has a store but type says customer, override to store_owner
-  if (hasStore === true && normalizedType === 'Customer') {
-    normalizedType = 'Store Owner';
+  if (hasStore === true && normalizedType === 'customer') {
+    normalizedType = 'store_owner';
   }
 
   return {
-    isCustomer: normalizedType === 'Customer',
-    isStoreOwner: normalizedType === 'Store Owner',
-    isAdmin: normalizedType === 'Admin',
+    isCustomer: normalizedType === 'customer',
+    isStoreOwner: normalizedType === 'store_owner',
+    isAdmin: normalizedType === 'admin',
     normalizedType,
     rawType,
   };
@@ -93,6 +93,13 @@ export const canAccessAdminFeatures = (
 };
 
 /**
+ * Check if user is an admin (alias for canAccessAdminFeatures for compatibility)
+ */
+export const isAdminUser = (userType: string | undefined): boolean => {
+  return canAccessAdminFeatures(userType);
+};
+
+/**
  * Get user role display name for badges and UI
  */
 export const getUserRoleDisplayName = (
@@ -102,11 +109,11 @@ export const getUserRoleDisplayName = (
   const typeCheck = checkUserType(userType, hasStore);
 
   switch (typeCheck.normalizedType) {
-    case 'Store Owner':
+    case 'store_owner':
       return 'Store Owner';
-    case 'Admin':
+    case 'admin':
       return 'Admin';
-    case 'Customer':
+    case 'customer':
     default:
       return 'Customer';
   }
@@ -122,22 +129,38 @@ export const getUserRoleBadgeColor = (
   const typeCheck = checkUserType(userType, hasStore);
 
   switch (typeCheck.normalizedType) {
-    case 'Store Owner':
+    case 'store_owner':
       return '#2e7d32'; // Green
-    case 'Admin':
+    case 'admin':
       return '#d32f2f'; // Red
-    case 'Customer':
+    case 'customer':
     default:
       return '#1976d2'; // Blue
   }
 };
 
 /**
- * Direct admin check helper (case-insensitive)
- * Use this for direct admin checks without store logic
+ * Debug user type information
+ * Use this for troubleshooting user type issues
  */
-export const isAdminUser = (userType: string | undefined): boolean => {
-  return userType === 'Admin';
+export const debugUserType = (
+  userType: string | undefined,
+  hasStore?: boolean,
+  context?: string
+): void => {
+  const typeCheck = checkUserType(userType, hasStore);
+
+  console.log(`🔍 User type debug${context ? ` (${context})` : ''}:`, {
+    rawType: typeCheck.rawType,
+    normalizedType: typeCheck.normalizedType,
+    hasStore,
+    isCustomer: typeCheck.isCustomer,
+    isStoreOwner: typeCheck.isStoreOwner,
+    isAdmin: typeCheck.isAdmin,
+    canAccessStoreFeatures: canAccessStoreFeatures(userType, hasStore),
+    displayName: getUserRoleDisplayName(userType, hasStore),
+    badgeColor: getUserRoleBadgeColor(userType, hasStore),
+  });
 };
 
 /**
@@ -157,7 +180,7 @@ export const getDashboardMetricLabels = (
     };
   } else if (typeCheck.isCustomer) {
     return {
-      spentLabel: 'Total Referral Credit',
+      spentLabel: 'Total Referral Credits',
       spentDescription: 'Credits earned from referrals',
     };
   } else {

@@ -19,7 +19,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '../../../services/storefront.api';
+} from '@/features/search/services/storefront.api';
 
 interface BusinessAddressModuleProps {
   module: StorefrontModule;
@@ -56,9 +56,11 @@ const BusinessAddressModule: React.FC<BusinessAddressModuleProps> = ({
     };
   };
   const businessAddress =
-    storeDataWithAddresses.storeDetails?.addresses?.find(
-      (addr: AddressData) => addr.addressType === 'business'
-    ) ||
+    (Array.isArray(storeDataWithAddresses.storeDetails?.addresses)
+      ? storeDataWithAddresses.storeDetails.addresses.find(
+          (addr: AddressData) => addr.addressType === 'business'
+        )
+      : undefined) ||
     (settings.businessAddress as AddressData) ||
     {};
 
