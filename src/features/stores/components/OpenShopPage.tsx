@@ -852,8 +852,10 @@ const OpenShopPage: React.FC = () => {
   };
 
   // Helper functions for conditional partnership step logic
+  // Partnership page is only shown for producer or processor store types
   const shouldShowPartnershipStep = () => {
-    return formState.storeBasics?.needPartnership === 'yes';
+    const storeType = formState.storeBasics?.setupFlow?.derivedStoreType;
+    return storeType === 'producer' || storeType === 'processor';
   };
 
   const getActualStepIndex = (stepIndex: number) => {

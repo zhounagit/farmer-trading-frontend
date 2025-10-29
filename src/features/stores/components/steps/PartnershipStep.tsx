@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Box,
   Paper,
@@ -16,6 +18,10 @@ import {
   Alert,
   CircularProgress,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import {
@@ -24,8 +30,13 @@ import {
   Agriculture as AgricultureIcon,
   LocalDining as ProcessingIcon,
   Search as SearchIcon,
+  Add as AddIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { partnershipsApi } from '@/features/partnerships/services/partnershipsApi';
+import {
+  partnershipsApi,
+  type Partnership,
+} from '@/features/partnerships/services/partnershipsApi';
 import type { StepProps } from '../../services/open-shop.types';
 
 // Extended type to include partnership fields from API response
@@ -39,6 +50,7 @@ const PartnershipStep: React.FC<StepProps> = ({
   updateFormState,
   onNext,
   onPrevious,
+  isEditMode,
 }) => {
   const [partnersLoading, setPartnersLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -46,6 +58,11 @@ const PartnershipStep: React.FC<StepProps> = ({
   const [existingPartnerships, setExistingPartnerships] = useState<number[]>(
     []
   );
+  const [establishedPartnerships, setEstablishedPartnerships] = useState<
+    Partnership[]
+  >([]);
+  const [showEstablished, setShowEstablished] = useState(false);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
   // Initialize partnership data if not present
   useEffect(() => {
@@ -71,9 +88,10 @@ const PartnershipStep: React.FC<StepProps> = ({
   // Determine partnership type based on store configuration
   const getPartnershipType = (): string => {
     const storeType = formState.storeBasics.setupFlow?.derivedStoreType;
-    const needPartnership = formState.storeBasics.needPartnership;
+    const needsPartnerships =
+      formState.storeBasics.setupFlow?.needsPartnerships;
 
-    if (needPartnership !== 'yes') return '';
+    if (!needsPartnerships) return '';
 
     if (storeType === 'processor') {
       return 'producer'; // Processors need producers
@@ -135,11 +153,80 @@ const PartnershipStep: React.FC<StepProps> = ({
         '🔍 Form state after update - potentialPartners:',
         formState.partnerships?.potentialPartners
       );
-    } catch (error) {
+    } catch (error: any) { // Error type is intentionally loose for catch block
       console.error('Partnership search failed:', error);
       setSearchError('Failed to search for partners. Please try again.');
     } finally {
       setPartnersLoading(false);
+    }
+  };
+
+  // Load established partnerships for edit mode
+  const loadEstablishedPartnerships = async () => {
+    if (!formState.storeId) return;
+
+    try {
+      console.log(
+        '🔍 Loading established partnerships for store:',
+        formState.storeId
+      );
+
+      const partnershipType = getPartnershipType();
+      if (!partnershipType) {
+        console.log('ℹ️ No partnership type determined, skipping load');
+        return;
+      }
+
+      const partnershipsResponse =
+        await partnershipsApi.getPartnershipsByStoreId(
+          Number(formState.storeId),
+          {
+            storeId: Number(formState.storeId),
+            partnerType: partnershipType as 'producer' | 'processor',
+          }
+        );
+
+      console.log(
+        '✅ Established partnerships response:',
+        partnershipsResponse
+      );
+
+      if (
+        partnershipsResponse?.partnerships &&
+        partnershipsResponse.partnerships.length > 0
+      ) {
+        console.log(
+          '✅ Loaded established partnerships:',
+          partnershipsResponse.partnerships
+        );
+        setEstablishedPartnerships(partnershipsResponse.partnerships);
+        setShowEstablished(true);
+
+        // Extract partner store IDs for selection tracking
+        const partnerIds = partnershipsResponse.partnerships.map(
+          (partnership) => {
+            return partnership.producerStoreId === formState.storeId
+              ? partnership.processorStoreId
+              : partnership.producerStoreId;
+          }
+        );
+
+        setExistingPartnerships(partnerIds);
+        updateFormState({
+          partnerships: {
+            ...partnerships,
+            selectedPartnerIds: partnerIds,
+          },
+        });
+      } else {
+        console.log('ℹ️ No established partnerships found');
+        setShowEstablished(false);
+        setEstablishedPartnerships([]);
+      }
+    } catch (error: any) { // Error type is intentionally loose for catch block
+      console.error('❌ Error loading established partnerships:', error);
+      setShowEstablished(false);
+      setEstablishedPartnerships([]);
     }
   };
 
@@ -213,18 +300,18 @@ const PartnershipStep: React.FC<StepProps> = ({
           console.log(`✅ Partnership created successfully:`, result);
           console.log(`✅ Partnership status: ${result?.status || 'pending'}`);
           return { partnerId, success: true, action: 'created' };
-        } catch (createError: unknown) {
+        } catch (createError) {
           console.error(
             `❌ Failed to create partnership with partner ${partnerId}:`,
             {
               error: createError,
               request: createRequest,
-              response: result,
             }
           );
 
           // Check if it's a duplicate partnership error
-          const errorData = (createError as any)?.response?.data;
+                    const errorData = (createError as unknown as Record<string, unknown>)?.response
+            ?.data;
           if (
             errorData?.message?.includes('already exists') ||
             errorData?.error?.includes('already exists')
@@ -290,7 +377,7 @@ const PartnershipStep: React.FC<StepProps> = ({
 
       // Proceed to next step
       onNext();
-    } catch (error: any) {
+    } catch (error: any) { // Error type is intentionally loose for catch block
       console.error('❌ Error saving partnerships:', error);
 
       // Extract detailed error message
@@ -349,8 +436,8 @@ const PartnershipStep: React.FC<StepProps> = ({
             formState.storeBasics.setupFlow?.derivedCanProcess || false,
           derivedCanRetail:
             formState.storeBasics.setupFlow?.derivedCanRetail || true,
-          needPartnership:
-            formState.storeBasics.setupFlow?.needPartnership || 'no',
+          needsPartnerships:
+            formState.storeBasics.setupFlow?.needsPartnerships || false,
           partnershipType:
             formState.storeBasics.setupFlow?.partnershipType || '',
         },
@@ -383,8 +470,8 @@ const PartnershipStep: React.FC<StepProps> = ({
             formState.storeBasics.setupFlow?.derivedCanProcess || false,
           derivedCanRetail:
             formState.storeBasics.setupFlow?.derivedCanRetail || true,
-          needPartnership:
-            formState.storeBasics.setupFlow?.needPartnership || 'no',
+          needsPartnerships:
+            formState.storeBasics.setupFlow?.needsPartnerships || false,
           partnershipType:
             formState.storeBasics.setupFlow?.partnershipType || '',
         },
@@ -393,70 +480,26 @@ const PartnershipStep: React.FC<StepProps> = ({
   };
 
   // Auto-search when radius changes and we have a store ID
-  // Load existing partnerships from store_partnerships table
-  const loadExistingPartnerships = async () => {
-    if (!formState.storeId) return;
-
-    try {
-      console.log(
-        '🔍 Loading existing partnerships for store:',
-        formState.storeId
-      );
-      const partnershipsResponse =
-        await partnershipsApi.getPartnershipsByStoreId(
-          Number(formState.storeId),
-          {
-            storeId: Number(formState.storeId),
-            status: 'active,pending', // Load both active and pending partnerships
-          }
-        );
-
-      if (partnershipsResponse?.partnerships) {
-        const partnerIds = partnershipsResponse.partnerships.map(
-          (partnership) => {
-            // Determine which store is the partner (not the current store)
-            return partnership.producerStoreId === formState.storeId
-              ? partnership.processorStoreId
-              : partnership.producerStoreId;
-          }
-        );
-
-        console.log('✅ Loaded existing partnerships:', partnerIds);
-        setExistingPartnerships(partnerIds);
-
-        // Update form state with existing partnerships as selected
-        updateFormState({
-          partnerships: {
-            ...partnerships,
-            selectedPartnerIds: partnerIds,
-          },
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error loading existing partnerships:', error);
-    }
-  };
-
   useEffect(() => {
-    if (formState.storeId && partnerships.partnershipType) {
+    if (formState.storeId && partnerships.partnershipType && searchDialogOpen) {
       const debounceTimer = setTimeout(() => {
         searchPartners();
       }, 500);
 
       return () => clearTimeout(debounceTimer);
     }
-  }, [partnerships.partnershipRadiusMi, formState.storeId]);
+  }, [partnerships.partnershipRadiusMi, formState.storeId, searchDialogOpen]);
 
-  // Load existing partnerships when store ID is available
+  // Load existing partnerships when store ID is available (for edit mode)
   useEffect(() => {
-    if (formState.storeId) {
-      loadExistingPartnerships();
+    if (formState.storeId && isEditMode) {
+      loadEstablishedPartnerships();
     }
-  }, [formState.storeId]);
+  }, [formState.storeId, isEditMode]);
 
-  // Auto-search when store ID becomes available
+  // Auto-search when store ID becomes available (for new store mode)
   useEffect(() => {
-    if (formState.storeId && !partnerships.partnershipType) {
+    if (formState.storeId && !partnerships.partnershipType && !isEditMode) {
       const partnershipType = getPartnershipType();
       if (partnershipType) {
         updateFormState({
@@ -484,8 +527,8 @@ const PartnershipStep: React.FC<StepProps> = ({
                 formState.storeBasics.setupFlow?.derivedCanProcess || false,
               derivedCanRetail:
                 formState.storeBasics.setupFlow?.derivedCanRetail || true,
-              needPartnership:
-                formState.storeBasics.setupFlow?.needPartnership || 'no',
+              needsPartnerships:
+                formState.storeBasics.setupFlow?.needsPartnerships || false,
               partnershipType,
             },
           },
@@ -493,7 +536,7 @@ const PartnershipStep: React.FC<StepProps> = ({
         searchPartners();
       }
     }
-  }, [formState.storeId]);
+  }, [formState.storeId, isEditMode]);
 
   const partnershipType = getPartnershipType();
   const isProcessorStore =
@@ -515,6 +558,67 @@ const PartnershipStep: React.FC<StepProps> = ({
       return 'Find local processing facilities that can handle your livestock.';
     }
     return 'Configure your partnership preferences to work with other local businesses.';
+  };
+
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const getPartnerStoreName = (partnership: Partnership): string => {
+    return isProducerStore
+      ? partnership.processorStoreName
+      : partnership.producerStoreName;
+  };
+
+  const handleOpenSearchDialog = () => {
+    setSearchDialogOpen(true);
+    searchPartners();
+  };
+
+  const handleCloseSearchDialog = () => {
+    setSearchDialogOpen(false);
+  };
+
+  const handleCreatePartnership = async (
+    partnerId: number,
+    partnerName: string
+  ) => {
+    try {
+      const request = isProducerStore
+        ? {
+            producerStoreId: Number(formState.storeId),
+            processorStoreId: partnerId,
+            initiatedByStoreId: Number(formState.storeId),
+            partnershipTerms: JSON.stringify({
+              services: ['collaboration'],
+              notes: 'Partnership created during store editing',
+            }),
+            deliveryArrangements: JSON.stringify({
+              method: 'pickup',
+              notes: 'To be determined',
+            }),
+          }
+        : {
+            producerStoreId: partnerId,
+            processorStoreId: Number(formState.storeId),
+            initiatedByStoreId: Number(formState.storeId),
+            partnershipTerms: JSON.stringify({
+              services: ['collaboration'],
+              notes: 'Partnership created during store editing',
+            }),
+            deliveryArrangements: JSON.stringify({
+              method: 'pickup',
+              notes: 'To be determined',
+            }),
+          };
+
+      await partnershipsApi.createPartnership(request);
+      toast.success(`Partnership request sent to ${partnerName}`);
+      handleCloseSearchDialog();
+      loadEstablishedPartnerships();
+    } catch (error: any) { // @ts-ignore - error type intentionally loose for catch block
+      console.error('Failed to create partnership:', error);
+      toast.error('Failed to create partnership request');
+    }
   };
 
   return (
@@ -546,226 +650,477 @@ const PartnershipStep: React.FC<StepProps> = ({
           borderColor: 'divider',
         }}
       >
-        {/* Partnership Configuration */}
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography
-              variant='h6'
-              gutterBottom
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <PartnershipIcon color='primary' />
-              Partnership Setup
-            </Typography>
-
-            <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-              Configure your search radius to find{' '}
-              {getPartnerTypeLabel().toLowerCase()} in your area.
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant='subtitle2' gutterBottom>
-                Search Radius: {partnerships.partnershipRadiusMi} miles
-              </Typography>
-              <Slider
-                value={partnerships.partnershipRadiusMi}
-                onChange={(_, value) => handleRadiusChange(value as number)}
-                min={10}
-                max={200}
-                step={10}
-                marks
-                valueLabelDisplay='auto'
-              />
-            </Box>
-
-            {!formState.storeId && (
-              <Alert severity='info' sx={{ mb: 2 }}>
-                Store address information is required to search for partners.
-                Please complete the Location & Logistics step first.
-              </Alert>
-            )}
-
-            {formState.storeId && (
-              <Box
-                sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}
+        {/* Partnership Configuration - Hidden in Edit Mode with Established Partnerships */}
+        {!(
+          isEditMode &&
+          showEstablished &&
+          establishedPartnerships.length > 0
+        ) && (
+          <Card sx={{ mb: 4 }}>
+            <CardContent>
+              <Typography
+                variant='h6'
+                gutterBottom
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
               >
-                <Button
-                  variant='outlined'
-                  startIcon={<SearchIcon />}
-                  onClick={searchPartners}
-                  disabled={partnersLoading || !partnershipType}
-                >
-                  {partnersLoading ? 'Searching...' : 'Search Partners'}
-                </Button>
-                {partnersLoading && <CircularProgress size={24} />}
-              </Box>
-            )}
+                <PartnershipIcon color='primary' />
+                Partnership Setup
+              </Typography>
 
-            {searchError && (
-              <Alert severity='error' sx={{ mb: 2 }}>
-                {searchError}
-              </Alert>
-            )}
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                Configure your search radius to find{' '}
+                {getPartnerTypeLabel().toLowerCase()} in your area.
+              </Typography>
 
-            {/* Potential Partners List */}
-            {/* Debug logs removed for production */}
-            {partnerships.potentialPartners.length > 0 && (
-              <Box>
+              <Box sx={{ mb: 3 }}>
                 <Typography variant='subtitle2' gutterBottom>
-                  Available {getPartnerTypeLabel()} (
-                  {partnerships.potentialPartners.length} found):
+                  Search Radius: {partnerships.partnershipRadiusMi} miles
                 </Typography>
-                <Typography
-                  variant='caption'
-                  color='text.secondary'
-                  sx={{ display: 'block', mb: 2 }}
+                <Slider
+                  value={partnerships.partnershipRadiusMi}
+                  onChange={(_, value) => handleRadiusChange(value as number)}
+                  min={10}
+                  max={200}
+                  step={10}
+                  marks
+                  valueLabelDisplay='auto'
+                />
+              </Box>
+
+              {!formState.storeId && (
+                <Alert severity='info' sx={{ mb: 2 }}>
+                  Store address information is required to search for partners.
+                  Please complete the Location & Logistics step first.
+                </Alert>
+              )}
+
+              {formState.storeId && (
+                <Box
+                  sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}
                 >
-                  Select businesses within your partnership radius
+                  <Button
+                    variant='outlined'
+                    startIcon={<SearchIcon />}
+                    onClick={searchPartners}
+                    disabled={partnersLoading || !partnershipType}
+                  >
+                    {partnersLoading ? 'Searching...' : 'Search Partners'}
+                  </Button>
+                  {partnersLoading && <CircularProgress size={24} />}
+                </Box>
+              )}
+
+              {searchError && (
+                <Alert severity='error' sx={{ mb: 2 }}>
+                  {searchError}
+                </Alert>
+              )}
+
+              {/* Potential Partners List */}
+              {/* Debug logs removed for production */}
+              {partnerships.potentialPartners.length > 0 && (
+                <Box>
+                  <Typography variant='subtitle2' gutterBottom>
+                    Available {getPartnerTypeLabel()} (
+                    {partnerships.potentialPartners.length} found):
+                  </Typography>
+                  <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{ display: 'block', mb: 2 }}
+                  >
+                    Select businesses within your partnership radius
+                  </Typography>
+
+                  <List dense>
+                    {partnerships.potentialPartners.map(
+                      (partner: ExtendedPotentialPartner) => (
+                        <ListItem
+                          key={partner.storeId}
+                          disablePadding
+                          sx={{ mb: 1 }}
+                        >
+                          <ListItemButton
+                            onClick={() => handlePartnerToggle(partner.storeId)}
+                            selected={partnerships.selectedPartnerIds.includes(
+                              partner.storeId
+                            )}
+                            disabled={partnersLoading}
+                            sx={{
+                              border: '1px solid',
+                              borderColor:
+                                partnerships.selectedPartnerIds.includes(
+                                  partner.storeId
+                                )
+                                  ? 'success.main'
+                                  : 'divider',
+                              borderRadius: 1,
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                              },
+                              '&.Mui-disabled': {
+                                opacity: 0.6,
+                              },
+                            }}
+                          >
+                            <ListItemIcon>
+                              {partnerships.selectedPartnerIds.includes(
+                                partner.storeId
+                              ) ? (
+                                <CheckCircleIcon color='success' />
+                              ) : isProcessorStore ? (
+                                <AgricultureIcon color='action' />
+                              ) : (
+                                <ProcessingIcon color='action' />
+                              )}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography variant='subtitle2'>
+                                    {partner.storeName}
+                                  </Typography>
+                                  <Chip
+                                    label={partner.storeType}
+                                    size='small'
+                                    color='primary'
+                                    variant='outlined'
+                                  />
+                                  {partner.existingPartnershipStatus && (
+                                    <Chip
+                                      label={partnershipsApi.getStatusDisplayText(
+                                        partner.existingPartnershipStatus
+                                      )}
+                                      size='small'
+                                      color={partnershipsApi.getStatusColor(
+                                        partner.existingPartnershipStatus
+                                      )}
+                                      variant='filled'
+                                    />
+                                  )}
+                                </Box>
+                              }
+                              secondary={
+                                <Box>
+                                  <Typography variant='caption' display='block'>
+                                    {partner.storeType} •{' '}
+                                    {Math.round(partner.distanceMiles)} miles
+                                    away
+                                    {partner.existingPartnershipStatus &&
+                                      ` • ${partnershipsApi.getStatusDisplayText(partner.existingPartnershipStatus)}`}
+                                  </Typography>
+                                  {partner.description && (
+                                    <Typography
+                                      variant='caption'
+                                      color='text.secondary'
+                                      display='block'
+                                    >
+                                      {partner.description.length > 60
+                                        ? `${partner.description.substring(0, 60)}...`
+                                        : partner.description}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              }
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
+                  </List>
+
+                  {partnerships.selectedPartnerIds.length > 0 && (
+                    <Alert severity='info' sx={{ mt: 2 }}>
+                      You have selected {partnerships.selectedPartnerIds.length}{' '}
+                      preferred partner
+                      {partnerships.selectedPartnerIds.length > 1 ? 's' : ''}.
+                      These partnerships will be established once your store is
+                      approved.
+                    </Alert>
+                  )}
+                </Box>
+              )}
+
+              {partnerships.potentialPartners.length === 0 &&
+                formState.storeId &&
+                partnershipType && (
+                  <Alert severity='info'>
+                    No {getPartnerTypeLabel().toLowerCase()} found within{' '}
+                    {partnerships.partnershipRadiusMi} miles. Try increasing the
+                    search radius or check back later as more stores join the
+                    platform.
+                  </Alert>
+                )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* In Edit Mode with Established Partnerships */}
+        {isEditMode &&
+          showEstablished &&
+          establishedPartnerships.length > 0 && (
+            <Card sx={{ mb: 4 }}>
+              <CardContent>
+                <Typography
+                  variant='h6'
+                  gutterBottom
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <PartnershipIcon color='primary' />
+                  {isProcessorStore
+                    ? `Processing Partners (${establishedPartnerships.length})`
+                    : isProducerStore
+                      ? `Live Animals Partners (${establishedPartnerships.length})`
+                      : `Partnerships (${establishedPartnerships.length})`}
                 </Typography>
 
-                <List dense>
-                  {partnerships.potentialPartners.map(
-                    (partner: ExtendedPotentialPartner) => (
-                      <ListItem
-                        key={partner.storeId}
-                        disablePadding
-                        sx={{ mb: 1 }}
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mb: 3 }}
+                >
+                  Connect with {getPartnerTypeLabel().toLowerCase()} to offer
+                  complete service to your customers.
+                </Typography>
+
+                <List dense sx={{ mb: 3 }}>
+                  {establishedPartnerships.map((partnership) => (
+                    <ListItem
+                      key={partnership.partnershipId}
+                      disablePadding
+                      sx={{ mb: 1 }}
+                    >
+                      <Card
+                        variant='outlined'
+                        sx={{
+                          width: '100%',
+                          border: '2px solid',
+                          borderColor:
+                            partnership.status === 'active'
+                              ? 'success.main'
+                              : 'warning.main',
+                        }}
                       >
-                        <ListItemButton
-                          onClick={() => handlePartnerToggle(partner.storeId)}
-                          selected={partnerships.selectedPartnerIds.includes(
-                            partner.storeId
-                          )}
-                          disabled={partnersLoading}
-                          sx={{
-                            border: '1px solid',
-                            borderColor:
-                              partnerships.selectedPartnerIds.includes(
-                                partner.storeId
-                              )
-                                ? 'success.main'
-                                : 'divider',
-                            borderRadius: 1,
-                            '&:hover': {
-                              borderColor: 'primary.main',
-                            },
-                            '&.Mui-disabled': {
-                              opacity: 0.6,
-                            },
-                          }}
-                        >
-                          <ListItemIcon>
-                            {partnerships.selectedPartnerIds.includes(
-                              partner.storeId
-                            ) ? (
-                              <CheckCircleIcon color='success' />
-                            ) : isProcessorStore ? (
-                              <AgricultureIcon color='action' />
-                            ) : (
-                              <ProcessingIcon color='action' />
-                            )}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={
+                        <CardContent>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              gap: 2,
+                            }}
+                          >
+                            <Box sx={{ flex: 1 }}>
                               <Box
                                 sx={{
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 1,
+                                  mb: 1,
                                 }}
                               >
-                                <Typography variant='subtitle2'>
-                                  {partner.storeName}
+                                <Typography
+                                  variant='subtitle2'
+                                  fontWeight={600}
+                                >
+                                  {getPartnerStoreName(partnership)}
                                 </Typography>
                                 <Chip
-                                  label={partner.storeType}
+                                  label={partnershipsApi.getStatusDisplayText(
+                                    partnership.status
+                                  )}
                                   size='small'
-                                  color='primary'
-                                  variant='outlined'
+                                  color={partnershipsApi.getStatusColor(
+                                    partnership.status
+                                  )}
+                                  variant='filled'
                                 />
-                                {partner.existingPartnershipStatus && (
-                                  <Chip
-                                    label={partnershipsApi.getStatusDisplayText(
-                                      partner.existingPartnershipStatus
-                                    )}
-                                    size='small'
-                                    color={partnershipsApi.getStatusColor(
-                                      partner.existingPartnershipStatus
-                                    )}
-                                    variant='filled'
-                                  />
-                                )}
                               </Box>
-                            }
-                            secondary={
-                              <Box>
-                                <Typography variant='caption' display='block'>
-                                  {partner.storeType} •{' '}
-                                  {Math.round(partner.distanceMiles)} miles away
-                                  {partner.existingPartnershipStatus &&
-                                    ` • ${partnershipsApi.getStatusDisplayText(partner.existingPartnershipStatus)}`}
+                              <Typography
+                                variant='caption'
+                                color='text.secondary'
+                                display='block'
+                              >
+                                Services:{' '}
+                                {partnership.partnershipTerms
+                                  ? JSON.parse(
+                                      partnership.partnershipTerms
+                                    ).services?.join(', ') || 'collaboration'
+                                  : 'collaboration'}
+                              </Typography>
+                              {partnership.producerApprovedAt && (
+                                <Typography
+                                  variant='caption'
+                                  color='text.secondary'
+                                  display='block'
+                                >
+                                  📍 Partnership established{' '}
+                                  {new Date(
+                                    partnership.producerApprovedAt
+                                  ).toLocaleDateString()}
                                 </Typography>
-                                {partner.description && (
-                                  <Typography
-                                    variant='caption'
-                                    color='text.secondary'
-                                    display='block'
-                                  >
-                                    {partner.description.length > 60
-                                      ? `${partner.description.substring(0, 60)}...`
-                                      : partner.description}
-                                  </Typography>
-                                )}
-                              </Box>
-                            }
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    )
-                  )}
+                              )}
+                            </Box>
+                            <Chip
+                              label={
+                                partnership.status === 'active'
+                                  ? 'Active'
+                                  : 'Pending'
+                              }
+                              icon={
+                                partnership.status === 'active' ? (
+                                  <CheckCircleIcon />
+                                ) : undefined
+                              }
+                              color={
+                                partnership.status === 'active'
+                                  ? 'success'
+                                  : 'warning'
+                              }
+                              variant='outlined'
+                            />
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </ListItem>
+                  ))}
                 </List>
 
-                {partnerships.selectedPartnerIds.length > 0 && (
-                  <Alert severity='info' sx={{ mt: 2 }}>
-                    You have selected {partnerships.selectedPartnerIds.length}{' '}
-                    preferred partner
-                    {partnerships.selectedPartnerIds.length > 1 ? 's' : ''}.
-                    These partnerships will be established once your store is
-                    approved.
-                  </Alert>
-                )}
-              </Box>
-            )}
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant='outlined'
+                    startIcon={<AddIcon />}
+                    onClick={handleOpenSearchDialog}
+                    fullWidth
+                  >
+                    + Add New Partners
+                  </Button>
+                  <Button
+                    variant='outlined'
+                    startIcon={<SettingsIcon />}
+                    onClick={handleOpenSearchDialog}
+                    fullWidth
+                  >
+                    ⚙️ Manage Partners
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
 
-            {partnerships.potentialPartners.length === 0 &&
-              formState.storeId &&
-              partnershipType && (
-                <Alert severity='info'>
-                  No {getPartnerTypeLabel().toLowerCase()} found within{' '}
-                  {partnerships.partnershipRadiusMi} miles. Try increasing the
-                  search radius or check back later as more stores join the
-                  platform.
-                </Alert>
-              )}
-          </CardContent>
-        </Card>
+        {/* Search Dialog for Adding Partners in Edit Mode */}
+        <Dialog
+          open={searchDialogOpen}
+          onClose={handleCloseSearchDialog}
+          maxWidth='sm'
+          fullWidth
+        >
+          <DialogTitle>Search and Add Partners</DialogTitle>
+          <DialogContent>
+            {partnersLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : partnerships.potentialPartners.length > 0 ? (
+              <List>
+                {partnerships.potentialPartners.map((partner) => (
+                  <ListItem
+                    key={partner.storeId}
+                    secondaryAction={
+                      <Button
+                        variant='contained'
+                        size='small'
+                        onClick={() =>
+                          handleCreatePartnership(
+                            partner.storeId,
+                            partner.storeName
+                          )
+                        }
+                      >
+                        Add
+                      </Button>
+                    }
+                  >
+                    <ListItemText
+                      primary={partner.storeName}
+                      secondary={`${Math.round(partner.distanceMiles)} miles away`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Alert severity='info'>
+                No potential partners found. Try adjusting your search criteria.
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseSearchDialog}>Close</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Navigation */}
         <Box
           sx={{
             display: 'flex',
-            gap: 2,
             justifyContent: 'space-between',
-            mt: 2,
+            alignItems: 'center',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 2,
+            mt: 4,
           }}
         >
-          <Button variant='outlined' onClick={onPrevious}>
-            Back to Location & Logistics
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, order: { xs: 2, sm: 1 } }}>
+            <LoadingButton
+              variant='outlined'
+              onClick={onPrevious}
+              disabled={isSubmitting}
+              size='large'
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+              }}
+            >
+              Back to Location & Logistics
+            </LoadingButton>
+
+            <Button
+              variant='text'
+              onClick={() => navigate(user?.hasStore ? '/dashboard' : '/')}
+              sx={{
+                textTransform: 'none',
+                color: 'text.secondary',
+                px: 2,
+              }}
+            >
+              Save & Exit Later
+            </Button>
+          </Box>
+
           <LoadingButton
             variant='contained'
             onClick={handleContinue}
             loading={isSubmitting}
+            size='large'
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              order: { xs: 1, sm: 2 },
+            }}
           >
             Continue to Store Policies
           </LoadingButton>
