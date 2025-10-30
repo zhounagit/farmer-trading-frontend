@@ -137,11 +137,11 @@ const ReferralProgramPage: React.FC = () => {
 
       // Update referral code if different
       if (
-        apiData.referralCode &&
-        apiData.referralCode !== user?.myReferralCode
+        apiData.myReferralCode &&
+        apiData.myReferralCode !== user?.myReferralCode
       ) {
-        setReferralCode(apiData.referralCode);
-        updateReferralCode(apiData.referralCode);
+        setReferralCode(apiData.myReferralCode);
+        updateReferralCode(apiData.myReferralCode);
       }
     } catch (error) {
       console.error('Failed to load referral data:', error);
@@ -349,6 +349,8 @@ const ReferralProgramPage: React.FC = () => {
         return 'success';
       case 'inactive':
         return 'error';
+      case 'pending':
+        return 'warning';
       default:
         return 'default';
     }
@@ -360,6 +362,8 @@ const ReferralProgramPage: React.FC = () => {
         return 'Active';
       case 'inactive':
         return 'Inactive';
+      case 'pending':
+        return 'Pending';
       default:
         return 'Unknown';
     }
