@@ -858,16 +858,7 @@ const OpenShopPage: React.FC = () => {
     return storeType === 'producer' || storeType === 'processor';
   };
 
-  const getActualStepIndex = (stepIndex: number) => {
-    const showPartnerships = shouldShowPartnershipStep();
-    if (stepIndex >= 2 && !showPartnerships) {
-      return stepIndex + 1;
-    }
-    return stepIndex;
-  };
-
   const getStepComponent = (stepIndex: number) => {
-    const actualStepIndex = getActualStepIndex(stepIndex);
     const stepProps = {
       formState,
       updateFormState,
@@ -876,7 +867,36 @@ const OpenShopPage: React.FC = () => {
       isEditMode,
     };
 
-    switch (actualStepIndex) {
+    const showPartnerships = shouldShowPartnershipStep();
+
+    // Map currentStep to the correct component
+    // For stores without partnership: 0=Basics, 1=Location, 2=StorePolicies, 3=Branding, 4=Review
+    // For stores with partnership: 0=Basics, 1=Location, 2=Partnership, 3=StorePolicies, 4=Branding, 5=Review
+    if (!showPartnerships) {
+      switch (stepIndex) {
+        case 0:
+          return <StoreBasicsStep {...stepProps} />;
+        case 1:
+          return <LocationLogisticsStep {...stepProps} />;
+        case 2:
+          return <StorePoliciesStep {...stepProps} />;
+        case 3:
+          return <BrandingStep {...stepProps} />;
+        case 4:
+          return (
+            <ReviewSubmitStep
+              {...stepProps}
+              onComplete={handleComplete}
+              onPrevious={handlePrevious}
+            />
+          );
+        default:
+          return <StoreBasicsStep {...stepProps} />;
+      }
+    }
+
+    // Standard flow when partnership is shown
+    switch (stepIndex) {
       case 0:
         return <StoreBasicsStep {...stepProps} />;
       case 1:
@@ -901,38 +921,30 @@ const OpenShopPage: React.FC = () => {
   };
 
   const handleNext = () => {
+    const showPartnerships = shouldShowPartnershipStep();
     let nextStep = formState.currentStep + 1;
 
-    if (nextStep === 2 && !shouldShowPartnershipStep()) {
-      nextStep = 3;
-    }
+    // For stores without partnership, max step is 4 (0-4 = 5 steps)
+    // For stores with partnership, max step is 5 (0-5 = 6 steps)
+    const maxStep = showPartnerships
+      ? STEP_NAMES.length - 1
+      : STEP_NAMES.length - 2;
 
-    if (nextStep < STEP_NAMES.length) {
+    if (nextStep <= maxStep) {
       updateFormState({ currentStep: nextStep });
     }
   };
 
   const handlePrevious = () => {
     if (formState.currentStep > 0) {
-      let prevStep = formState.currentStep - 1;
-
-      if (prevStep === 2 && !shouldShowPartnershipStep()) {
-        prevStep = 1;
-      }
-
+      const prevStep = formState.currentStep - 1;
       updateFormState({ currentStep: prevStep });
     }
   };
 
   const handleStepClick = (stepIndex: number) => {
     if (stepIndex < formState.currentStep) {
-      let targetStep = stepIndex;
-
-      if (targetStep === 2 && !shouldShowPartnershipStep()) {
-        targetStep = 1;
-      }
-
-      updateFormState({ currentStep: targetStep });
+      updateFormState({ currentStep: stepIndex });
     }
   };
 

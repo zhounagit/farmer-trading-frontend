@@ -47,6 +47,19 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
     formState.storeBasics?.categories?.includes('Live Animals');
   const needsProcessorLogistics = isProducerStore && hasLiveAnimalsCategory;
 
+  // Determine if partnership step should be shown
+  const shouldShowPartnershipStep = () => {
+    const storeType = formState.storeBasics?.setupFlow?.derivedStoreType;
+    return storeType === 'producer' || storeType === 'processor';
+  };
+
+  // Get the next step button text and description
+  const getNextStepLabel = () => {
+    return shouldShowPartnershipStep()
+      ? 'Continue to Partnership'
+      : 'Continue to Store Policies';
+  };
+
   // Phone formatting for database constraint
   const formatPhoneNumber = (phone: string): string => {
     if (!phone) return '';
@@ -788,7 +801,7 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             fontWeight: 600,
           }}
         >
-          Continue to Partnership
+          {getNextStepLabel()}
         </LoadingButton>
       </Box>
     </Box>
