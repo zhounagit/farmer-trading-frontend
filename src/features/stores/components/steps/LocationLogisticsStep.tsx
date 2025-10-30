@@ -242,8 +242,59 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
       );
       console.log('Billing address creation response:', billingResponse);
 
-      // Update store with delivery radius if local delivery is selected
+      // Save pickup address if pickup is selected
       const sellingMethods = formState.locationLogistics.sellingMethods;
+      if (sellingMethods.includes('pickup')) {
+        const pickupSameAsBusiness =
+          formState.locationLogistics.pickupPointSameAsBusinessAddress ?? true;
+        const pickupAddressData = {
+          AddressType: 'pickup' as AddressType,
+          LocationName: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.locationName || ''
+            : formState.locationLogistics.pickupPointAddress?.locationName ||
+              '',
+          ContactPhone: formatPhoneNumber(
+            pickupSameAsBusiness
+              ? formState.locationLogistics.businessAddress.contactPhone || ''
+              : formState.locationLogistics.pickupPointAddress?.contactPhone ||
+                  ''
+          ),
+          ContactEmail: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.contactEmail || ''
+            : formState.locationLogistics.pickupPointAddress?.contactEmail ||
+              '',
+          StreetAddress: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.streetAddress || ''
+            : formState.locationLogistics.pickupPointAddress?.streetAddress ||
+              '',
+          City: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.city || ''
+            : formState.locationLogistics.pickupPointAddress?.city || '',
+          State: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.state || ''
+            : formState.locationLogistics.pickupPointAddress?.state || '',
+          ZipCode: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.zipCode || ''
+            : formState.locationLogistics.pickupPointAddress?.zipCode || '',
+          Country: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.country || 'US'
+            : formState.locationLogistics.pickupPointAddress?.country || 'US',
+          IsPrimary: false,
+          PickupInstructions: pickupSameAsBusiness
+            ? formState.locationLogistics.businessAddress.pickupInstructions ||
+              ''
+            : formState.locationLogistics.pickupPointAddress
+                ?.pickupInstructions || '',
+        };
+
+        await StoreApiService.createStoreAddress(
+          formState.storeId,
+          pickupAddressData
+        );
+        console.log('Pickup address creation response:', pickupAddressData);
+      }
+
+      // Update store with delivery radius if local delivery is selected
       if (sellingMethods.includes('local-delivery')) {
         await StoreApiService.updateStore(formState.storeId, {
           deliveryRadiusMi: formState.locationLogistics.deliveryRadiusMi,
@@ -264,12 +315,41 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
     }
   };
 
+  // Pickup Address Handlers
+  const handlePickupAddressChange = (field: string, value: string) => {
+    updateFormState({
+      locationLogistics: {
+        ...formState.locationLogistics,
+        pickupPointAddress: {
+          ...formState.locationLogistics?.pickupPointAddress,
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  // Handle "Same as Business Address" checkbox for pickup
+  const handlePickupSameAsBusinessChange = (checked: boolean) => {
+    updateFormState({
+      locationLogistics: {
+        ...formState.locationLogistics,
+        pickupPointSameAsBusinessAddress: checked,
+        // If checked, copy business address to pickup address
+        ...(checked && {
+          pickupPointAddress: formState.locationLogistics?.businessAddress,
+        }),
+      },
+    });
+  };
+
   const isPickupSelected =
     formState.locationLogistics?.sellingMethods?.includes('pickup');
   const isLocalDeliverySelected =
     formState.locationLogistics?.sellingMethods?.includes('local-delivery');
   const billingSameAsBusiness =
     formState.locationLogistics?.billingSameAsBusinessAddress ?? true;
+  const pickupSameAsBusiness =
+    formState.locationLogistics?.pickupPointSameAsBusinessAddress ?? true;
 
   return (
     <Box component='form' noValidate>
@@ -746,6 +826,194 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             inputProps={{ min: 1, max: 100 }}
             helperText='How far will you deliver?'
           />
+        </Paper>
+      </Collapse>
+
+      {/* Pickup Address Section - appears when Pickup is selected */}
+      <Collapse in={isPickupSelected && !needsProcessorLogistics}>
+        <Paper elevation={1} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              fontWeight: 600,
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <LocationIcon color='primary' />
+            Pickup Location
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={pickupSameAsBusiness}
+                onChange={(e) =>
+                  handlePickupSameAsBusinessChange(e.target.checked)
+                }
+                color='primary'
+              />
+            }
+            label='Same as Business Address'
+            sx={{ mb: 3 }}
+          />
+
+          <Collapse in={!pickupSameAsBusiness}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <TextField
+                label='Location Name'
+                placeholder='e.g., Farm Pickup Point'
+                value={
+                  formState.locationLogistics?.pickupPointAddress
+                    ?.locationName || ''
+                }
+                onChange={(e) =>
+                  handlePickupAddressChange('locationName', e.target.value)
+                }
+                fullWidth
+                required={!pickupSameAsBusiness}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <LocationIcon color='action' />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                label='Contact Phone'
+                placeholder='e.g., (555) 123-4567'
+                value={
+                  formState.locationLogistics?.pickupPointAddress
+                    ?.contactPhone || ''
+                }
+                onChange={(e) =>
+                  handlePickupAddressChange('contactPhone', e.target.value)
+                }
+                fullWidth
+                required={!pickupSameAsBusiness}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <PhoneIcon color='action' />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                label='Contact Email'
+                placeholder='e.g., pickup@farm.com'
+                value={
+                  formState.locationLogistics?.pickupPointAddress
+                    ?.contactEmail || ''
+                }
+                onChange={(e) =>
+                  handlePickupAddressChange('contactEmail', e.target.value)
+                }
+                fullWidth
+                required={!pickupSameAsBusiness}
+                type='email'
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <EmailIcon color='action' />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                label='Street Address'
+                placeholder='e.g., 123 Farm Road'
+                value={
+                  formState.locationLogistics?.pickupPointAddress
+                    ?.streetAddress || ''
+                }
+                onChange={(e) =>
+                  handlePickupAddressChange('streetAddress', e.target.value)
+                }
+                fullWidth
+                required={!pickupSameAsBusiness}
+              />
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label='City'
+                  value={
+                    formState.locationLogistics?.pickupPointAddress?.city || ''
+                  }
+                  onChange={(e) =>
+                    handlePickupAddressChange('city', e.target.value)
+                  }
+                  required={!pickupSameAsBusiness}
+                  sx={{ flex: 1 }}
+                />
+
+                <TextField
+                  label='State'
+                  value={
+                    formState.locationLogistics?.pickupPointAddress?.state || ''
+                  }
+                  onChange={(e) =>
+                    handlePickupAddressChange('state', e.target.value)
+                  }
+                  required={!pickupSameAsBusiness}
+                  sx={{ flex: 1 }}
+                />
+
+                <TextField
+                  label='ZIP Code'
+                  value={
+                    formState.locationLogistics?.pickupPointAddress?.zipCode ||
+                    ''
+                  }
+                  onChange={(e) =>
+                    handlePickupAddressChange('zipCode', e.target.value)
+                  }
+                  required={!pickupSameAsBusiness}
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  label='Country'
+                  value={
+                    formState.locationLogistics?.pickupPointAddress?.country ||
+                    'US'
+                  }
+                  onChange={(e) =>
+                    handlePickupAddressChange('country', e.target.value)
+                  }
+                  required={!pickupSameAsBusiness}
+                  fullWidth
+                  placeholder='US'
+                />
+              </Box>
+
+              <TextField
+                label='Pickup Instructions'
+                placeholder='e.g., Look for the red barn, park in the gravel lot'
+                value={
+                  formState.locationLogistics?.pickupPointAddress
+                    ?.pickupInstructions || ''
+                }
+                onChange={(e) =>
+                  handlePickupAddressChange(
+                    'pickupInstructions',
+                    e.target.value
+                  )
+                }
+                multiline
+                rows={3}
+                fullWidth
+              />
+            </Box>
+          </Collapse>
         </Paper>
       </Collapse>
 

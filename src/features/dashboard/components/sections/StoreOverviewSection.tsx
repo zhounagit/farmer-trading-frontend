@@ -503,19 +503,22 @@ const StoreOverviewSection: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Partnership Section as Priority Item */}
-        <Grid size={{ xs: 12 }}>
-          <PartnershipSection
-            storeId={getStoreId()}
-            storeName={getStoreName()}
-            storeType={comprehensiveStoreData?.storeType || 'independent'}
-            canProduce={comprehensiveStoreData?.canProduce || false}
-            canProcess={comprehensiveStoreData?.canProcess || false}
-            partnershipRadiusMi={
-              comprehensiveStoreData?.partnershipRadiusMi || 50
-            }
-          />
-        </Grid>
+        {/* Partnership Section - Only show for producer or processor stores */}
+        {(comprehensiveStoreData?.storeType === 'producer' ||
+          comprehensiveStoreData?.storeType === 'processor') && (
+          <Grid size={{ xs: 12 }}>
+            <PartnershipSection
+              storeId={getStoreId()}
+              storeName={getStoreName()}
+              storeType={comprehensiveStoreData?.storeType || 'independent'}
+              canProduce={comprehensiveStoreData?.canProduce || false}
+              canProcess={comprehensiveStoreData?.canProcess || false}
+              partnershipRadiusMi={
+                comprehensiveStoreData?.partnershipRadiusMi || 50
+              }
+            />
+          </Grid>
+        )}
         {/* Store Info Card */}
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3, mb: 3 }}>

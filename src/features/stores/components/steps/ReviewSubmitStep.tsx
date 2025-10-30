@@ -53,6 +53,12 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Determine if partnership section should be shown
+  const shouldShowPartnershipSection = () => {
+    const storeType = formState.storeBasics?.setupFlow?.derivedStoreType;
+    return storeType === 'producer' || storeType === 'processor';
+  };
+
   const handleTermsChange = (checked: boolean) => {
     updateFormState({
       agreedToTerms: checked,
@@ -249,15 +255,38 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
                 Customers will pick up processed products from your processor
                 partner's designated pickup location
               </Typography>
-            ) : formState.locationLogistics.farmgateSameAsBusinessAddress ? (
+            ) : formState.locationLogistics.pickupPointSameAsBusinessAddress ? (
               <Typography variant='body2' color='text.secondary'>
                 Same as business address
               </Typography>
             ) : (
-              <Typography variant='body2' color='text.secondary'>
-                {formState.locationLogistics.farmgateAddress?.streetAddress},{' '}
-                {formState.locationLogistics.farmgateAddress?.city}
-              </Typography>
+              <>
+                <Typography variant='body2' color='text.secondary'>
+                  {formState.locationLogistics.pickupPointAddress
+                    ?.locationName && (
+                    <>
+                      {
+                        formState.locationLogistics.pickupPointAddress
+                          .locationName
+                      }
+                      <br />
+                    </>
+                  )}
+                  {
+                    formState.locationLogistics.pickupPointAddress
+                      ?.streetAddress
+                  }
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  {formState.locationLogistics.pickupPointAddress?.city},{' '}
+                  {formState.locationLogistics.pickupPointAddress?.state}{' '}
+                  {formState.locationLogistics.pickupPointAddress?.zipCode}
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Phone:{' '}
+                  {formState.locationLogistics.pickupPointAddress?.contactPhone}
+                </Typography>
+              </>
             )}
           </Box>
         )}
@@ -284,26 +313,6 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
             </Typography>
           </Box>
         )}
-
-        {formState.locationLogistics.sellingMethods.includes('pickup') &&
-          !(
-            formState.storeBasics?.setupFlow?.derivedStoreType === 'producer' &&
-            formState.storeBasics?.categories?.includes('Live Animals')
-          ) && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant='subtitle2' sx={{ fontWeight: 600, mb: 1 }}>
-                Additional Pickup Location
-              </Typography>
-              <Typography variant='body2'>
-                {formState.locationLogistics.pickupPointNickname ||
-                  'Additional Pickup Location'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                {formState.locationLogistics.pickupPointAddress?.streetAddress},{' '}
-                {formState.locationLogistics.pickupPointAddress?.city}
-              </Typography>
-            </Box>
-          )}
       </CardContent>
     </Card>
   );
@@ -644,7 +653,7 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
       {/* Review Sections */}
       {renderStoreBasics()}
       {renderLocationInfo()}
-      {renderPartnerships()}
+      {shouldShowPartnershipSection() && renderPartnerships()}
       {renderStorePolicies()}
       {renderBranding()}
 

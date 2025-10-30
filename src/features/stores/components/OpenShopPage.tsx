@@ -472,6 +472,7 @@ const OpenShopPage: React.FC = () => {
       // Convert store data to form state format
       let primaryAddress: any = null;
       let billingAddress: any = null;
+      let pickupAddress: any = null;
 
       primaryAddress =
         (Array.isArray(addresses)
@@ -484,6 +485,13 @@ const OpenShopPage: React.FC = () => {
         storeData.addresses?.billing ||
         (Array.isArray(addresses)
           ? addresses.find((addr) => addr.addressType === 'billing') || null
+          : null) ||
+        null;
+
+      pickupAddress =
+        storeData.addresses?.pickup ||
+        (Array.isArray(addresses)
+          ? addresses.find((addr) => addr.addressType === 'pickup') || null
           : null) ||
         null;
 
@@ -615,11 +623,7 @@ const OpenShopPage: React.FC = () => {
           deliveryRadiusMi: storeData.deliveryRadiusMi || 5,
           pickupPointAddress: (() => {
             const pickupAddress = Array.isArray(addresses)
-              ? addresses.find(
-                  (addr) =>
-                    addr.addressType === 'pickup_location' &&
-                    addr.addressId !== storeData.pickupAddressId
-                )
+              ? addresses.find((addr) => addr.addressType === 'pickup')
               : undefined;
 
             if (pickupAddress) {
@@ -633,11 +637,24 @@ const OpenShopPage: React.FC = () => {
                 state: pickupAddress.state || '',
                 zipCode: pickupAddress.zipCode || '',
                 country: pickupAddress.country || 'US',
+                pickupInstructions: pickupAddress.pickupInstructions || '',
               };
             }
 
             return undefined;
           })(),
+          pickupPointSameAsBusinessAddress:
+            !pickupAddress ||
+            (primaryAddress &&
+              pickupAddress &&
+              primaryAddress.locationName === pickupAddress.locationName &&
+              primaryAddress.contactPhone === pickupAddress.contactPhone &&
+              primaryAddress.contactEmail === pickupAddress.contactEmail &&
+              primaryAddress.streetAddress === pickupAddress.streetAddress &&
+              primaryAddress.city === pickupAddress.city &&
+              primaryAddress.state === pickupAddress.state &&
+              primaryAddress.zipCode === pickupAddress.zipCode &&
+              primaryAddress.country === pickupAddress.country),
           enableProcessorNotifications: (() => {
             const setupFlowData = (storeData as any).setupFlowData
               ? JSON.parse((storeData as any).setupFlowData)
@@ -747,7 +764,7 @@ const OpenShopPage: React.FC = () => {
             return fallbackUrl;
           })(),
         },
-        agreedToTerms: true,
+        agreedToTerms: !!storeData.submittedAt || !!storeData.approvalStatus,
         storeId: editStoreId,
       });
 
