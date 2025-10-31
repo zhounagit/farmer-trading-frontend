@@ -67,6 +67,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import InventoryApiService, {
   InventoryItem,
   InventoryFilters,
+  CreateInventoryItemRequest,
+  UNIT_TYPES,
+  UnitType,
 } from '../../services/inventory.api';
 import categoryApiService, {
   ProductCategory,
@@ -117,16 +120,16 @@ const InventoryManagementPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
-    name: '',
+    Name: '',
     description: '',
     sku: '',
-    price: '',
-    cost: '',
-    quantity: '',
-    unit: '',
-    minStockLevel: 0,
-    isActive: true,
-    allowOffers: false,
+    Price: 0,
+    Quantity: 0,
+    Unit: 'piece',
+    Category: 'General',
+    Cost: 0,
+    MinStockLevel: 0,
+    AllowOffers: false,
   });
 
   // Filter and search states
@@ -240,31 +243,37 @@ const InventoryManagementPage: React.FC = () => {
 
   const handleAddItem = async () => {
     try {
-      if (!storeId || !newItem.name || !newItem.sku || !newItem.price) {
+      if (!storeId || !newItem.Name || !newItem.sku || !newItem.Price) {
         showSnackbar('Please fill in all required fields', 'error');
         return;
       }
 
       await InventoryApiService.createInventoryItem({
-        ...newItem,
         storeId: Number(storeId),
-        price: Number(newItem.price || 0),
-        cost: newItem.cost ? Number(newItem.cost) : undefined,
-        quantity: Number(newItem.quantity || 0),
-        minStockLevel: Number(newItem.minStockLevel || 0),
-      } as any);
+        Name: newItem.Name || '',
+        description: newItem.description || '',
+        sku: newItem.sku || '',
+        Category: newItem.Category || 'General',
+        Unit: newItem.Unit || 'piece',
+        Price: Number(newItem.Price || 0),
+        Quantity: Number(newItem.Quantity || 0),
+        Cost: Number(newItem.Cost) || 0,
+        MinStockLevel: Number(newItem.MinStockLevel) || 0,
+        AllowOffers: newItem.AllowOffers || false,
+      } as CreateInventoryItemRequest);
 
       setAddItemDialogOpen(false);
       setNewItem({
-        name: '',
+        Name: '',
         description: '',
         sku: '',
-        price: '',
-        cost: '',
-        quantity: '',
-        min_stock_level: 0,
-        is_active: true,
-        allow_offers: false,
+        Price: 0,
+        Quantity: 0,
+        Unit: 'piece',
+        Category: 'General',
+        Cost: 0,
+        MinStockLevel: 0,
+        AllowOffers: false,
       });
       loadInventoryItems();
       showSnackbar('Item added successfully', 'success');
@@ -831,9 +840,9 @@ const InventoryManagementPage: React.FC = () => {
               <TextField
                 fullWidth
                 label='Product Name *'
-                value={newItem.name}
+                value={newItem.Name || ''}
                 onChange={(e) =>
-                  setNewItem((prev) => ({ ...prev, name: e.target.value }))
+                  setNewItem((prev) => ({ ...prev, Name: e.target.value }))
                 }
               />
             </Grid>
@@ -870,11 +879,11 @@ const InventoryManagementPage: React.FC = () => {
                 fullWidth
                 label='Price *'
                 type='number'
-                value={newItem.price}
+                value={newItem.Price || 0}
                 onChange={(e) =>
                   setNewItem((prev) => ({
                     ...prev,
-                    price: e.target.value,
+                    Price: Number(e.target.value) || 0,
                   }))
                 }
                 InputProps={{
@@ -882,7 +891,6 @@ const InventoryManagementPage: React.FC = () => {
                     <InputAdornment position='start'>$</InputAdornment>
                   ),
                 }}
-                placeholder='0.00'
               />
             </Grid>
 
@@ -891,11 +899,11 @@ const InventoryManagementPage: React.FC = () => {
                 fullWidth
                 label='Cost'
                 type='number'
-                value={newItem.cost}
+                value={newItem.Cost || 0}
                 onChange={(e) =>
                   setNewItem((prev) => ({
                     ...prev,
-                    cost: e.target.value,
+                    Cost: Number(e.target.value) || 0,
                   }))
                 }
                 InputProps={{
@@ -903,20 +911,19 @@ const InventoryManagementPage: React.FC = () => {
                     <InputAdornment position='start'>$</InputAdornment>
                   ),
                 }}
-                placeholder='0.00'
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Quantity'
+                label='Quantity *'
                 type='number'
-                value={newItem.quantity}
+                value={newItem.Quantity || 0}
                 onChange={(e) =>
                   setNewItem((prev) => ({
                     ...prev,
-                    quantity: e.target.value,
+                    Quantity: Number(e.target.value) || 0,
                   }))
                 }
                 InputProps={{
@@ -924,118 +931,87 @@ const InventoryManagementPage: React.FC = () => {
                     <InputAdornment position='end'>units</InputAdornment>
                   ),
                 }}
-                placeholder='0'
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Unit'
-                value={newItem.unit}
-                onChange={(e) =>
-                  setNewItem((prev) => ({
-                    ...prev,
-                    unit: e.target.value,
-                  }))
-                }
-                placeholder='e.g., lb, kg, dozen, each, gallon'
-                helperText='Enter the unit of measurement for this product'
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label='Minimum Stock Level'
+                label='Min Stock Level'
                 type='number'
-                value={newItem.minStockLevel}
+                value={newItem.MinStockLevel || 0}
                 onChange={(e) =>
                   setNewItem((prev) => ({
                     ...prev,
-                    minStockLevel: Number(e.target.value),
+                    MinStockLevel: Number(e.target.value) || 0,
                   }))
                 }
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth disabled={loadingCategories}>
-                  <InputLabel>Category</InputLabel>
-                  <Select
-                    value={newItem.categoryId || ''}
-                    label='Category'
-                    onChange={(e) =>
-                      setNewItem((prev) => ({
-                        ...prev,
-                        categoryId: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
-                      }))
-                    }
-                  >
-                    <MenuItem value=''>
-                      <em>No Category</em>
-                    </MenuItem>
-                    {categories.map((category) => (
-                      <MenuItem
-                        key={category.categoryId}
-                        value={category.categoryId}
-                      >
-                        {category.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth disabled={loadingCategories}>
-                  <InputLabel>Category</InputLabel>
-                  <Select
-                    value={newItem.categoryId || ''}
-                    label='Category'
-                    onChange={(e) =>
-                      setNewItem((prev) => ({
-                        ...prev,
-                        categoryId: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
-                      }))
-                    }
-                  >
-                    <MenuItem value=''>
-                      <em>No Category</em>
-                    </MenuItem>
-                    {categories.map((category) => (
-                      <MenuItem
-                        key={category.categoryId}
-                        value={category.categoryId}
-                      >
-                        {category.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={newItem.allowOffers}
-                      onChange={(e) =>
-                        setNewItem((prev) => ({
-                          ...prev,
-                          allowOffers: e.target.checked,
-                        }))
-                      }
-                    />
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Unit</InputLabel>
+                <Select
+                  value={newItem.Unit || 'piece'}
+                  label='Unit'
+                  onChange={(e) =>
+                    setNewItem((prev) => ({
+                      ...prev,
+                      Unit: e.target.value,
+                    }))
                   }
-                  label='Allow customer offers'
-                />
-              </Grid>
+                >
+                  {UNIT_TYPES.map((unit) => (
+                    <MenuItem key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Category *</InputLabel>
+                <Select
+                  value={newItem.Category || 'General'}
+                  label='Category *'
+                  onChange={(e) =>
+                    setNewItem((prev) => ({
+                      ...prev,
+                      Category: e.target.value,
+                    }))
+                  }
+                  disabled={loadingCategories}
+                >
+                  <MenuItem value='General'>
+                    <em>General</em>
+                  </MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.categoryId} value={category.name}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={newItem.AllowOffers || false}
+                    onChange={(e) =>
+                      setNewItem((prev) => ({
+                        ...prev,
+                        AllowOffers: e.target.checked,
+                      }))
+                    }
+                  />
+                }
+                label='Allow Offers'
+              />
             </Grid>
           </Grid>
         </DialogContent>
@@ -1062,10 +1038,10 @@ const InventoryManagementPage: React.FC = () => {
                 <TextField
                   fullWidth
                   label='Product Name *'
-                  value={editingItem.name}
+                  value={editingItem.Name || ''}
                   onChange={(e) =>
                     setEditingItem((prev) =>
-                      prev ? { ...prev, name: e.target.value } : null
+                      prev ? { ...prev, Name: e.target.value } : null
                     )
                   }
                 />

@@ -3,7 +3,7 @@
 export interface InventoryItem {
   itemId: number;
   storeId: number;
-  itemName: string;
+  Name: string;
   description?: string;
   sku: string;
   category: string;
@@ -142,45 +142,35 @@ export interface InventoryCategory {
 // Request/Response Types
 export interface CreateInventoryItemRequest {
   storeId: number;
-  itemName: string;
+  sku: string;
+  Name: string;
   description?: string;
-  sku?: string; // Auto-generated if not provided
-  category: string;
-  subcategory?: string;
-  unitType: UnitType;
-  pricePerUnit: number;
-  quantityAvailable: number;
-  minimumOrderQuantity?: number;
-  maximumOrderQuantity?: number;
-  isOrganic: boolean;
-  harvestDate?: string;
-  expirationDate?: string;
-  storageInstructions?: string;
-  nutritionalInfo?: NutritionalInfo;
-  certifications?: string[];
-  tags?: string[];
-  visibility?: InventoryVisibility;
+  Price: number;
+  Cost?: number;
+  Quantity: number;
+  MinStockLevel?: number;
+  AllowOffers?: boolean;
+  MinOfferPrice?: number;
+  Attributes?: string;
+  Unit?: string;
+  Category: string;
+  ItemType?: string;
+  ServiceCategory?: string;
+  ProcessingTimeDays?: number;
+  RequiresRawMaterial?: boolean;
 }
 
 export interface UpdateInventoryItemRequest {
-  itemName?: string;
+  Name?: string;
   description?: string;
-  category?: string;
-  subcategory?: string;
-  unitType?: UnitType;
-  pricePerUnit?: number;
-  quantityAvailable?: number;
-  minimumOrderQuantity?: number;
-  maximumOrderQuantity?: number;
-  isOrganic?: boolean;
-  harvestDate?: string;
-  expirationDate?: string;
-  storageInstructions?: string;
-  nutritionalInfo?: NutritionalInfo;
-  certifications?: string[];
-  tags?: string[];
-  status?: InventoryStatus;
-  visibility?: InventoryVisibility;
+  Price?: number;
+  Cost?: number;
+  Quantity?: number;
+  MinStockLevel?: number;
+  Unit?: string;
+  Category?: string;
+  AllowOffers?: boolean;
+  MinOfferPrice?: number;
 }
 
 export interface InventoryFilters {
@@ -357,35 +347,21 @@ export interface InventoryExportRequest {
 // Form Types (for UI)
 export interface InventoryItemFormData {
   // Basic Information
-  itemName: string;
+  Name: string;
   description: string;
-  category: string;
-  subcategory: string;
+  Category: string;
   sku: string;
 
   // Pricing and Inventory
-  unitType: UnitType;
-  pricePerUnit: number;
-  quantityAvailable: number;
-  minimumOrderQuantity: number;
-  maximumOrderQuantity: number;
+  Unit: string;
+  Price: number;
+  Quantity: number;
+  Cost?: number;
+  MinStockLevel?: number;
 
-  // Product Details
-  isOrganic: boolean;
-  harvestDate: string;
-  expirationDate: string;
-  storageInstructions: string;
-
-  // Nutritional Information
-  nutritionalInfo: NutritionalInfo;
-
-  // Classifications
-  certifications: string[];
-  tags: string[];
-
-  // Visibility and Status
-  visibility: InventoryVisibility;
-  status: InventoryStatus;
+  // Offers
+  AllowOffers?: boolean;
+  MinOfferPrice?: number;
 
   // Images
   imageFiles: File[];
@@ -567,28 +543,17 @@ export const COMMON_CERTIFICATIONS = [
 
 // Default Values
 export const DEFAULT_INVENTORY_FORM_DATA: InventoryItemFormData = {
-  itemName: '',
+  Name: '',
   description: '',
-  category: '',
-  subcategory: '',
+  Category: 'General',
   sku: '',
-  unitType: 'pound',
-  pricePerUnit: 0,
-  quantityAvailable: 0,
-  minimumOrderQuantity: 1,
-  maximumOrderQuantity: 0,
-  isOrganic: false,
-  harvestDate: '',
-  expirationDate: '',
-  storageInstructions: '',
-  nutritionalInfo: {
-    servingSize: '1',
-    servingUnit: 'cup',
-  },
-  certifications: [],
-  tags: [],
-  visibility: 'public',
-  status: 'active',
+  Unit: 'piece',
+  Price: 0,
+  Quantity: 0,
+  Cost: 0,
+  MinStockLevel: 0,
+  AllowOffers: false,
+  MinOfferPrice: 0,
   imageFiles: [],
   existingImages: [],
   variants: [],

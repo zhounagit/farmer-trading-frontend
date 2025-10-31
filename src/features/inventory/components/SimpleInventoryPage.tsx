@@ -49,6 +49,7 @@ import { InventoryApiService } from '../services/inventoryApi';
 import type {
   InventoryImage as ApiInventoryImage,
   InventoryItem,
+  UnitType,
 } from '../../../shared/types/inventory';
 
 const SimpleInventoryPage: React.FC = () => {
@@ -75,13 +76,16 @@ const SimpleInventoryPage: React.FC = () => {
   });
 
   const [newItem, setNewItem] = useState({
-    itemName: '',
+    name: '',
     description: '',
     sku: '',
-    pricePerUnit: 0,
-    quantityAvailable: 0,
-    unitType: 'piece' as const,
-    category: '',
+    price: 0,
+    quantity: 0,
+    unit: 'piece',
+    category: 'General',
+    cost: 0,
+    minStockLevel: 0,
+    allowOffers: false,
   });
 
   // Category state
@@ -169,28 +173,32 @@ const SimpleInventoryPage: React.FC = () => {
 
       const itemData = {
         storeId: Number(storeId),
-        itemName: newItem.itemName,
+        Name: newItem.name,
         description: newItem.description,
         sku: newItem.sku,
-        pricePerUnit: newItem.pricePerUnit,
-        quantityAvailable: newItem.quantityAvailable,
-        unitType: newItem.unitType,
-        category: newItem.category || 'General',
-        isOrganic: false,
-        isActive: true,
+        Price: Number(newItem.price),
+        Quantity: Number(newItem.quantity),
+        Unit: newItem.unit,
+        Category: newItem.category || 'General',
+        Cost: Number(newItem.cost) || 0,
+        MinStockLevel: Number(newItem.minStockLevel) || 0,
+        AllowOffers: newItem.allowOffers || false,
       };
 
       await InventoryApiService.createInventoryItem(itemData);
 
       setAddDialogOpen(false);
       setNewItem({
-        itemName: '',
+        name: '',
         description: '',
         sku: '',
-        pricePerUnit: 0,
-        quantityAvailable: 0,
-        unitType: 'piece' as const,
-        category: '',
+        price: 0,
+        quantity: 0,
+        unit: 'piece',
+        category: 'General',
+        cost: 0,
+        minStockLevel: 0,
+        allowOffers: false,
       });
       loadItems();
       showSnackbar('Product added successfully!', 'success');
@@ -205,12 +213,14 @@ const SimpleInventoryPage: React.FC = () => {
       if (!selectedItem) return;
 
       const updateData = {
-        itemName: selectedItem.itemName,
+        Name: selectedItem.name,
         description: selectedItem.description,
-        category: 'General',
-        unitType: selectedItem.unitType,
-        pricePerUnit: selectedItem.pricePerUnit,
-        quantityAvailable: selectedItem.quantityAvailable,
+        Category: 'General',
+        Unit: selectedItem.unit,
+        Price: selectedItem.price,
+        Quantity: selectedItem.quantity,
+        Cost: selectedItem.cost,
+        MinStockLevel: selectedItem.minStockLevel,
       };
       await InventoryApiService.updateInventoryItem(
         selectedItem.itemId,
@@ -476,13 +486,6 @@ const SimpleInventoryPage: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={item.isActive ? 'Active' : 'Inactive'}
-                          size='small'
-                          color={item.isActive ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Tooltip title='Manage Images'>
                             <IconButton
@@ -572,7 +575,7 @@ const SimpleInventoryPage: React.FC = () => {
                   onChange={(e) =>
                     setNewItem((prev) => ({
                       ...prev,
-                      price: e.target.value,
+                      price: Number(e.target.value) || 0,
                     }))
                   }
                   InputProps={{
@@ -583,15 +586,20 @@ const SimpleInventoryPage: React.FC = () => {
                 />
                 <TextField
                   fullWidth
-                  label='Quantity'
+                  label='Quantity *'
                   type='number'
                   value={newItem.quantity}
                   onChange={(e) =>
                     setNewItem((prev) => ({
                       ...prev,
-                      quantity: e.target.value,
+                      quantity: Number(e.target.value) || 0,
                     }))
                   }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position='end'>units</InputAdornment>
+                    ),
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -604,27 +612,25 @@ const SimpleInventoryPage: React.FC = () => {
                     }))
                   }
                   placeholder='lb, kg, dozen, each'
+                  helperText='Enter the unit of measurement'
                 />
                 <FormControl fullWidth disabled={loadingCategories}>
                   <InputLabel>Category</InputLabel>
                   <Select
-                    value={newItem.categoryId}
+                    value={newItem.category}
                     label='Category'
                     onChange={(e) =>
                       setNewItem((prev) => ({
                         ...prev,
-                        categoryId: e.target.value,
+                        category: e.target.value,
                       }))
                     }
                   >
-                    <MenuItem value=''>
-                      <em>No Category</em>
+                    <MenuItem value='General'>
+                      <em>General</em>
                     </MenuItem>
                     {categories.map((category) => (
-                      <MenuItem
-                        key={category.categoryId}
-                        value={category.categoryId}
-                      >
+                      <MenuItem key={category.categoryId} value={category.name}>
                         {category.name}
                       </MenuItem>
                     ))}
@@ -695,7 +701,10 @@ const SimpleInventoryPage: React.FC = () => {
                     onChange={(e) =>
                       setSelectedItem((prev) =>
                         prev
-                          ? { ...prev, price: parseFloat(e.target.value) || 0 }
+                          ? {
+                              ...prev,
+                              price: parseFloat(e.target.value) || 0,
+                            }
                           : null
                       )
                     }
@@ -713,7 +722,10 @@ const SimpleInventoryPage: React.FC = () => {
                     onChange={(e) =>
                       setSelectedItem((prev) =>
                         prev
-                          ? { ...prev, quantity: parseInt(e.target.value) || 0 }
+                          ? {
+                              ...prev,
+                              quantity: parseInt(e.target.value) || 0,
+                            }
                           : null
                       )
                     }

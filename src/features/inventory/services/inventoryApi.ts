@@ -76,25 +76,57 @@ export class InventoryApiService {
         });
       }
 
-      const response = await apiClient.get<InventoryListResponse>(
+      const response = await apiClient.get<any>(
         `${this.BASE_PATH}?${params.toString()}`
       );
 
+      // Handle both array and object response formats
+      let items: InventoryItem[] = [];
+      let pagination: any = null;
+
+      if (Array.isArray(response)) {
+        // Response is directly an array
+        items = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        // Response has data property with array
+        items = response.data;
+        pagination = response.pagination;
+      } else if (response.items && Array.isArray(response.items)) {
+        // Response has items property
+        items = response.items;
+        pagination = response.pagination || response;
+      }
+
+      // Map backend response to InventoryListResponse format
+      const mappedResponse: InventoryListResponse = {
+        items: items,
+        totalCount:
+          pagination?.totalCount || response?.totalCount || items.length,
+        pageNumber: pagination?.page || response?.pageNumber || 1,
+        pageSize: pagination?.pageSize || response?.pageSize || items.length,
+        totalPages: pagination?.totalPages || response?.totalPages || 1,
+        hasNextPage: pagination?.hasNext || response?.hasNextPage || false,
+        hasPreviousPage:
+          pagination?.hasPrevious || response?.hasPreviousPage || false,
+      };
+
       this.logOperation('Inventory items fetched successfully', {
-        count: response.items?.length || 0,
-        totalItems: response.totalCount,
+        count: mappedResponse.items?.length || 0,
+        totalItems: mappedResponse.totalCount,
       });
 
-      return response;
+      return mappedResponse;
     } catch (error: unknown) {
       this.logError('getInventoryItems', error);
       // Enhanced fallback response with comprehensive structure
       return {
         items: [],
         totalCount: 0,
-        page: 1,
-        limit: 20,
-        hasMore: false,
+        pageNumber: 1,
+        pageSize: 20,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
       };
     }
   }
