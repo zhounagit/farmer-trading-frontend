@@ -462,6 +462,11 @@ export const useUserStore = (): UseUserStoreReturn => {
                 false,
             };
 
+            console.log(
+              `✅ Normalized store ${normalizedStore.storeId} approvalStatus:`,
+              normalizedStore.approvalStatus
+            );
+
             return normalizedStore;
           });
         }
@@ -547,6 +552,40 @@ export const useUserStore = (): UseUserStoreReturn => {
       }
 
       if (userStores && Array.isArray(userStores)) {
+        // Normalize store data to handle both camelCase and snake_case fields
+        userStores = userStores.map((store) => {
+          const normalizedStore = {
+            storeId: store.storeId || store.store_id,
+            storeName: store.storeName || store.store_name,
+            description: store.description,
+            storeCreatorId: store.storeCreatorId || store.store_creator_id,
+            approvalStatus: store.approvalStatus || store.approval_status,
+            createdAt: store.createdAt || store.created_at,
+            updatedAt: store.updatedAt || store.updated_at,
+            contactPhone: store.contactPhone || store.contact_phone,
+            contactEmail: store.contactEmail || store.contact_email,
+            storeType: store.storeType || store.store_type,
+            deliveryRadiusMi:
+              store.deliveryRadiusMi || store.delivery_radius_mi,
+            slug: store.slug,
+            canProduce: store.canProduce || store.can_produce || false,
+            canProcess: store.canProcess || store.can_process || false,
+            canRetail: store.canRetail || store.can_retail || true,
+            partnershipRadiusMi:
+              store.partnershipRadiusMi || store.partnership_radius_mi || 50,
+            autoAcceptPartnerships:
+              store.autoAcceptPartnerships ||
+              store.auto_accept_partnerships ||
+              false,
+          };
+
+          console.log(
+            `✅ Normalized store (native fetch) ${normalizedStore.storeId} approvalStatus:`,
+            normalizedStore.approvalStatus
+          );
+
+          return normalizedStore;
+        });
       } else {
         console.log('❌ userStores is not an array:', userStores);
       }

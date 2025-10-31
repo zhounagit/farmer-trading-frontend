@@ -50,13 +50,13 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/layout/Header';
-import { storeApiService } from '../../shared/services/store-api-service';
-import type { Store as StoreType } from '../../types/store';
-import SimpleStoreCreationModal from '../../components/user/SimpleStoreCreationModal';
-import { useAuth } from '../../contexts/AuthContext';
+import Header from '@/components/layout/Header';
+import { StoresApiService } from '@/features/stores/services/storesApi';
+import type { Store as StoreType } from '@/shared/types/store';
+import SimpleStoreCreationModal from '@/components/user/SimpleStoreCreationModal';
+import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
-import StorefrontApiService from '../../services/storefront.api';
+import StorefrontApiService from '@/features/storefront/services/storefrontApi';
 
 const StoreManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,13 +92,13 @@ const StoreManagementPage: React.FC = () => {
     error,
   } = useQuery({
     queryKey: ['myStores'],
-    queryFn: () => storeApiService.getMyStores(),
+    queryFn: () => StoresApiService.getUserStores(user?.userId),
     enabled: !!user,
   });
 
   // Delete store mutation
   const deleteStoreMutation = useMutation({
-    mutationFn: (storeId: number) => storeApiService.deleteStore(storeId),
+    mutationFn: (storeId: number) => StoresApiService.deleteStore(storeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myStores'] });
       toast.success('Store deleted successfully');

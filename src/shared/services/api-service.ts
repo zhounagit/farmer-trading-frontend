@@ -189,6 +189,7 @@ class ApiService {
       try {
         const data = await response.json();
         // Response data processed
+        console.log('📡 Raw API response for', response.url, ':', data);
 
         // Handle standardized ApiResponse<T> format
         if (isApiResponse(data)) {
@@ -203,6 +204,7 @@ class ApiService {
           }
 
           // Return the data from the successful ApiResponse
+          console.log('📡 Extracting data.data from response:', data.data);
           return data.data as T;
         }
 

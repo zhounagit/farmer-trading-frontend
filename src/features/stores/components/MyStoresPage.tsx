@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import OpenShopApiService from '../services/open-shop.api';
+import { API_CONFIG } from '@/utils/api';
 import {
   Box,
   Container,
@@ -42,7 +43,6 @@ import {
   Search,
   Store as StoreIcon,
   Edit,
-  Preview,
   Inventory,
   Analytics,
   MoreVert,
@@ -67,10 +67,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Header from '../../../components/layout/Header';
-import { useAuth } from '../../../contexts/AuthContext';
+import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
 import { StoresApiService } from '../services/storesApi';
-import type { Store } from '../../../shared/types/store';
+import type { Store } from '@/shared/types/store';
 import type { EnhancedStoreDto } from '../services/open-shop.types';
 import toast from 'react-hot-toast';
 
@@ -190,24 +190,47 @@ const MyStoresPage: React.FC = () => {
               const comprehensive =
                 await OpenShopApiService.getComprehensiveStoreDetails(storeId);
 
+              // Extract approvalStatus from nested status object if it exists
+              const approvalStatus =
+                comprehensive.approvalStatus ||
+                comprehensive.status?.approvalStatus ||
+                store.approval_status ||
+                store.approvalStatus ||
+                'pending';
+
+              console.log(
+                `✅ Comprehensive store ${storeId} approvalStatus:`,
+                approvalStatus
+              );
+
+              // Ensure approvalStatus is always available at the top level
+              const enhancedStore = {
+                ...comprehensive,
+                approvalStatus,
+              };
+
               // Double-check ownership in comprehensive data
               if (
-                comprehensive.storeCreatorId &&
-                Number(comprehensive.storeCreatorId) !== Number(user.userId)
+                enhancedStore.storeCreatorId &&
+                Number(enhancedStore.storeCreatorId) !== Number(user.userId)
               ) {
                 console.warn(
-                  `Comprehensive store ${comprehensive.storeId} ownership mismatch`
+                  `Comprehensive store ${enhancedStore.storeId} ownership mismatch`
                 );
                 return null;
               }
 
-              return comprehensive;
+              return enhancedStore;
             } catch (error) {
               console.error(
                 `Failed to fetch comprehensive details for store ${store.storeId || store.store_id}:`,
                 error
               );
               // Return basic store data with empty related arrays
+              console.log(
+                `⚠️ Using fallback approvalStatus for store ${store.store_id || store.storeId}:`,
+                store.approval_status || store.approvalStatus || 'pending'
+              );
               return {
                 storeId: store.store_id || store.storeId,
                 storeName:
@@ -299,12 +322,15 @@ const MyStoresPage: React.FC = () => {
   const filteredStores = React.useMemo(() => {
     if (!storesData) return [];
 
+    console.log(`📊 MyStoresPage - ${storesData.length} stores loaded`);
+
     return storesData.filter((store) => {
       const matchesSearch =
         store.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         store.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === 'all' || store.approvalStatus === statusFilter;
+
       return matchesSearch && matchesStatus;
     });
   }, [storesData, searchQuery, statusFilter]);
@@ -337,6 +363,12 @@ const MyStoresPage: React.FC = () => {
   };
 
   const getStatusChip = (status: string) => {
+    console.log('🎨 getStatusChip - Raw status value:', {
+      status,
+      type: typeof status,
+      length: status?.length,
+    });
+
     const statusConfig = {
       approved: {
         label: 'Live',
@@ -368,6 +400,12 @@ const MyStoresPage: React.FC = () => {
     const config =
       statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
 
+    console.log('🎨 getStatusChip - Selected config:', {
+      requestedStatus: status,
+      configFound: status in statusConfig,
+      selectedLabel: config.label,
+    });
+
     return (
       <Chip
         label={config.label}
@@ -380,20 +418,49 @@ const MyStoresPage: React.FC = () => {
 
   const formatAddress = (address: any) => {
     if (!address) return 'No address provided';
+
     return `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`;
   };
 
-  const formatOpenHours = (openHours: any[]) => {
-    if (!openHours || openHours.length === 0) return 'Hours not set';
+  const getFullImageUrl = (imagePath?: string): string => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/')) return `${API_CONFIG.BASE_URL}${imagePath}`;
+    return `${API_CONFIG.BASE_URL}/${imagePath}`;
+  };
 
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const formatOpenHours = (openHours: any) => {
+    if (!openHours) return 'Hours not set';
+
+    // Handle nested operations.openHours format (array with dayOfWeek as string or number)
+    const hoursArray = Array.isArray(openHours) ? openHours : [];
+    if (hoursArray.length === 0) return 'Hours not set';
+
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const todayIndex = new Date().getDay();
-    const today = openHours.find((h) => h.dayOfWeek === todayIndex);
+    const todayName = days[todayIndex];
+
+    // Find today's hours by either numeric dayOfWeek or string dayOfWeek
+    const today = hoursArray.find(
+      (h) => h.dayOfWeek === todayIndex || h.dayOfWeek === todayName
+    );
 
     if (!today) return 'Closed today';
     if (today.isClosed) return 'Closed today';
 
-    return `${today.openTime} - ${today.closeTime}`;
+    // Format hours - handle both HH:MM:SS and HH:MM formats
+    const formatTime = (time: string) =>
+      time?.split(':').slice(0, 2).join(':') || '';
+    return `${formatTime(today.openTime)} - ${formatTime(today.closeTime)}`;
   };
 
   const getPrimaryAddress = (addresses: any) => {
@@ -403,14 +470,53 @@ const MyStoresPage: React.FC = () => {
   };
 
   const StoreCard: React.FC<{ store: EnhancedStoreDto }> = ({ store }) => {
-    const primaryAddress = getPrimaryAddress(store.addresses);
+    // Handle both array and object formats for addresses
+    const addressesArray = Array.isArray(store.addresses)
+      ? store.addresses
+      : store.addresses?.pickupLocations || [];
+    const primaryAddress = getPrimaryAddress(addressesArray);
+
+    // Use actual product count from comprehensive store if available
+    const totalProducts =
+      (store as any).totalProducts ||
+      mockFeaturedProducts[store.storeId]?.length ||
+      0;
     const featuredProducts = mockFeaturedProducts[store.storeId] || [];
+
+    // Extract logoUrl and bannerUrl from nested images object
+    const rawLogoUrl = store.logoUrl || (store.images as any)?.logoUrl || '';
+    const rawBannerUrl =
+      store.bannerUrl || (store.images as any)?.bannerUrl || '';
+    const logoUrl = getFullImageUrl(rawLogoUrl);
+    const bannerUrl = getFullImageUrl(rawBannerUrl);
+
+    // Handle both array and object formats for images
     const galleryImages =
       store.images && Array.isArray(store.images)
         ? store.images.filter(
             (img) => img.imageType === 'gallery' && img.isActive
           )
-        : [];
+        : (store.images as any)?.gallery || [];
+
+    // Extract openHours from nested operations object if available
+    const openHours =
+      (store as any)?.operations?.openHours || store.openHours || [];
+
+    // Extract actual addresses count (business + pickup locations)
+    const addressesCount =
+      addressesArray.length + ((store.addresses as any)?.business ? 1 : 0);
+
+    // Extract contact info from nested contactInfo or use top-level fields
+    const contactPhone =
+      store.contactPhone ||
+      (store.addresses as any)?.business?.contactPhone ||
+      (store as any)?.contactInfo?.phone ||
+      '';
+    const contactEmail =
+      store.contactEmail ||
+      (store.addresses as any)?.business?.contactEmail ||
+      (store as any)?.contactInfo?.email ||
+      '';
 
     return (
       <Card
@@ -426,11 +532,11 @@ const MyStoresPage: React.FC = () => {
         }}
       >
         {/* Banner Image */}
-        {store.bannerUrl && (
+        {bannerUrl && (
           <CardMedia
             component='img'
             height='200'
-            image={store.bannerUrl}
+            image={bannerUrl}
             alt={store.storeName}
             sx={{
               objectFit: 'cover',
@@ -455,7 +561,7 @@ const MyStoresPage: React.FC = () => {
               }
             >
               <Avatar
-                src={store.logoUrl}
+                src={logoUrl}
                 sx={{
                   width: 60,
                   height: 60,
@@ -511,16 +617,16 @@ const MyStoresPage: React.FC = () => {
               Contact Information
             </Typography>
             <Stack spacing={1}>
-              {store.contactPhone && (
+              {contactPhone && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography variant='body2'>{store.contactPhone}</Typography>
+                  <Typography variant='body2'>{contactPhone}</Typography>
                 </Box>
               )}
-              {store.contactEmail && (
+              {contactEmail && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Email sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography variant='body2'>{store.contactEmail}</Typography>
+                  <Typography variant='body2'>{contactEmail}</Typography>
                 </Box>
               )}
               {primaryAddress && (
@@ -536,7 +642,7 @@ const MyStoresPage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
                 <Typography variant='body2'>
-                  {formatOpenHours(store.openHours)}
+                  {formatOpenHours(openHours)}
                 </Typography>
               </Box>
             </Stack>
@@ -547,7 +653,7 @@ const MyStoresPage: React.FC = () => {
             <Grid item xs={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='primary.main'>
-                  {store.images?.length || 0}
+                  {galleryImages.length}
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
                   Images
@@ -557,7 +663,7 @@ const MyStoresPage: React.FC = () => {
             <Grid item xs={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='info.main'>
-                  {store.addresses?.length || 0}
+                  {addressesCount}
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
                   Locations
@@ -567,7 +673,7 @@ const MyStoresPage: React.FC = () => {
             <Grid item xs={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='success.main'>
-                  {featuredProducts.length}
+                  {totalProducts}
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
                   Products
@@ -575,19 +681,6 @@ const MyStoresPage: React.FC = () => {
               </Box>
             </Grid>
           </Grid>
-
-          {/* Payment Methods */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Payment sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant='subtitle2' fontWeight={600}>
-                Payment Methods
-              </Typography>
-            </Box>
-            <Typography variant='body2' color='text.secondary'>
-              Payment methods not specified
-            </Typography>
-          </Box>
 
           {/* Gallery Preview */}
           {galleryImages.length > 0 && (
@@ -674,22 +767,11 @@ const MyStoresPage: React.FC = () => {
                 size='small'
                 fullWidth
                 startIcon={<Edit />}
-                onClick={() => navigate(`/stores/${store.storeId}/manage`)}
-              >
-                Edit Store
-              </Button>
-            </Grid>
-            <Grid item xs={6}>
-              <Button
-                variant='contained'
-                size='small'
-                fullWidth
-                startIcon={<Preview />}
                 onClick={() =>
-                  window.open(`/stores/${store.storeId}/preview`, '_blank')
+                  navigate(`/open-shop?edit=true&storeId=${store.storeId}`)
                 }
               >
-                Preview
+                Edit Store
               </Button>
             </Grid>
             <Grid item xs={6}>
@@ -698,21 +780,21 @@ const MyStoresPage: React.FC = () => {
                 size='small'
                 fullWidth
                 startIcon={<Inventory />}
-                onClick={() => navigate(`/stores/${store.storeId}/products`)}
+                onClick={() => navigate(`/inventory/${store.storeId}`)}
               >
                 Products
               </Button>
             </Grid>
 
-            <Grid size={6}>
+            <Grid item xs={6}>
               <Button
                 variant='outlined'
                 size='small'
                 fullWidth
                 startIcon={<Analytics />}
-                onClick={() => navigate(`/stores/${store.storeId}/analytics`)}
+                onClick={() => navigate(`/stores/${store.storeId}/customize`)}
               >
-                Analytics
+                Customize
               </Button>
             </Grid>
 
@@ -935,14 +1017,16 @@ const MyStoresPage: React.FC = () => {
         >
           <MenuItem
             onClick={() => {
-              navigate(`/stores/${selectedStore?.storeId}/manage`);
+              navigate(
+                `/open-shop?edit=true&storeId=${selectedStore?.storeId}`
+              );
               handleMenuClose();
             }}
           >
             <ListItemIcon>
-              <Settings fontSize='small' />
+              <Edit fontSize='small' />
             </ListItemIcon>
-            <ListItemText>Store Settings</ListItemText>
+            <ListItemText>Edit Store</ListItemText>
           </MenuItem>
 
           <MenuItem
@@ -959,29 +1043,14 @@ const MyStoresPage: React.FC = () => {
 
           <MenuItem
             onClick={() => {
-              navigate(`/stores/${selectedStore?.storeId}/analytics`);
+              navigate(`/stores/${selectedStore?.storeId}/customize`);
               handleMenuClose();
             }}
           >
             <ListItemIcon>
               <Analytics fontSize='small' />
             </ListItemIcon>
-            <ListItemText>View Analytics</ListItemText>
-          </MenuItem>
-
-          <MenuItem
-            onClick={() => {
-              window.open(
-                `/stores/${selectedStore?.storeId}/preview`,
-                '_blank'
-              );
-              handleMenuClose();
-            }}
-          >
-            <ListItemIcon>
-              <Launch fontSize='small' />
-            </ListItemIcon>
-            <ListItemText>Preview Store</ListItemText>
+            <ListItemText>Customize Storefront</ListItemText>
           </MenuItem>
 
           {/* Visit Published Store Menu Item */}
