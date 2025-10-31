@@ -18,7 +18,8 @@ import {
   Tablet,
   Computer,
 } from '@mui/icons-material';
-import { Card, Button, Stack } from '../../../../shared/components';
+import { Button, Stack } from '../../../../shared/components';
+import { Card } from '@mui/material';
 import type {
   StorefrontPreviewMode,
   StorefrontModuleConfig,

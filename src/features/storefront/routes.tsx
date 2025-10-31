@@ -25,7 +25,7 @@ const LiveStorefrontPage = lazy(
   () => import('./components/LiveStorefrontPage')
 );
 const PublishedStorePage = lazy(
-  () => import('./components/SimplePublishedStorePage')
+  () => import('./components/PublishedStorePage')
 );
 const SimpleBrowsePage = lazy(() => import('./components/SimpleBrowsePage'));
 const StorefrontTestPage = lazy(

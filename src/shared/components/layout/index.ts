@@ -10,7 +10,6 @@ export type { GridProps } from './Grid';
 
 // Re-export useful Material-UI layout components
 export {
-  Grid,
   Box,
   Stack as MuiStack,
   Container as MuiContainer,
@@ -18,7 +17,7 @@ export {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Card,
+  Card as MuiCard,
   CardContent,
   CardHeader,
   CardActions,
@@ -27,4 +26,4 @@ export {
 } from '@mui/material';
 
 // Layout utilities
-export { useMediaQuery, useTheme, Breakpoint } from '@mui/material';
+export { useMediaQuery, useTheme } from '@mui/material';

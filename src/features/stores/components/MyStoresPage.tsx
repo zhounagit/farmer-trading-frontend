@@ -114,7 +114,10 @@ const MyStoresPage: React.FC = () => {
       try {
         // Fetching stores for user ID: ${user.userId}
         // Try to fetch stores specifically for the current user
-        stores = await StoresApiService.getUserStores(user.userId);
+        const storeListResponse = await StoresApiService.getUserStores(
+          user.userId
+        );
+        stores = storeListResponse.stores || [];
       } catch (userStoresError) {
         console.warn(
           'getUserStores failed, falling back to getMyStores:',
@@ -163,7 +166,7 @@ const MyStoresPage: React.FC = () => {
             `🔍 Store ${store.store_id || store.storeId}: owner=${storeOwnerId}, currentUser=${user.userId}`
           );
 
-          if (storeOwnerId && storeOwnerId !== user.userId) {
+          if (storeOwnerId && Number(storeOwnerId) !== Number(user.userId)) {
             console.warn(
               `Store ${store.store_id || store.storeId} does not belong to user ${user.userId}`
             );
@@ -190,7 +193,7 @@ const MyStoresPage: React.FC = () => {
               // Double-check ownership in comprehensive data
               if (
                 comprehensive.storeCreatorId &&
-                comprehensive.storeCreatorId !== user.userId
+                Number(comprehensive.storeCreatorId) !== Number(user.userId)
               ) {
                 console.warn(
                   `Comprehensive store ${comprehensive.storeId} ownership mismatch`
@@ -393,8 +396,9 @@ const MyStoresPage: React.FC = () => {
     return `${today.openTime} - ${today.closeTime}`;
   };
 
-  const getPrimaryAddress = (addresses: any[]) => {
-    if (!addresses || addresses.length === 0) return null;
+  const getPrimaryAddress = (addresses: any) => {
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0)
+      return null;
     return addresses.find((addr) => addr.isPrimary) || addresses[0];
   };
 
@@ -402,9 +406,11 @@ const MyStoresPage: React.FC = () => {
     const primaryAddress = getPrimaryAddress(store.addresses);
     const featuredProducts = mockFeaturedProducts[store.storeId] || [];
     const galleryImages =
-      store.images?.filter(
-        (img) => img.imageType === 'gallery' && img.isActive
-      ) || [];
+      store.images && Array.isArray(store.images)
+        ? store.images.filter(
+            (img) => img.imageType === 'gallery' && img.isActive
+          )
+        : [];
 
     return (
       <Card

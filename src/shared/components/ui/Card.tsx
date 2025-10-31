@@ -4,10 +4,10 @@ import {
   CardContent,
   CardHeader,
   CardActions,
-  CardProps as MuiCardProps,
   Typography,
   Divider,
 } from '@mui/material';
+import type { CardProps as MuiCardProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 export interface CardProps extends Omit<MuiCardProps, 'variant'> {
@@ -25,7 +25,8 @@ export interface CardProps extends Omit<MuiCardProps, 'variant'> {
 }
 
 const StyledCard = styled(MuiCard, {
-  shouldForwardProp: (prop) => !['padding', 'loading', 'error'].includes(prop as string),
+  shouldForwardProp: (prop) =>
+    !['padding', 'loading', 'error'].includes(prop as string),
 })<CardProps>(({ theme, variant, padding, loading, error }) => {
   const getVariantStyles = () => {
     switch (variant) {
@@ -72,10 +73,7 @@ const StyledCard = styled(MuiCard, {
 
   return {
     borderRadius: theme.spacing(1.5),
-    transition: theme.transitions.create([
-      'box-shadow',
-      'border-color',
-    ], {
+    transition: theme.transitions.create(['box-shadow', 'border-color'], {
       duration: theme.transitions.duration.short,
     }),
     ...(error && {
@@ -90,7 +88,10 @@ const StyledCard = styled(MuiCard, {
   };
 });
 
-const StyledCardContent = styled(CardContent)<{ padding?: string }>(({ theme, padding }) => {
+const StyledCardContent = styled(CardContent)<{ padding?: string }>(({
+  theme,
+  padding,
+}) => {
   const getPaddingStyles = () => {
     switch (padding) {
       case 'none':
@@ -98,17 +99,17 @@ const StyledCardContent = styled(CardContent)<{ padding?: string }>(({ theme, pa
       case 'small':
         return {
           padding: `${theme.spacing(1)} !important`,
-          '&:last-child': { paddingBottom: `${theme.spacing(1)} !important` }
+          '&:last-child': { paddingBottom: `${theme.spacing(1)} !important` },
         };
       case 'large':
         return {
           padding: `${theme.spacing(3)} !important`,
-          '&:last-child': { paddingBottom: `${theme.spacing(3)} !important` }
+          '&:last-child': { paddingBottom: `${theme.spacing(3)} !important` },
         };
       default: // medium
         return {
           padding: `${theme.spacing(2)} !important`,
-          '&:last-child': { paddingBottom: `${theme.spacing(2)} !important` }
+          '&:last-child': { paddingBottom: `${theme.spacing(2)} !important` },
         };
     }
   };
@@ -118,7 +119,10 @@ const StyledCardContent = styled(CardContent)<{ padding?: string }>(({ theme, pa
   };
 });
 
-const StyledCardHeader = styled(CardHeader)<{ padding?: string }>(({ theme, padding }) => {
+const StyledCardHeader = styled(CardHeader)<{ padding?: string }>(({
+  theme,
+  padding,
+}) => {
   const getPaddingStyles = () => {
     switch (padding) {
       case 'none':
@@ -153,7 +157,10 @@ const StyledCardHeader = styled(CardHeader)<{ padding?: string }>(({ theme, padd
   };
 });
 
-const StyledCardActions = styled(CardActions)<{ padding?: string }>(({ theme, padding }) => {
+const StyledCardActions = styled(CardActions)<{ padding?: string }>(({
+  theme,
+  padding,
+}) => {
   const getPaddingStyles = () => {
     switch (padding) {
       case 'none':
@@ -207,16 +214,20 @@ export const Card: React.FC<CardProps> = ({
         <>
           <StyledCardHeader
             padding={padding}
-            title={title && (
-              <Typography variant="h6" component="h3">
-                {title}
-              </Typography>
-            )}
-            subheader={subtitle && (
-              <Typography variant="body2" color="textSecondary">
-                {subtitle}
-              </Typography>
-            )}
+            title={
+              title && (
+                <Typography variant='h6' component='h3'>
+                  {title}
+                </Typography>
+              )
+            }
+            subheader={
+              subtitle && (
+                <Typography variant='body2' color='textSecondary'>
+                  {subtitle}
+                </Typography>
+              )
+            }
             action={headerAction}
           >
             {header}
@@ -225,16 +236,12 @@ export const Card: React.FC<CardProps> = ({
         </>
       )}
 
-      <StyledCardContent padding={padding}>
-        {children}
-      </StyledCardContent>
+      <StyledCardContent padding={padding}>{children}</StyledCardContent>
 
       {actions && (
         <>
           {showDivider && <Divider />}
-          <StyledCardActions padding={padding}>
-            {actions}
-          </StyledCardActions>
+          <StyledCardActions padding={padding}>{actions}</StyledCardActions>
         </>
       )}
     </StyledCard>

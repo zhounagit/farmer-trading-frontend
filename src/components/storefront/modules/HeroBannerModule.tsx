@@ -8,11 +8,66 @@ import {
   alpha,
 } from '@mui/material';
 import { ArrowForward } from '@mui/icons-material';
-import type {
-  StorefrontModule,
-  PublicStorefront,
-} from '@/features/search/services/storefront.api';
 import { API_CONFIG } from '../../../utils/api';
+
+interface StorefrontModule {
+  id: string;
+  type: string;
+  title: string;
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  order: number;
+  isVisible: boolean;
+}
+
+interface PublicStorefront {
+  storeId: number;
+  storeName: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  customization: {
+    storeId: number;
+    themeId?: string;
+    modules: StorefrontModule[];
+    globalSettings: Record<string, unknown>;
+    customCss?: string;
+    isPublished: boolean;
+  };
+  store: {
+    storeId: number;
+    storeName: string;
+    description?: string;
+    logoUrl?: string;
+    bannerUrl?: string;
+    addresses?: Array<{
+      type: string;
+      name: string;
+      phone: string;
+      street: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+      instructions: string;
+    }>;
+    openHours?: Array<{
+      dayOfWeek: number;
+      openTime: string;
+      closeTime: string;
+      isClosed: boolean;
+    }>;
+    categories?: Array<{
+      name: string;
+      description: string;
+      icon: string;
+    }>;
+  };
+  products: Array<Record<string, unknown>>;
+  isActive: boolean;
+  lastUpdated: string;
+}
 
 interface HeroBannerModuleProps {
   module: StorefrontModule;
@@ -41,24 +96,31 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
   // Use background image from module settings, fall back to store banner if not set
   let backgroundImage =
     (settings.backgroundImage as string) ||
-    storefront.store.bannerUrl ||
-    storefront.bannerUrl;
+    storefront.bannerUrl ||
+    storefront.store?.bannerUrl;
 
   // Convert relative URLs to absolute URLs with API base
-  if (backgroundImage && backgroundImage.startsWith('/')) {
-    backgroundImage = `${API_CONFIG.BASE_URL}${backgroundImage}`;
-  }
-
-  // Only encode the URL if it's still a relative path (no protocol)
-  if (backgroundImage && !backgroundImage.startsWith('http')) {
-    backgroundImage = encodeURI(backgroundImage);
+  if (backgroundImage) {
+    // If it's already an absolute HTTP URL, leave it as-is
+    if (backgroundImage.startsWith('http')) {
+      // URL is already absolute, no conversion needed
+    }
+    // If it starts with /, it's an absolute path from API root
+    else if (backgroundImage.startsWith('/')) {
+      backgroundImage = `${API_CONFIG.BASE_URL}${backgroundImage}`;
+    }
+    // If it doesn't start with http or /, it's a relative path
+    else {
+      // Relative paths from API should be prefixed with /
+      backgroundImage = `${API_CONFIG.BASE_URL}/${backgroundImage}`;
+    }
   }
 
   // Debug logging for background image
   console.log('🖼️ HeroBannerModule background image debug:', {
     originalBackgroundImage: settings.backgroundImage,
-    storeBannerUrl: storefront.store.bannerUrl,
     storefrontBannerUrl: storefront.bannerUrl,
+    storeBannerUrl: storefront.store?.bannerUrl,
     finalBackgroundImage: backgroundImage,
     isRelativePath: backgroundImage && backgroundImage.startsWith('/'),
     isAbsolutePath: backgroundImage && backgroundImage.startsWith('http'),

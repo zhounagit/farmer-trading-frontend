@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Typography, Avatar, Paper, Grid } from '@mui/material';
+import { Box, Container, Typography, Avatar, Paper } from '@mui/material';
 import { Store } from '@mui/icons-material';
 import type {
   StorefrontModule,
@@ -82,121 +82,123 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
             boxShadow: 'var(--theme-shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.08))',
           }}
         >
-          <Grid container spacing={6} alignItems='center'>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: showOwnerPhoto && ownerPhotoUrl ? '200px 1fr' : '1fr',
+                lg: showOwnerPhoto && ownerPhotoUrl ? '200px 1fr' : '1fr',
+              },
+              gap: 6,
+              alignItems: 'start',
+            }}
+          >
             {/* Owner Photo */}
             {showOwnerPhoto && ownerPhotoUrl && (
-              <Grid item xs={12} md={4} lg={3}>
-                <Box
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: {
+                    xs: 'center',
+                    md: textAlignment === 'right' ? 'flex-end' : 'flex-start',
+                  },
+                  mb: { xs: 2, md: 0 },
+                }}
+              >
+                <Avatar
+                  src={ownerPhotoUrl}
+                  alt={`${storefront.storeName} Logo`}
                   sx={{
-                    display: 'flex',
-                    justifyContent: {
-                      xs: 'center',
-                      md: textAlignment === 'right' ? 'flex-end' : 'flex-start',
-                    },
-                    mb: { xs: 2, md: 0 },
+                    width: { xs: 140, md: 180, lg: 200 },
+                    height: { xs: 140, md: 180, lg: 200 },
+                    border: '4px solid',
+                    borderColor: 'primary.main',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                   }}
                 >
-                  <Avatar
-                    src={ownerPhotoUrl}
-                    alt={`${storefront.storeName} Logo`}
-                    sx={{
-                      width: { xs: 140, md: 180, lg: 200 },
-                      height: { xs: 140, md: 180, lg: 200 },
-                      border: '4px solid',
-                      borderColor: 'primary.main',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                    }}
-                  >
-                    <Store sx={{ fontSize: '3rem', color: 'primary.main' }} />
-                  </Avatar>
-                </Box>
-              </Grid>
+                  <Store sx={{ fontSize: '3rem', color: 'primary.main' }} />
+                </Avatar>
+              </Box>
             )}
 
             {/* Content */}
-            <Grid
-              item
-              xs={12}
-              md={showOwnerPhoto && ownerPhotoUrl ? 8 : 12}
-              lg={showOwnerPhoto && ownerPhotoUrl ? 9 : 12}
-            >
-              <Box>
-                {/* Store Name as Header */}
-                <Typography
-                  variant='h3'
-                  component='h2'
-                  sx={{
-                    mb: 3,
-                    textAlign: textAlignment as any,
-                    fontWeight: 'bold',
-                    color: 'primary.main',
-                  }}
-                >
-                  {module.title || `About ${storefront.storeName}`}
-                </Typography>
+            <Box>
+              {/* Store Name as Header */}
+              <Typography
+                variant='h3'
+                component='h2'
+                sx={{
+                  mb: 3,
+                  textAlign: textAlignment as any,
+                  fontWeight: 'bold',
+                  color: 'primary.main',
+                }}
+              >
+                {module.title || `About ${storefront.storeName}`}
+              </Typography>
 
-                {/* Story Content */}
-                <Box
-                  sx={{
-                    maxWidth: textAlignment === 'center' ? 800 : 'none',
-                    margin: textAlignment === 'center' ? '0 auto' : 'initial',
-                  }}
-                >
-                  {renderContent()}
-                </Box>
-
-                {/* Store Highlights */}
-                {storefront.store.categories &&
-                  storefront.store.categories.length > 0 && (
-                    <Box sx={{ mt: 4 }}>
-                      <Typography
-                        variant='h6'
-                        sx={{
-                          mb: 2,
-                          textAlign: textAlignment as any,
-                          color: 'text.secondary',
-                          fontWeight: 600,
-                        }}
-                      >
-                        What We Offer
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: 1,
-                          justifyContent:
-                            textAlignment === 'center'
-                              ? 'center'
-                              : textAlignment === 'right'
-                                ? 'flex-end'
-                                : 'flex-start',
-                        }}
-                      >
-                        {storefront.store.categories
-                          .slice(0, 5)
-                          .map((category: any, index: number) => (
-                            <Box
-                              key={index}
-                              sx={{
-                                px: 2,
-                                py: 1,
-                                backgroundColor: 'primary.main',
-                                color: 'white',
-                                borderRadius: 2,
-                                fontSize: '0.875rem',
-                                fontWeight: 500,
-                              }}
-                            >
-                              {category.categoryName || category.name}
-                            </Box>
-                          ))}
-                      </Box>
-                    </Box>
-                  )}
+              {/* Story Content */}
+              <Box
+                sx={{
+                  maxWidth: textAlignment === 'center' ? 800 : 'none',
+                  margin: textAlignment === 'center' ? '0 auto' : 'initial',
+                }}
+              >
+                {renderContent()}
               </Box>
-            </Grid>
-          </Grid>
+
+              {/* Store Highlights */}
+              {storefront.store.categories &&
+                storefront.store.categories.length > 0 && (
+                  <Box sx={{ mt: 4 }}>
+                    <Typography
+                      variant='h6'
+                      sx={{
+                        mb: 2,
+                        textAlign: textAlignment as any,
+                        color: 'text.secondary',
+                        fontWeight: 600,
+                      }}
+                    >
+                      What We Offer
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        justifyContent:
+                          textAlignment === 'center'
+                            ? 'center'
+                            : textAlignment === 'right'
+                              ? 'flex-end'
+                              : 'flex-start',
+                      }}
+                    >
+                      {storefront.store.categories
+                        .slice(0, 5)
+                        .map((category: any, index: number) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              px: 2,
+                              py: 1,
+                              backgroundColor: 'primary.main',
+                              color: 'white',
+                              borderRadius: 2,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {category.categoryName || category.name}
+                          </Box>
+                        ))}
+                    </Box>
+                  </Box>
+                )}
+            </Box>
+          </Box>
         </Paper>
       </Container>
     </Box>

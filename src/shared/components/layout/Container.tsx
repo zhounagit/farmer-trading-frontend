@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, BoxProps } from '@mui/material';
+import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import type { BoxProps } from '@mui/material';
 
 export interface ContainerProps extends Omit<BoxProps, 'maxWidth'> {
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'fluid' | false;
@@ -10,7 +11,8 @@ export interface ContainerProps extends Omit<BoxProps, 'maxWidth'> {
 }
 
 const StyledContainer = styled(Box, {
-  shouldForwardProp: (prop) => !['padding', 'centered'].includes(prop as string),
+  shouldForwardProp: (prop) =>
+    !['padding', 'centered'].includes(prop as string),
 })<ContainerProps>(({ theme, maxWidth, padding, centered }) => {
   const getMaxWidth = () => {
     if (maxWidth === false) return 'none';

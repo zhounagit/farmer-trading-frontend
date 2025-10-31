@@ -85,10 +85,34 @@ export class StoresApiService {
   // Store Listings
   static async getUserStores(userId?: number): Promise<StoreListResponse> {
     const queryParam = userId ? `?userId=${userId}` : '';
-    const response = await apiClient.get<StoreListResponse>(
+    const stores = await apiClient.get<any[]>(
       `${this.BASE_PATH}/my-stores${queryParam}`
     );
-    return response;
+
+    // apiClient.get already extracts response.data.data, which is the array
+    // Convert array response to StoreListResponse format
+    if (Array.isArray(stores)) {
+      return {
+        stores,
+        totalCount: stores.length,
+        pageNumber: 1,
+        pageSize: stores.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+    }
+
+    // Fallback for unexpected format
+    return {
+      stores: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
   }
 
   static async getAllStores(

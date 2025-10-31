@@ -22,7 +22,6 @@ import {
   RestartAlt,
   ExpandMore,
   Palette,
-  Layout,
   Visibility,
   Code,
 } from '@mui/icons-material';
@@ -43,7 +42,14 @@ export interface ModuleConfigurationProps {
 interface ModuleConfigField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'boolean' | 'select' | 'color' | 'slider' | 'textarea';
+  type:
+    | 'text'
+    | 'number'
+    | 'boolean'
+    | 'select'
+    | 'color'
+    | 'slider'
+    | 'textarea';
   description?: string;
   options?: Array<{ value: string | number; label: string }>;
   min?: number;
@@ -54,7 +60,9 @@ interface ModuleConfigField {
   category?: 'layout' | 'content' | 'style' | 'behavior';
 }
 
-const getModuleFields = (moduleType: StorefrontModuleType): ModuleConfigField[] => {
+const getModuleFields = (
+  moduleType: StorefrontModuleType
+): ModuleConfigField[] => {
   const commonFields: ModuleConfigField[] = [
     {
       key: 'title',
@@ -391,21 +399,26 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   onSave,
   onReset,
 }) => {
-  const [config, setConfig] = useState<Record<string, any>>(module?.config || {});
+  const [config, setConfig] = useState<Record<string, any>>(
+    module?.config || {}
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
   if (!module) return null;
 
   const fields = getModuleFields(module.type);
-  const categorizedFields = fields.reduce((acc, field) => {
-    const category = field.category || 'general';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(field);
-    return acc;
-  }, {} as Record<string, ModuleConfigField[]>);
+  const categorizedFields = fields.reduce(
+    (acc, field) => {
+      const category = field.category || 'general';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(field);
+      return acc;
+    },
+    {} as Record<string, ModuleConfigField[]>
+  );
 
   const handleFieldChange = (key: string, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+    setConfig((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
@@ -448,10 +461,12 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
       case 'number':
         return (
           <Input
-            type="number"
+            type='number'
             label={field.label}
             value={value || field.defaultValue || 0}
-            onChange={(e) => handleFieldChange(field.key, parseInt(e.target.value))}
+            onChange={(e) =>
+              handleFieldChange(field.key, parseInt(e.target.value))
+            }
             helperText={field.description}
             inputProps={{ min: field.min, max: field.max }}
           />
@@ -464,13 +479,19 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
               control={
                 <Switch
                   checked={value || false}
-                  onChange={(e) => handleFieldChange(field.key, e.target.checked)}
+                  onChange={(e) =>
+                    handleFieldChange(field.key, e.target.checked)
+                  }
                 />
               }
               label={field.label}
             />
             {field.description && (
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography
+                variant='caption'
+                color='text.secondary'
+                display='block'
+              >
                 {field.description}
               </Typography>
             )}
@@ -491,7 +512,7 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
       case 'slider':
         return (
           <Box>
-            <Typography variant="body2" gutterBottom>
+            <Typography variant='body2' gutterBottom>
               {field.label}: {value ?? field.defaultValue}
             </Typography>
             <Slider
@@ -500,10 +521,10 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
               min={field.min}
               max={field.max}
               step={field.step}
-              valueLabelDisplay="auto"
+              valueLabelDisplay='auto'
             />
             {field.description && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant='caption' color='text.secondary'>
                 {field.description}
               </Typography>
             )}
@@ -518,15 +539,15 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'layout':
-        return <Layout fontSize="small" />;
+        return <Layout fontSize='small' />;
       case 'content':
-        return <Code fontSize="small" />;
+        return <Code fontSize='small' />;
       case 'style':
-        return <Palette fontSize="small" />;
+        return <Palette fontSize='small' />;
       case 'behavior':
-        return <Settings fontSize="small" />;
+        return <Settings fontSize='small' />;
       default:
-        return <Settings fontSize="small" />;
+        return <Settings fontSize='small' />;
     }
   };
 
@@ -573,14 +594,14 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
         }}
       >
         <Box>
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant='h6' fontWeight={600}>
             Configure Module
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant='body2' color='text.secondary'>
             {module.title} ({module.type})
           </Typography>
         </Box>
-        <Tooltip title="Close">
+        <Tooltip title='Close'>
           <IconButton onClick={onClose}>
             <Close />
           </IconButton>
@@ -591,32 +612,32 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
       <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
         <Stack spacing={3}>
           {hasChanges && (
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <Alert severity='info' sx={{ mb: 2 }}>
               You have unsaved changes. Don't forget to save your configuration.
             </Alert>
           )}
 
-          {Object.entries(categorizedFields).map(([category, categoryFields]) => (
-            <Accordion key={category} defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  {getCategoryIcon(category)}
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    {getCategoryTitle(category)}
-                  </Typography>
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Stack spacing={3}>
-                  {categoryFields.map((field) => (
-                    <Box key={field.key}>
-                      {renderField(field)}
-                    </Box>
-                  ))}
-                </Stack>
-              </AccordionDetails>
-            </Accordion>
-          ))}
+          {Object.entries(categorizedFields).map(
+            ([category, categoryFields]) => (
+              <Accordion key={category} defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Stack direction='row' spacing={1} alignItems='center'>
+                    {getCategoryIcon(category)}
+                    <Typography variant='subtitle1' fontWeight={600}>
+                      {getCategoryTitle(category)}
+                    </Typography>
+                  </Stack>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={3}>
+                    {categoryFields.map((field) => (
+                      <Box key={field.key}>{renderField(field)}</Box>
+                    ))}
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
+            )
+          )}
         </Stack>
       </Box>
 
@@ -629,9 +650,9 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
           bgcolor: 'grey.50',
         }}
       >
-        <Stack direction="row" spacing={2}>
+        <Stack direction='row' spacing={2}>
           <Button
-            variant="outline"
+            variant='outline'
             startIcon={<RestartAlt />}
             onClick={handleReset}
             disabled={!hasChanges}
@@ -640,7 +661,7 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
             Reset
           </Button>
           <Button
-            variant="primary"
+            variant='primary'
             startIcon={<Save />}
             onClick={handleSave}
             disabled={!hasChanges}

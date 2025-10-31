@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, BoxProps } from '@mui/material';
+import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import type { BoxProps } from '@mui/material';
 
 export interface GridProps extends Omit<BoxProps, 'container' | 'item'> {
   container?: boolean;
@@ -15,12 +16,31 @@ export interface GridProps extends Omit<BoxProps, 'container' | 'item'> {
   wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
   direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
   alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
-  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  justifyContent?:
+    | 'flex-start'
+    | 'center'
+    | 'flex-end'
+    | 'space-between'
+    | 'space-around'
+    | 'space-evenly';
   children: React.ReactNode;
 }
 
 const StyledGrid = styled(Box, {
-  shouldForwardProp: (prop) => !['container', 'item', 'spacing', 'columns', 'xs', 'sm', 'md', 'lg', 'xl', 'wrap', 'direction'].includes(prop as string),
+  shouldForwardProp: (prop) =>
+    ![
+      'container',
+      'item',
+      'spacing',
+      'columns',
+      'xs',
+      'sm',
+      'md',
+      'lg',
+      'xl',
+      'wrap',
+      'direction',
+    ].includes(prop as string),
 })<GridProps>(({
   theme,
   container,
@@ -35,7 +55,7 @@ const StyledGrid = styled(Box, {
   wrap = 'wrap',
   direction = 'row',
   alignItems,
-  justifyContent
+  justifyContent,
 }) => {
   const getSpacing = () => {
     if (typeof spacing === 'number') {
@@ -44,7 +64,10 @@ const StyledGrid = styled(Box, {
     return spacing;
   };
 
-  const getBreakpointStyles = (breakpoint: number | 'auto' | undefined, breakpointName: string) => {
+  const getBreakpointStyles = (
+    breakpoint: number | 'auto' | undefined,
+    breakpointName: string
+  ) => {
     if (breakpoint === undefined) return {};
 
     if (breakpoint === 'auto') {
@@ -53,7 +76,7 @@ const StyledGrid = styled(Box, {
           flexBasis: 'auto',
           flexGrow: 1,
           maxWidth: 'none',
-        }
+        },
       };
     }
 
@@ -63,7 +86,7 @@ const StyledGrid = styled(Box, {
         flexBasis: `${percentage}%`,
         flexGrow: 0,
         maxWidth: `${percentage}%`,
-      }
+      },
     };
   };
 
@@ -72,7 +95,8 @@ const StyledGrid = styled(Box, {
       display: 'flex',
       flexWrap: wrap,
       flexDirection: direction,
-      alignItems: alignItems || (direction.includes('column') ? 'stretch' : 'flex-start'),
+      alignItems:
+        alignItems || (direction.includes('column') ? 'stretch' : 'flex-start'),
       justifyContent: justifyContent || 'flex-start',
       width: '100%',
       margin: spacing ? `-${getSpacing()}` : 0,
@@ -138,9 +162,9 @@ export const Grid: React.FC<GridProps> = ({
 };
 
 // Convenience components for common grid patterns
-export const GridContainer: React.FC<Omit<GridProps, 'container'>> = (props) => (
-  <Grid container {...props} />
-);
+export const GridContainer: React.FC<Omit<GridProps, 'container'>> = (
+  props
+) => <Grid container {...props} />;
 
 export const GridItem: React.FC<Omit<GridProps, 'item'>> = (props) => (
   <Grid item {...props} />

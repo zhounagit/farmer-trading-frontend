@@ -1,13 +1,13 @@
 import React, { forwardRef } from 'react';
 import {
   TextField,
-  TextFieldProps,
   FormControl,
   FormLabel,
   FormHelperText,
   InputAdornment,
   IconButton,
 } from '@mui/material';
+import type { TextFieldProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Visibility, VisibilityOff, ErrorOutline } from '@mui/icons-material';
 
@@ -67,16 +67,16 @@ const StyledTextField = styled(TextField, {
   return {
     '& .MuiOutlinedInput-root': {
       borderRadius: theme.spacing(1),
-      transition: theme.transitions.create([
-        'border-color',
-        'background-color',
-        'box-shadow',
-      ], {
-        duration: theme.transitions.duration.short,
-      }),
-      '&:hover:not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
-        borderColor: theme.palette.primary.main,
-      },
+      transition: theme.transitions.create(
+        ['border-color', 'background-color', 'box-shadow'],
+        {
+          duration: theme.transitions.duration.short,
+        }
+      ),
+      '&:hover:not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline':
+        {
+          borderColor: theme.palette.primary.main,
+        },
       '&.Mui-focused:not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
         borderColor: theme.palette.primary.main,
         borderWidth: '2px',
@@ -154,9 +154,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       if (error) {
         adornments.push(
           <ErrorOutline
-            key="error-icon"
-            color="error"
-            fontSize="small"
+            key='error-icon'
+            color='error'
+            fontSize='small'
             sx={{ mr: 1 }}
           />
         );
@@ -165,11 +165,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       if (type === 'password' && showPasswordToggle) {
         adornments.push(
           <IconButton
-            key="password-toggle"
-            aria-label="toggle password visibility"
+            key='password-toggle'
+            aria-label='toggle password visibility'
             onClick={handleTogglePassword}
-            edge="end"
-            size="small"
+            edge='end'
+            size='small'
             disabled={disabled}
           >
             {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -182,17 +182,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       }
 
       return adornments.length > 0 ? (
-        <InputAdornment position="end">
-          {adornments}
-        </InputAdornment>
+        <InputAdornment position='end'>{adornments}</InputAdornment>
       ) : undefined;
     };
 
     const getStartAdornment = () => {
       return startAdornment ? (
-        <InputAdornment position="start">
-          {startAdornment}
-        </InputAdornment>
+        <InputAdornment position='start'>{startAdornment}</InputAdornment>
       ) : undefined;
     };
 

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import type {
-  StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+  StorefrontModule,
+} from '@/features/storefront/types/public-storefront';
 
 // Module Components
 import HeroBannerModule from './modules/HeroBannerModule';

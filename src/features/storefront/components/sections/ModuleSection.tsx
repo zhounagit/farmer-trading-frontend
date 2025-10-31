@@ -31,7 +31,8 @@ import {
   Schedule,
   LocationOn,
 } from '@mui/icons-material';
-import { Card, Button, Stack } from '../../../../shared/components';
+import { Button, Stack } from '../../../../shared/components';
+import { Card } from '@mui/material';
 import ModuleConfiguration from './ModuleConfiguration';
 import type {
   StorefrontModuleConfig,

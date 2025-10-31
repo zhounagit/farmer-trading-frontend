@@ -1,20 +1,37 @@
 import React from 'react';
-import { Box, BoxProps } from '@mui/material';
+import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import type { BoxProps } from '@mui/material';
 
 export interface StackProps extends Omit<BoxProps, 'gap'> {
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
   spacing?: number | string;
   divider?: React.ReactElement;
   alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
-  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  justifyContent?:
+    | 'flex-start'
+    | 'center'
+    | 'flex-end'
+    | 'space-between'
+    | 'space-around'
+    | 'space-evenly';
   wrap?: boolean;
   children: React.ReactNode;
 }
 
 const StyledStack = styled(Box, {
-  shouldForwardProp: (prop) => !['direction', 'spacing', 'alignItems', 'justifyContent', 'wrap'].includes(prop as string),
-})<StackProps>(({ theme, direction = 'column', spacing = 2, alignItems, justifyContent, wrap }) => {
+  shouldForwardProp: (prop) =>
+    !['direction', 'spacing', 'alignItems', 'justifyContent', 'wrap'].includes(
+      prop as string
+    ),
+})<StackProps>(({
+  theme,
+  direction = 'column',
+  spacing = 2,
+  alignItems,
+  justifyContent,
+  wrap,
+}) => {
   const getSpacing = () => {
     if (typeof spacing === 'number') {
       return theme.spacing(spacing);

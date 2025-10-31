@@ -42,13 +42,12 @@ export {
   ListItemButton,
   Tabs,
   Tab,
-  TabPanel,
   Switch,
   Checkbox,
   Radio,
   RadioGroup,
   FormControlLabel,
-  Select,
+  Select as MuiSelect,
   Slider,
   Rating,
 } from '@mui/material';
@@ -95,6 +94,5 @@ export {
   Upload,
   Share,
   Print,
-  Copy,
   Refresh,
 } from '@mui/icons-material';

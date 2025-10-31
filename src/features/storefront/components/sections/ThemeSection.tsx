@@ -9,12 +9,9 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import {
-  Palette,
-  Visibility,
-  Settings,
-} from '@mui/icons-material';
-import { Card, Button, Stack } from '../../../../shared/components';
+import { Palette, Visibility, Settings } from '@mui/icons-material';
+import { Button, Stack } from '../../../../shared/components';
+import { Card } from '@mui/material';
 import ThemeSelector from '../../../../components/storefront/ThemeSelector';
 import type { StorefrontTheme } from '../../../../types/themes';
 
@@ -40,25 +37,30 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
       <Stack spacing={3}>
         {/* Section Header */}
         <Box>
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
-            <Palette color="primary" />
-            <Typography variant="h6" fontWeight={600}>
+          <Stack direction='row' spacing={2} alignItems='center' sx={{ mb: 1 }}>
+            <Palette color='primary' />
+            <Typography variant='h6' fontWeight={600}>
               Theme Selection
             </Typography>
           </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Choose a theme that represents your brand and customize it to match your style.
+          <Typography variant='body2' color='text.secondary'>
+            Choose a theme that represents your brand and customize it to match
+            your style.
           </Typography>
         </Box>
 
         {/* Live Preview Toggle */}
-        <Card variant="outlined" padding="small">
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Card variant='outlined' padding='small'>
+          <Stack
+            direction='row'
+            justifyContent='space-between'
+            alignItems='center'
+          >
             <Box>
-              <Typography variant="subtitle2" fontWeight={600}>
+              <Typography variant='subtitle2' fontWeight={600}>
                 Live Preview
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant='body2' color='text.secondary'>
                 See changes instantly as you customize
               </Typography>
             </Box>
@@ -67,17 +69,17 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
                 <Switch
                   checked={isLivePreview}
                   onChange={(e) => onLivePreviewToggle(e.target.checked)}
-                  color="primary"
+                  color='primary'
                 />
               }
-              label=""
+              label=''
             />
           </Stack>
         </Card>
 
         {/* Current Theme Display */}
-        <Card title="Current Theme" variant="outlined">
-          <Stack direction="row" spacing={2} alignItems="center">
+        <Card title='Current Theme' variant='outlined'>
+          <Stack direction='row' spacing={2} alignItems='center'>
             <Box
               sx={{
                 width: 60,
@@ -89,25 +91,21 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
               }}
             />
             <Box flex={1}>
-              <Typography variant="h6" fontWeight={600}>
+              <Typography variant='h6' fontWeight={600}>
                 {selectedTheme.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant='body2' color='text.secondary'>
                 {selectedTheme.description}
               </Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Stack direction='row' spacing={1} sx={{ mt: 1 }}>
                 <Chip
-                  size="small"
+                  size='small'
                   label={selectedTheme.category}
-                  color="primary"
-                  variant="outlined"
+                  color='primary'
+                  variant='outlined'
                 />
                 {selectedTheme.premium && (
-                  <Chip
-                    size="small"
-                    label="Premium"
-                    color="secondary"
-                  />
+                  <Chip size='small' label='Premium' color='secondary' />
                 )}
               </Stack>
             </Box>
@@ -115,7 +113,7 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
         </Card>
 
         {/* Theme Selector */}
-        <Card title="Available Themes" variant="outlined">
+        <Card title='Available Themes' variant='outlined'>
           <ThemeSelector
             themes={availableThemes}
             selectedTheme={selectedTheme}
@@ -125,10 +123,11 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
         </Card>
 
         {/* Theme Customization Options */}
-        <Card title="Theme Customization" variant="outlined">
+        <Card title='Theme Customization' variant='outlined'>
           <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-              Advanced customization options will be available here in a future update.
+            <Typography variant='body2' color='text.secondary'>
+              Advanced customization options will be available here in a future
+              update.
             </Typography>
 
             <Grid container spacing={2}>
@@ -141,9 +140,11 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
                     cursor: 'not-allowed',
                   }}
                 >
-                  <Palette sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
-                  <Typography variant="subtitle2">Color Palette</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Palette
+                    sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }}
+                  />
+                  <Typography variant='subtitle2'>Color Palette</Typography>
+                  <Typography variant='body2' color='text.secondary'>
                     Customize brand colors
                   </Typography>
                 </Paper>
@@ -158,9 +159,11 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
                     cursor: 'not-allowed',
                   }}
                 >
-                  <Settings sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
-                  <Typography variant="subtitle2">Layout Options</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Settings
+                    sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }}
+                  />
+                  <Typography variant='subtitle2'>Layout Options</Typography>
+                  <Typography variant='body2' color='text.secondary'>
                     Adjust spacing and layout
                   </Typography>
                 </Paper>
@@ -176,19 +179,20 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
                 borderColor: 'info.main',
               }}
             >
-              <Typography variant="body2" color="info.dark">
-                <strong>Coming Soon:</strong> Advanced theme customization including custom colors,
-                fonts, and layout options will be available in the next update.
+              <Typography variant='body2' color='info.dark'>
+                <strong>Coming Soon:</strong> Advanced theme customization
+                including custom colors, fonts, and layout options will be
+                available in the next update.
               </Typography>
             </Box>
           </Stack>
         </Card>
 
         {/* Theme Actions */}
-        <Stack direction="row" spacing={2} justifyContent="flex-end">
-          <Tooltip title="Preview in new tab">
+        <Stack direction='row' spacing={2} justifyContent='flex-end'>
+          <Tooltip title='Preview in new tab'>
             <Button
-              variant="outline"
+              variant='outline'
               startIcon={<Visibility />}
               disabled={loading}
             >

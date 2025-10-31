@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
+import { Button as MuiButton, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import type { ButtonProps as MuiButtonProps } from '@mui/material';
 
 export interface ButtonProps extends Omit<MuiButtonProps, 'variant' | 'size'> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -112,14 +113,12 @@ const StyledButton = styled(MuiButton, {
     fontWeight: 600,
     borderRadius: theme.spacing(1),
     boxShadow: 'none',
-    transition: theme.transitions.create([
-      'background-color',
-      'border-color',
-      'color',
-      'box-shadow',
-    ], {
-      duration: theme.transitions.duration.short,
-    }),
+    transition: theme.transitions.create(
+      ['background-color', 'border-color', 'color', 'box-shadow'],
+      {
+        duration: theme.transitions.duration.short,
+      }
+    ),
     '&:hover': {
       boxShadow: 'none',
     },
@@ -146,7 +145,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <StyledButton
-      variant="contained"
+      variant='contained'
       size={size}
       disabled={isDisabled}
       startIcon={loading ? undefined : startIcon}

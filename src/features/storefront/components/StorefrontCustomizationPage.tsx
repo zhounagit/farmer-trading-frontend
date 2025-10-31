@@ -1166,6 +1166,16 @@ const StorefrontCustomizationPage: React.FC = () => {
           message: `Storefront published successfully! Your store is now live.`,
           severity: 'success',
         });
+
+        // Navigate to the published store page after a short delay
+        setTimeout(() => {
+          if (storeData?.slug) {
+            navigate(`/store/${storeData.slug}`);
+          } else {
+            // Fallback: navigate to store page by ID if slug is not available
+            navigate(`/stores/${storeId}`);
+          }
+        }, 1500);
       } else {
         // Just save without publishing
         await StorefrontApiService.saveStorefrontCustomization(

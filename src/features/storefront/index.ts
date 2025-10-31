@@ -1,8 +1,6 @@
 // Storefront feature barrel exports
 export { default as StorefrontCustomizationPage } from './components/StorefrontCustomizationPage';
-export { default as StorefrontCustomizationPageNew } from './components/StorefrontCustomizationPageNew';
 export { default as LiveStorefrontPage } from './components/LiveStorefrontPage';
-export { default as SimplePublishedStorePage } from './components/SimplePublishedStorePage';
 export { default as PublishedStorePage } from './components/PublishedStorePage';
 export { default as SimpleBrowsePage } from './components/SimpleBrowsePage';
 export { default as BrowseStorefrontsPage } from './components/BrowseStorefrontsPage';
