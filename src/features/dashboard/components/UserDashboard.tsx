@@ -502,7 +502,7 @@ const UserDashboard: React.FC = () => {
           {/* Tab Panels */}
           {tabConfig.map((tab, index) => (
             <TabPanel key={tab.key} value={tabValue} index={index}>
-              {tab.key === 'overview' && (
+              {tabValue === index && tab.key === 'overview' && (
                 <Box sx={{ p: 3 }}>
                   {/* Store Status Section - Always show if store exists */}
                   {primaryStore ? (
@@ -754,13 +754,13 @@ const UserDashboard: React.FC = () => {
                 </Box>
               )}
 
-              {tab.key === 'store' && (
+              {tabValue === index && tab.key === 'store' && (
                 <Box sx={{ p: 3 }}>
                   <StoreOverviewSection />
                 </Box>
               )}
 
-              {tab.key === 'branding' && (
+              {tabValue === index && tab.key === 'branding' && (
                 <Box sx={{ p: 3 }}>
                   {storeLoading ? (
                     <Box
@@ -816,7 +816,7 @@ const UserDashboard: React.FC = () => {
                 </Box>
               )}
 
-              {tab.key === 'orders' && (
+              {tabValue === index && tab.key === 'orders' && (
                 <Box sx={{ p: 3 }}>
                   <Typography variant='h6' gutterBottom>
                     My Orders
@@ -828,7 +828,7 @@ const UserDashboard: React.FC = () => {
                 </Box>
               )}
 
-              {tab.key === 'referral' && (
+              {tabValue === index && tab.key === 'referral' && (
                 <Box sx={{ p: 0 }}>
                   <ReferralProgramPage />
                 </Box>
