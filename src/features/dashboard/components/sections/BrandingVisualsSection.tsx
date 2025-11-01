@@ -40,7 +40,7 @@ import {
 
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { OpenShopApiService } from '../../../../shared/services';
+import OpenShopApiService from '../../../../features/stores/services/open-shop.api';
 import { StoresApiService } from '../../../../shared/services';
 import { type StoreImage } from '../../../../shared/types/store';
 import { useAuth } from '@/contexts/AuthContext';

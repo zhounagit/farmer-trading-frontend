@@ -15,7 +15,6 @@ export { StoresApiService } from '../../features/stores/services/storesApi';
 export { InventoryApiService } from '../../features/inventory/services/inventoryApi';
 export { StorefrontApiService } from '../../features/storefront/services/storefrontApi';
 export { PartnershipsApiService } from '../../features/partnerships/services/partnershipsApi';
-export { OpenShopApiService } from '../../features/stores/services/openShopApi';
 export { default as DashboardApiService } from '../../features/dashboard/services/dashboardApi';
 export { CategoryApiService } from '../../features/search/services/categoryApi';
 export { UserApiService } from '../../features/account-settings/services/userApiService';
@@ -50,7 +49,6 @@ export { StoresApiService as StoresApi } from '../../features/stores/services/st
 export { InventoryApiService as InventoryApi } from '../../features/inventory/services/inventoryApi';
 export { StorefrontApiService as StorefrontApi } from '../../features/storefront/services/storefrontApi';
 export { PartnershipsApiService as PartnershipsApi } from '../../features/partnerships/services/partnershipsApi';
-export { OpenShopApiService as OpenShopApi } from '../../features/stores/services/openShopApi';
 export { default as DashboardApi } from '../../features/dashboard/services/dashboardApi';
 export { CategoryApiService as CategoryApi } from '../../features/search/services/categoryApi';
 export { UserApiService as UserApi } from '../../features/account-settings/services/userApiService';
