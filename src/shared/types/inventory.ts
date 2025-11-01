@@ -43,22 +43,26 @@ export interface InventoryItem {
 export interface InventoryImage {
   imageId: number;
   itemId: number;
-  imageType: ImageType;
-  filePath: string;
+  storageProvider: string;
+  bucketName: string;
+  objectKey: string;
+  originalUrl: string;
+  originalUrlOverride: string;
   fileName: string;
-  originalFileName: string;
-  fileSize: number;
+  fileSizeBytes: number;
   mimeType: string;
-  sortOrder: number;
+  hasTransparency: boolean;
+  versionUuid: string;
+  isCurrentVersion: boolean;
+  uploadedAt: string;
   isPrimary: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  displayOrder: number;
+  altText?: string;
+  uploadedBy: number;
 
-  // Computed properties
+  // Computed properties for backwards compatibility
   url?: string;
   thumbnailUrl?: string;
-  altText?: string;
 }
 
 export interface InventoryVariant {
@@ -282,10 +286,10 @@ export interface BulkInventoryResult {
 // Image Management
 export interface InventoryImageUploadRequest {
   itemId: number;
-  imageType: ImageType;
   sortOrder?: number;
   isPrimary?: boolean;
   altText?: string;
+  caption?: string;
 }
 
 export interface InventoryImageUpdateRequest {

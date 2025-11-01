@@ -307,7 +307,19 @@ export class InventoryApiService {
     const response = await apiClient.get<InventoryImage[]>(
       API_ENDPOINTS.INVENTORY.IMAGES(itemId)
     );
-    return response;
+    // Map originalUrl to url for compatibility with frontend
+    const baseURL = 'https://localhost:7008';
+    return response.map((img) => {
+      const urlPath = img.originalUrlOverride || img.originalUrl;
+      const fullUrl = urlPath.startsWith('http')
+        ? urlPath
+        : `${baseURL}${urlPath}`;
+      return {
+        ...img,
+        url: fullUrl,
+        thumbnailUrl: fullUrl,
+      };
+    });
   }
 
   static async uploadInventoryImage(
@@ -317,16 +329,18 @@ export class InventoryApiService {
     onUploadProgress?: (progress: number) => void
   ): Promise<InventoryImage> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('imageType', uploadRequest.imageType);
-    if (uploadRequest.sortOrder !== undefined) {
-      formData.append('sortOrder', uploadRequest.sortOrder.toString());
-    }
+    formData.append('Image', file);
     if (uploadRequest.isPrimary !== undefined) {
-      formData.append('isPrimary', uploadRequest.isPrimary.toString());
+      formData.append('IsPrimary', uploadRequest.isPrimary.toString());
     }
     if (uploadRequest.altText) {
-      formData.append('altText', uploadRequest.altText);
+      formData.append('AltText', uploadRequest.altText);
+    }
+    if (uploadRequest.caption) {
+      formData.append('Caption', uploadRequest.caption);
+    }
+    if (uploadRequest.sortOrder !== undefined) {
+      formData.append('DisplayOrder', uploadRequest.sortOrder.toString());
     }
 
     const response = await apiClient.upload<InventoryImage>(

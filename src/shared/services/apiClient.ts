@@ -52,6 +52,12 @@ class ApiClient {
           config.headers = new axios.AxiosHeaders();
         }
 
+        // For FormData requests, don't set Content-Type header
+        // Let axios auto-detect and set proper multipart boundary
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
+        }
+
         // Normalize URL (remove double slashes, ensure leading slash)
         if (config.url && !config.url.startsWith('/')) {
           config.url = '/' + config.url;
@@ -267,7 +273,9 @@ class ApiClient {
       ...config,
       headers: {
         ...config?.headers,
-        'Content-Type': 'multipart/form-data',
+        // Don't set Content-Type header for FormData
+        // Axios automatically detects FormData and sets the correct header with boundary
+        'Content-Type': undefined,
       },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && onUploadProgress) {

@@ -297,10 +297,9 @@ const SimpleInventoryPage: React.FC = () => {
             currentItemForImages.itemId,
             file,
             {
-              imageType: 'PRODUCT' as any,
               isPrimary: itemImages.length === 0,
               altText: file.name,
-              sortOrder: itemImages.length + i + 1,
+              sortOrder: itemImages.length + i,
             }
           );
 
