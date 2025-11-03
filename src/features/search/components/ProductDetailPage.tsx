@@ -33,92 +33,53 @@ import {
   FavoriteBorder,
   Share,
   ArrowBack,
-  Store,
+  Store as StoreIcon,
   LocationOn,
   Phone,
   Email,
   RequestQuote,
   Inventory,
-  LocalOffer,
   NavigateNext,
   Close,
   ZoomIn,
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
-import StorefrontApiService from '../services/storefront.api';
+import { InventoryApiService } from '../../../features/inventory/services/inventoryApi';
+import { StoresApiService } from '../../../features/stores/services/storesApi';
 import Header from '../../../components/layout/Header';
+import type { InventoryItem } from '../../../shared/types/inventory';
+import type { Store } from '../../../shared/types/store';
+import { API_CONFIG } from '../../../utils/api';
 
-// Helper function to safely handle image URLs
-const getSafeImageUrl = (
-  url?: string,
-  fallback: string = '/placeholder-product.svg'
-): string => {
+// Helper function to safely handle image URLs with proper backend base URL
+const getSafeImageUrl = (url?: string, fallback?: string): string => {
   if (!url || !url.trim()) {
-    return fallback;
+    return fallback || '';
   }
-  return url.trim();
+
+  const trimmedUrl = url.trim();
+
+  // If already an absolute URL, return as-is
+  if (trimmedUrl.startsWith('http')) {
+    return trimmedUrl;
+  }
+
+  // If it's a relative path, prepend the API base URL
+  if (trimmedUrl.startsWith('/')) {
+    return `${API_CONFIG.BASE_URL}${trimmedUrl}`;
+  }
+
+  // Otherwise, prepend / and then base URL
+  return `${API_CONFIG.BASE_URL}/${trimmedUrl}`;
 };
-
-interface ProductImage {
-  imageId: number;
-  originalUrl: string;
-  thumbnailUrl?: string;
-  altText?: string;
-  displayOrder: number;
-  isDefault: boolean;
-}
-
-interface RelatedProduct {
-  itemId: number;
-  name: string;
-  sku?: string;
-  price: number;
-  imageUrl?: string;
-  storeName: string;
-  storeSlug?: string;
-  inStock: boolean;
-}
-
-interface ProductDetail {
-  itemId: number;
-  sku: string;
-  name: string;
-  description?: string;
-  price: number;
-  unitPrice?: number;
-  unit?: string;
-  quantity: number;
-  minStockLevel: number;
-  isActive: boolean;
-  allowOffers: boolean;
-  minOfferPrice?: number;
-  createdAt: string;
-  lastUpdated: string;
-  categoryName?: string;
-  categoryId?: number;
-  storeId: number;
-  storeName: string;
-  storeSlug?: string;
-  storeDescription?: string;
-  storeLogoUrl?: string;
-  storeLocation?: string;
-  storePhone?: string;
-  storeEmail?: string;
-  storeApprovalStatus: string;
-  images: ProductImage[];
-  inStock: boolean;
-  lowStock: boolean;
-  outOfStock: boolean;
-  stockStatus: string;
-  relatedProducts: RelatedProduct[];
-}
 
 const ProductDetailPage: React.FC = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [product, setProduct] = useState<InventoryItem | null>(null);
+  const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -135,6 +96,74 @@ const ProductDetailPage: React.FC = () => {
     fetchProductDetail();
   }, [itemId]);
 
+  useEffect(() => {
+    if (product?.itemId) {
+      loadProductImages();
+    }
+  }, [product?.itemId]);
+
+  useEffect(() => {
+    if (product?.storeId) {
+      loadStoreInfo();
+    }
+  }, [product?.storeId]);
+
+  const loadProductImages = async () => {
+    try {
+      const images = await InventoryApiService.getInventoryItemImages(
+        product!.itemId
+      );
+      if (images && images.length > 0) {
+        // Update product with fetched images
+        setProduct((prev) => (prev ? { ...prev, images } : null));
+        // Set default selected image
+        setSelectedImageIndex(0);
+      }
+    } catch (err) {
+      console.error('Error loading product images:', err);
+      // Continue without images
+    }
+  };
+
+  const loadStoreInfo = async () => {
+    try {
+      console.log('🔍 Loading store info for storeId:', product!.storeId);
+      // Use enhanced endpoint to get complete store data including logoUrl
+      const storeData = await StoresApiService.getEnhancedStoreById(
+        product!.storeId
+      );
+      console.log('✅ Store info loaded:', storeData);
+
+      // Extract logo from nested images object
+      let logoUrl = storeData.logoUrl;
+      if (!logoUrl && (storeData as any).images?.logoUrl) {
+        logoUrl = (storeData as any).images.logoUrl;
+        console.log('📸 Logo found in nested images object:', logoUrl);
+      } else {
+        console.log('📸 Store logoUrl from top level:', logoUrl);
+      }
+
+      // Convert relative logoUrl to absolute URL with backend base
+      if (logoUrl) {
+        logoUrl = getSafeImageUrl(logoUrl);
+        console.log('📸 Final processed store logoUrl:', logoUrl);
+      } else {
+        console.log('ℹ️ No logo found - Avatar will show StoreIcon fallback');
+      }
+
+      // Update store with processed logoUrl
+      const finalStore = {
+        ...storeData,
+        logoUrl: logoUrl,
+      };
+
+      setStore(finalStore);
+    } catch (err) {
+      console.error('❌ Error loading store info:', err);
+      console.error('Error details:', (err as any)?.message || 'Unknown error');
+    }
+  };
+
   const fetchProductDetail = async () => {
     if (!itemId) {
       setError('Product ID is required');
@@ -146,46 +175,39 @@ const ProductDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // Parse itemId - could be in format "product-30" or just "30"
+      let parsedId: number;
+      if (itemId.includes('-')) {
+        // Format: "product-30" - extract the number
+        parsedId = parseInt(itemId.split('-')[1]);
+      } else {
+        // Format: "30" - parse directly
+        parsedId = parseInt(itemId);
+      }
+
       console.log(
         '🔍 ProductDetailPage: Fetching product with itemId:',
-        itemId
+        parsedId
       );
-      console.log('🔍 ProductDetailPage: Parsed itemId:', parseInt(itemId));
 
-      // Debug call to see what the backend is actually returning
-      const debugData = await StorefrontApiService.debugProductDetail(
-        parseInt(itemId)
+      // Fetch product details from inventory API
+      const inventoryItem = await InventoryApiService.getInventoryItem(
+        parsedId,
+        true
       );
-      console.log('🔍 ProductDetailPage: Debug response:', debugData);
 
-      const productData = await StorefrontApiService.getProductDetail(
-        parseInt(itemId)
-      );
-      console.log('🔍 ProductDetailPage: Product data received:', productData);
-
-      if (!productData) {
-        console.error(
-          '🔍 ProductDetailPage: No product data returned from API'
-        );
+      if (!inventoryItem) {
+        console.error('❌ No product data returned from API');
         setError('Product not found');
         return;
       }
 
-      console.log('🔍 ProductDetailPage: Setting product data:', {
-        price: productData.price,
-        quantity: productData.quantity,
-        images: productData.images?.length || 0,
-        name: productData.name,
-      });
+      console.log('✅ Product data received:', inventoryItem);
+      setProduct(inventoryItem);
 
-      setProduct(productData);
-
-      // Set default selected image (first default image or first image)
-      if (productData.images.length > 0) {
-        const defaultImageIndex = productData.images.findIndex(
-          (img) => img.isDefault
-        );
-        setSelectedImageIndex(defaultImageIndex >= 0 ? defaultImageIndex : 0);
+      // Set default selected image if available
+      if (inventoryItem.images && inventoryItem.images.length > 0) {
+        setSelectedImageIndex(0);
       }
     } catch (err) {
       console.error('Error fetching product detail:', err);
@@ -305,7 +327,9 @@ const ProductDetailPage: React.FC = () => {
   }
 
   const currentImage =
-    product.images.length > 0 ? product.images[selectedImageIndex] : null;
+    product?.images && product.images.length > 0
+      ? product.images[selectedImageIndex]
+      : null;
 
   return (
     <Box>
@@ -330,8 +354,8 @@ const ProductDetailPage: React.FC = () => {
           >
             Search
           </Link>
-          {product.categoryName && (
-            <Typography color='text.primary'>{product.categoryName}</Typography>
+          {product.category && (
+            <Typography color='text.primary'>{product.category}</Typography>
           )}
           <Typography color='text.primary' sx={{ fontWeight: 600 }}>
             {product.name}
@@ -358,19 +382,21 @@ const ProductDetailPage: React.FC = () => {
                 <CardMedia
                   component='img'
                   height='400'
-                  image={getSafeImageUrl(currentImage?.originalUrl)}
+                  image={getSafeImageUrl(
+                    currentImage?.originalUrl || currentImage?.url
+                  )}
                   alt={currentImage?.altText || product.name}
                   sx={{
                     objectFit: 'cover',
-                    cursor: product.images.length > 0 ? 'pointer' : 'default',
+                    cursor: product?.images?.length > 0 ? 'pointer' : 'default',
                     '&:hover':
-                      product.images.length > 0 ? { opacity: 0.9 } : {},
+                      product?.images?.length > 0 ? { opacity: 0.9 } : {},
                   }}
                   onClick={() =>
-                    product.images.length > 0 && setImageDialogOpen(true)
+                    product?.images?.length > 0 && setImageDialogOpen(true)
                   }
                 />
-                {product.images.length > 0 && (
+                {product?.images?.length > 0 && (
                   <IconButton
                     sx={{
                       position: 'absolute',
@@ -387,9 +413,9 @@ const ProductDetailPage: React.FC = () => {
               </Card>
 
               {/* Thumbnail Images */}
-              {product.images.length > 1 && (
+              {product?.images && product.images.length > 1 && (
                 <ImageList cols={4} gap={8} sx={{ height: 100 }}>
-                  {product.images.map((image, index) => (
+                  {product.images.map((image: any, index: number) => (
                     <ImageListItem
                       key={`thumbnail-${index}-${image.imageId}`}
                       sx={{
@@ -406,7 +432,7 @@ const ProductDetailPage: React.FC = () => {
                     >
                       <img
                         src={getSafeImageUrl(
-                          image.thumbnailUrl || image.originalUrl
+                          image.url || image.thumbnailUrl || image.originalUrl
                         )}
                         alt={image.altText || `${product.name} ${index + 1}`}
                         style={{
@@ -421,17 +447,18 @@ const ProductDetailPage: React.FC = () => {
               )}
 
               {/* No Image Placeholder */}
-              {product.images.length === 0 && (
-                <Card sx={{ mb: 2 }}>
-                  <CardMedia
-                    component='img'
-                    height='400'
-                    image='/placeholder-product.svg'
-                    alt={`${product.name} - No image available`}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                </Card>
-              )}
+              {!product?.images ||
+                (product.images.length === 0 && (
+                  <Card sx={{ mb: 2 }}>
+                    <CardMedia
+                      component='img'
+                      height='400'
+                      image='/placeholder-product.svg'
+                      alt={`${product.name} - No image available`}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                  </Card>
+                ))}
             </Paper>
           </Grid>
 
@@ -475,7 +502,7 @@ const ProductDetailPage: React.FC = () => {
 
             {/* SKU */}
             <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-              SKU: {product.sku}
+              SKU: {product.sku || 'N/A'}
             </Typography>
 
             {/* Price */}
@@ -485,7 +512,7 @@ const ProductDetailPage: React.FC = () => {
               <Typography variant='h5' color='primary' sx={{ fontWeight: 700 }}>
                 {formatPrice(product.price)}
               </Typography>
-              {product.unit && (
+              {(product.unit || product.Unit) && (
                 <Typography variant='body1' color='text.secondary'>
                   per {product.unit}
                 </Typography>
@@ -495,13 +522,15 @@ const ProductDetailPage: React.FC = () => {
             {/* Stock Status */}
             <Box sx={{ mb: 3 }}>
               <Chip
-                label={product.stockStatus}
-                color={getStockStatusColor(product.stockStatus)}
+                label={
+                  (product.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock'
+                }
+                color={(product.quantity || 0) > 0 ? 'success' : 'error'}
                 variant='filled'
                 icon={<Inventory />}
               />
               <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                {product.quantity} units available
+                {product.quantity || 0} units available
               </Typography>
             </Box>
 
@@ -520,7 +549,7 @@ const ProductDetailPage: React.FC = () => {
             <Divider sx={{ my: 3 }} />
 
             {/* Add to Cart Section */}
-            {!product.outOfStock && (
+            {(product.quantity || 0) > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant='h6' sx={{ mb: 2, fontWeight: 600 }}>
                   Add to Cart
@@ -582,10 +611,10 @@ const ProductDetailPage: React.FC = () => {
                   >
                     {addingToCart
                       ? 'Adding to Cart...'
-                      : `Add to Cart - ${formatPrice(product.price * quantity)}`}
+                      : `Add to Cart - ${formatPrice((product.price || product.Price || 0) * quantity)}`}
                   </Button>
 
-                  {product.allowOffers && (
+                  {(product.allowOffers || product.AllowOffers) && (
                     <Button
                       variant='outlined'
                       size='large'
@@ -608,16 +637,25 @@ const ProductDetailPage: React.FC = () => {
 
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Avatar
-                  src={product.storeLogoUrl}
+                  src={store?.logoUrl ? getSafeImageUrl(store.logoUrl) : ''}
+                  alt={store?.storeName}
                   sx={{ width: 48, height: 48, mr: 2 }}
+                  onError={(e) => {
+                    console.error('🔴 Avatar image failed to load');
+                    console.error('Attempted URL:', store?.logoUrl);
+                    console.error(
+                      'Processed URL:',
+                      store?.logoUrl ? getSafeImageUrl(store.logoUrl) : 'empty'
+                    );
+                  }}
                 >
-                  <Store />
+                  <StoreIcon />
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant='h6' sx={{ fontWeight: 600 }}>
-                    {product.storeName}
+                    {store?.storeName || 'Store'}
                   </Typography>
-                  {product.storeLocation && (
+                  {store?.addresses && store.addresses.length > 0 && (
                     <Box
                       sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}
                     >
@@ -627,45 +665,49 @@ const ProductDetailPage: React.FC = () => {
                         sx={{ mr: 0.5 }}
                       />
                       <Typography variant='body2' color='text.secondary'>
-                        {product.storeLocation}
+                        {store.addresses[0].city}, {store.addresses[0].state}
                       </Typography>
                     </Box>
                   )}
                 </Box>
               </Box>
 
-              {product.storeDescription && (
+              {store?.description && (
                 <Typography
                   variant='body2'
                   sx={{ mb: 2, color: 'text.secondary' }}
                 >
-                  {product.storeDescription}
+                  {store.description}
                 </Typography>
               )}
 
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {product.storePhone && (
+                {store?.contactPhone && (
                   <Button
                     startIcon={<Phone />}
                     size='small'
-                    href={`tel:${product.storePhone}`}
+                    href={`tel:${store.contactPhone}`}
                   >
                     Call
                   </Button>
                 )}
-                {product.storeEmail && (
+                {store?.contactEmail && (
                   <Button
                     startIcon={<Email />}
                     size='small'
-                    href={`mailto:${product.storeEmail}`}
+                    href={`mailto:${store.contactEmail}`}
                   >
                     Email
                   </Button>
                 )}
                 <Button
-                  startIcon={<Store />}
+                  startIcon={<StoreIcon />}
                   size='small'
-                  onClick={() => navigate(`/store/${product.storeSlug}`)}
+                  onClick={() =>
+                    navigate(
+                      `/store/${store?.slug || store?.storeName || 'store'}`
+                    )
+                  }
                 >
                   Visit Store
                 </Button>
@@ -675,7 +717,7 @@ const ProductDetailPage: React.FC = () => {
         </Grid>
 
         {/* Related Products */}
-        {product.relatedProducts.length > 0 && (
+        {product?.relatedProducts && product.relatedProducts.length > 0 && (
           <Box sx={{ mt: 6 }}>
             <Typography variant='h5' sx={{ mb: 3, fontWeight: 700 }}>
               Related Products

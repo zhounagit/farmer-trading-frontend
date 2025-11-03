@@ -10,8 +10,3 @@ export { default as AuthFeatureWrapper } from './components/AuthFeatureWrapper';
 // Export routes
 export { authRoutes, default as authRoutesDefault } from './routes';
 
-// Export services
-export * from './services';
-
-// Export types (when available)
-// export * from './types';

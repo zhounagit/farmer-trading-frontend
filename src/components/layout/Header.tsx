@@ -1,8 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { apiService } from '@/shared/services/api-service';
-import { API_ENDPOINTS } from '@/shared/types/api-contracts';
-import type { UserPreferences } from '@/shared/types/api-contracts';
 import {
   AppBar,
   Toolbar,
@@ -47,8 +44,6 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
     refreshProfilePicture,
     userVersion,
     userPreferences,
-    isLoadingPreferences,
-    preferencesError,
     updateUserPreferences,
   } = useAuth();
 

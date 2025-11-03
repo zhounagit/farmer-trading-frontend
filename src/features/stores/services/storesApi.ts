@@ -143,9 +143,7 @@ export class StoresApiService {
     return response;
   }
 
-  static async searchStores(
-    searchParams: StoreSearchParams
-  ): Promise<StoreListResponse> {
+  static async searchStores(): Promise<StoreListResponse> {
     // Note: Search endpoint not implemented in backend, falling back to getAllStores
     return this.getAllStores();
   }
@@ -385,7 +383,6 @@ export class StoresApiService {
     storeId: number,
     file: File,
     imageType: string,
-    sortOrder: number = 0, // Note: sortOrder handled by backend service, not passed in form data
     onUploadProgress?: (progress: number) => void
   ): Promise<StoreImage> {
     const formData = new FormData();
@@ -460,9 +457,9 @@ export class StoresApiService {
   }
 
   static async updateStoreImage(
-    storeId: number,
-    imageId: number,
-    updateData: { sortOrder?: number; isActive?: boolean }
+    _storeId?: number,
+    _imageId?: number,
+    _updateData?: { sortOrder?: number; isActive?: boolean }
   ): Promise<StoreImage> {
     // Note: Update image endpoint not implemented in backend
     throw new Error('Update image functionality not implemented in backend');
@@ -476,8 +473,8 @@ export class StoresApiService {
   }
 
   static async reorderStoreImages(
-    storeId: number,
-    imageOrders: { imageId: number; sortOrder: number }[]
+    _storeId: number,
+    _imageOrders: { imageId: number; sortOrder: number }[]
   ): Promise<ApiResponse> {
     // Note: Reorder images endpoint not implemented in backend
     throw new Error('Reorder images functionality not implemented in backend');
@@ -562,35 +559,6 @@ export class StoresApiService {
       {}
     );
     return response;
-  }
-
-  // Store Validation
-  static async validateStoreName(
-    storeName: string,
-    excludeStoreId?: number
-  ): Promise<{ available: boolean; suggestions?: string[] }> {
-    // Note: Validate store name endpoint not implemented in backend
-    // Return mock validation for now
-    return { available: true, suggestions: [] };
-  }
-
-  static async validateStoreSlug(
-    slug: string,
-    excludeStoreId?: number
-  ): Promise<{ available: boolean; suggestions?: string[] }> {
-    // Note: Validate store slug endpoint not implemented in backend
-    // Return mock validation for now
-    return { available: true, suggestions: [] };
-  }
-
-  static async generateStoreSlug(storeName: string): Promise<{ slug: string }> {
-    // Note: Generate store slug endpoint not implemented in backend
-    // Generate a simple slug client-side
-    const slug = storeName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    return { slug };
   }
 
   // Store Status Management

@@ -304,43 +304,48 @@ const PublishedStorePage: React.FC = () => {
           </Container>
         </Box>
 
-        {/* Store Banner Section */}
-        <Box
-          sx={{
-            position: 'relative',
-            height: { xs: 200, sm: 300, md: 400 },
-            backgroundImage: storefront.bannerUrl
-              ? `url(${getImageUrl(storefront.bannerUrl)})`
-              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            overflow: 'visible',
-          }}
-        >
-          {/* Logo Overlay */}
-          {storefront.logoUrl && (
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -50,
-                left: { xs: 20, md: 40 },
-                zIndex: 10,
-              }}
-            >
-              <Avatar
-                src={getImageUrl(storefront.logoUrl)}
-                alt={storefront.storeName}
+        {/* Store Banner Section - Only show if no hero-banner module exists */}
+        {(!storefront.customization?.modules ||
+          !storefront.customization.modules.some(
+            (m) => m.type === 'hero-banner'
+          )) && (
+          <Box
+            sx={{
+              position: 'relative',
+              height: { xs: 200, sm: 300, md: 400 },
+              backgroundImage: storefront.bannerUrl
+                ? `url(${getImageUrl(storefront.bannerUrl)})`
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              overflow: 'visible',
+            }}
+          >
+            {/* Logo Overlay */}
+            {storefront.logoUrl && (
+              <Box
                 sx={{
-                  width: { xs: 100, md: 140 },
-                  height: { xs: 100, md: 140 },
-                  border: '4px solid white',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  position: 'absolute',
+                  bottom: -50,
+                  left: { xs: 20, md: 40 },
+                  zIndex: 10,
                 }}
-              />
-            </Box>
-          )}
-        </Box>
+              >
+                <Avatar
+                  src={getImageUrl(storefront.logoUrl)}
+                  alt={storefront.storeName}
+                  sx={{
+                    width: { xs: 100, md: 140 },
+                    height: { xs: 100, md: 140 },
+                    border: '4px solid white',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        )}
 
         {/* Store Info Section */}
         <Box
@@ -361,6 +366,30 @@ const PublishedStorePage: React.FC = () => {
                 mt: -6,
               }}
             >
+              {/* Store Logo - Display prominently */}
+              {storefront.logoUrl && (
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <Avatar
+                    src={getImageUrl(storefront.logoUrl)}
+                    alt={storefront.storeName}
+                    sx={{
+                      width: { xs: 120, md: 160 },
+                      height: { xs: 120, md: 160 },
+                      border: '3px solid',
+                      borderColor: 'primary.main',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    }}
+                  />
+                </Box>
+              )}
               {/* Store Details */}
               <Box sx={{ flex: 1 }}>
                 <Box

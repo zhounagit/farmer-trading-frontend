@@ -5,6 +5,8 @@
  * Any changes to API endpoints or response formats should be reflected here first.
  */
 
+import type { InventoryItem } from './inventory';
+
 // Base API Response Interface
 export interface ApiError {
   code?: string;
@@ -129,45 +131,6 @@ export interface StorePaymentMethod {
   };
 }
 
-// Inventory API Contracts
-export interface InventoryItem {
-  itemId: number;
-  storeId: number;
-  name: string;
-  description?: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  categoryId?: number;
-  category?: ProductCategory;
-  images: string[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface InventoryItemCreateRequest {
-  storeId: number;
-  name: string;
-  description?: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  categoryId?: number;
-  images?: string[];
-}
-
-export interface InventoryItemUpdateRequest {
-  name?: string;
-  description?: string;
-  price?: number;
-  originalPrice?: number;
-  quantity?: number;
-  categoryId?: number;
-  images?: string[];
-  isActive?: boolean;
-}
-
 // Orders API Contracts
 export interface Order {
   orderId: number;
@@ -193,7 +156,7 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  inventoryItem: InventoryItem;
+  inventoryItem?: InventoryItem;
 }
 
 export interface CreateOrderRequest {
@@ -442,53 +405,8 @@ export interface SearchResponse {
 }
 
 // Inventory Management Contracts
-export interface InventoryItem {
-  itemId: number;
-  storeId: number;
-  name: string;
-  description?: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  categoryId?: number;
-  category?: ProductCategory;
-  images: string[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface InventoryItemCreateRequest {
-  storeId: number;
-  name: string;
-  description?: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  categoryId?: number;
-  images?: string[];
-}
-
-export interface InventoryItemUpdateRequest {
-  name?: string;
-  description?: string;
-  price?: number;
-  originalPrice?: number;
-  quantity?: number;
-  categoryId?: number;
-  images?: string[];
-  isActive?: boolean;
-}
-
-export interface InventoryFilters {
-  query?: string;
-  categoryId?: number;
-  inStock?: boolean;
-  priceMin?: number;
-  priceMax?: number;
-  page?: number;
-  pageSize?: number;
-}
+// Note: InventoryItem and related types are now consolidated in src/shared/types/inventory.ts
+// Please import from there instead of this file
 
 // Error Response Contracts
 export interface ErrorResponse {

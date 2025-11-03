@@ -1,5 +1,7 @@
 import { apiClient } from '../../../shared/services/apiClient';
 import { API_ENDPOINTS } from '../../../shared/types/api-contracts';
+import { ApiMapper } from '../../../services/api-mapper';
+import type { BackendInventoryItem } from '../../../services/api-mapper';
 import type {
   InventoryItem,
   InventoryImage,
@@ -12,16 +14,40 @@ import type {
   InventorySearchParams,
   InventoryListResponse,
   InventoryStatsResponse,
-  InventoryActivity,
   InventorySummary,
-  BulkInventoryOperation,
-  BulkInventoryResult,
+  InventoryActivity,
   InventoryImageUploadRequest,
   InventoryImageUpdateRequest,
   InventoryImportRequest,
   InventoryImportResult,
   InventoryExportRequest,
+  BulkInventoryOperation,
+  BulkInventoryResult,
 } from '../../../shared/types/inventory';
+
+// Interface for pagination response from backend
+interface PaginationResponse {
+  totalCount?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
+}
+
+// Interface for backend inventory list response
+interface BackendInventoryListResponse {
+  items?: BackendInventoryItem[];
+  data?: BackendInventoryItem[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+  pagination?: PaginationResponse;
+}
+
 import type { ApiResponse } from '../../../shared/types/api';
 
 export class InventoryApiService {
@@ -76,38 +102,82 @@ export class InventoryApiService {
         });
       }
 
-      const response = await apiClient.get<any>(
-        `${this.BASE_PATH}?${params.toString()}`
-      );
+      const response = await apiClient.get<
+        BackendInventoryListResponse | BackendInventoryItem[]
+      >(`${this.BASE_PATH}?${params.toString()}`);
 
       // Handle both array and object response formats
-      let items: InventoryItem[] = [];
-      let pagination: any = null;
+      let backendItems: BackendInventoryItem[] = [];
+      let pagination: PaginationResponse | null | undefined = null;
 
       if (Array.isArray(response)) {
         // Response is directly an array
-        items = response;
+        backendItems = response;
       } else if (response.data && Array.isArray(response.data)) {
         // Response has data property with array
-        items = response.data;
+        backendItems = response.data;
         pagination = response.pagination;
       } else if (response.items && Array.isArray(response.items)) {
         // Response has items property
-        items = response.items;
+        backendItems = response.items;
         pagination = response.pagination || response;
       }
+
+      // Convert backend items to frontend format using ApiMapper
+      // Handle both PascalCase and camelCase backend responses
+      const items = ApiMapper.toCamelCase<InventoryItem[]>(backendItems);
 
       // Map backend response to InventoryListResponse format
       const mappedResponse: InventoryListResponse = {
         items: items,
         totalCount:
-          pagination?.totalCount || response?.totalCount || items.length,
-        pageNumber: pagination?.page || response?.pageNumber || 1,
-        pageSize: pagination?.pageSize || response?.pageSize || items.length,
-        totalPages: pagination?.totalPages || response?.totalPages || 1,
-        hasNextPage: pagination?.hasNext || response?.hasNextPage || false,
+          pagination?.totalCount ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.totalCount
+            : undefined) ||
+          items.length,
+        pageNumber:
+          pagination?.page ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.pageNumber
+            : undefined) ||
+          1,
+        pageSize:
+          pagination?.pageSize ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.pageSize
+            : undefined) ||
+          items.length,
+        totalPages:
+          pagination?.totalPages ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.totalPages
+            : undefined) ||
+          1,
+        hasNextPage:
+          pagination?.hasNext ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.hasNextPage
+            : undefined) ||
+          false,
         hasPreviousPage:
-          pagination?.hasPrevious || response?.hasPreviousPage || false,
+          pagination?.hasPrevious ||
+          (typeof response === 'object' &&
+          response !== null &&
+          !Array.isArray(response)
+            ? response.hasPreviousPage
+            : undefined) ||
+          false,
       };
 
       this.logOperation('Inventory items fetched successfully', {
@@ -138,31 +208,30 @@ export class InventoryApiService {
     const queryParams = includeRelations
       ? '?include=images,variants,pricing,seasonality'
       : '';
-    const response = await apiClient.get<InventoryItem>(
+    const response = await apiClient.get<any>(
       `${this.BASE_PATH}/${itemId}${queryParams}`
     );
-    return response;
+    return ApiMapper.toCamelCase<InventoryItem>(response);
   }
 
   static async createInventoryItem(
     itemData: CreateInventoryItemRequest
   ): Promise<InventoryItem> {
-    const response = await apiClient.post<InventoryItem>(
-      this.BASE_PATH,
-      itemData
-    );
-    return response;
+    const backendRequest = ApiMapper.toBackendCreateInventoryItem(itemData);
+    const response = await apiClient.post<any>(this.BASE_PATH, backendRequest);
+    return ApiMapper.toCamelCase<InventoryItem>(response);
   }
 
   static async updateInventoryItem(
     itemId: number,
     updateData: UpdateInventoryItemRequest
   ): Promise<InventoryItem> {
-    const response = await apiClient.put<InventoryItem>(
+    const backendRequest = ApiMapper.toBackendUpdateInventoryItem(updateData);
+    const response = await apiClient.put<any>(
       `${this.BASE_PATH}/${itemId}`,
-      updateData
+      backendRequest
     );
-    return response;
+    return ApiMapper.toCamelCase<InventoryItem>(response);
   }
 
   static async deleteInventoryItem(itemId: number): Promise<ApiResponse> {
@@ -189,11 +258,85 @@ export class InventoryApiService {
   static async searchInventory(
     searchParams: InventorySearchParams
   ): Promise<InventoryListResponse> {
-    const response = await apiClient.post<InventoryListResponse>(
-      `${this.BASE_PATH}/search`,
-      searchParams
-    );
-    return response;
+    const response = await apiClient.post<
+      BackendInventoryListResponse | BackendInventoryItem[]
+    >(`${this.BASE_PATH}/search`, searchParams);
+
+    // Handle both array and object response formats
+    let backendItems: BackendInventoryItem[] = [];
+    let pagination: PaginationResponse | null | undefined = null;
+
+    if (Array.isArray(response)) {
+      // Response is directly an array
+      backendItems = response;
+    } else if (response.data && Array.isArray(response.data)) {
+      // Response has data property with array
+      backendItems = response.data;
+      pagination = response.pagination;
+    } else if (response.items && Array.isArray(response.items)) {
+      // Response has items property
+      backendItems = response.items;
+      pagination = response.pagination || response;
+    }
+
+    // Convert backend items to frontend format using ApiMapper
+    // Handle both PascalCase and camelCase backend responses
+    const items = ApiMapper.toCamelCase<InventoryItem[]>(backendItems);
+
+    // Map backend response to InventoryListResponse format
+    const mappedResponse: InventoryListResponse = {
+      items: items,
+      totalCount:
+        pagination?.totalCount ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.totalCount
+          : undefined) ||
+        items.length,
+      pageNumber:
+        pagination?.page ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.pageNumber
+          : undefined) ||
+        1,
+      pageSize:
+        pagination?.pageSize ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.pageSize
+          : undefined) ||
+        items.length,
+      totalPages:
+        pagination?.totalPages ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.totalPages
+          : undefined) ||
+        1,
+      hasNextPage:
+        pagination?.hasNext ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.hasNextPage
+          : undefined) ||
+        false,
+      hasPreviousPage:
+        pagination?.hasPrevious ||
+        (typeof response === 'object' &&
+        response !== null &&
+        !Array.isArray(response)
+          ? response.hasPreviousPage
+          : undefined) ||
+        false,
+    };
+
+    return mappedResponse;
   }
 
   static async getInventorySuggestions(
@@ -211,30 +354,30 @@ export class InventoryApiService {
     storeId: number,
     limit: number = 20
   ): Promise<InventoryItem[]> {
-    const response = await apiClient.get<InventoryItem[]>(
+    const response = await apiClient.get<any[]>(
       `${this.BASE_PATH}/popular?storeId=${storeId}&limit=${limit}`
     );
-    return response;
+    return ApiMapper.toCamelCase<InventoryItem[]>(response);
   }
 
   static async getLowStockItems(
     storeId: number,
     threshold: number = 10
   ): Promise<InventoryItem[]> {
-    const response = await apiClient.get<InventoryItem[]>(
+    const response = await apiClient.get<any[]>(
       `${this.BASE_PATH}/low-stock?storeId=${storeId}&threshold=${threshold}`
     );
-    return response;
+    return ApiMapper.toCamelCase<InventoryItem[]>(response);
   }
 
   static async getExpiringSoonItems(
     storeId: number,
     daysAhead: number = 7
   ): Promise<InventoryItem[]> {
-    const response = await apiClient.get<InventoryItem[]>(
+    const response = await apiClient.get<any[]>(
       `${this.BASE_PATH}/expiring-soon?storeId=${storeId}&daysAhead=${daysAhead}`
     );
-    return response;
+    return ApiMapper.toCamelCase<InventoryItem[]>(response);
   }
 
   // Inventory Statistics and Analytics
@@ -581,10 +724,17 @@ export class InventoryApiService {
       this.logError('bulkInventoryOperation', error);
       // Enhanced fallback for bulk operations
       return {
-        successCount: 0,
-        failedCount: operation.itemIds?.length || 0,
-        errors: ['Bulk operation failed due to network error'],
-        results: [],
+        successful: [],
+        failed:
+          operation.itemIds?.map((id) => ({
+            itemId: id,
+            error: 'Bulk operation failed due to network error',
+          })) || [],
+        summary: {
+          totalProcessed: operation.itemIds?.length || 0,
+          successful: 0,
+          failed: operation.itemIds?.length || 0,
+        },
       };
     }
   }
@@ -717,17 +867,21 @@ export class InventoryApiService {
 
   static calculateTotalValue(items: InventoryItem[]): number {
     return items.reduce(
-      (total, item) => total + item.pricePerUnit * item.quantityAvailable,
+      (total, item) =>
+        total + (item.pricePerUnit || 0) * (item.quantityAvailable || 0),
       0
     );
   }
 
   static isLowStock(item: InventoryItem, threshold: number = 10): boolean {
-    return item.quantityAvailable <= threshold && item.quantityAvailable > 0;
+    return (
+      (item.quantityAvailable || 0) <= threshold &&
+      (item.quantityAvailable || 0) > 0
+    );
   }
 
   static isOutOfStock(item: InventoryItem): boolean {
-    return item.quantityAvailable <= 0;
+    return (item.quantityAvailable || 0) <= 0;
   }
 
   static isExpiringSoon(item: InventoryItem, daysAhead: number = 7): boolean {

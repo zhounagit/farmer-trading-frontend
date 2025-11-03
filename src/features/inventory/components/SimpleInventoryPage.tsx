@@ -173,16 +173,16 @@ const SimpleInventoryPage: React.FC = () => {
 
       const itemData = {
         storeId: Number(storeId),
-        Name: newItem.name,
+        name: newItem.name,
         description: newItem.description,
         sku: newItem.sku,
-        Price: Number(newItem.price),
-        Quantity: Number(newItem.quantity),
-        Unit: newItem.unit,
-        Category: newItem.category || 'General',
-        Cost: Number(newItem.cost) || 0,
-        MinStockLevel: Number(newItem.minStockLevel) || 0,
-        AllowOffers: newItem.allowOffers || false,
+        price: Number(newItem.price),
+        quantity: Number(newItem.quantity),
+        unit: newItem.unit,
+        category: newItem.category || 'General',
+        cost: Number(newItem.cost) || 0,
+        minStockLevel: Number(newItem.minStockLevel) || 0,
+        allowOffers: newItem.allowOffers || false,
       };
 
       await InventoryApiService.createInventoryItem(itemData);
@@ -213,14 +213,16 @@ const SimpleInventoryPage: React.FC = () => {
       if (!selectedItem) return;
 
       const updateData = {
-        Name: selectedItem.name,
+        storeId: Number(storeId),
+        name: selectedItem.name,
         description: selectedItem.description,
-        Category: 'General',
-        Unit: selectedItem.unit,
-        Price: selectedItem.price,
-        Quantity: selectedItem.quantity,
-        Cost: selectedItem.cost,
-        MinStockLevel: selectedItem.minStockLevel,
+        sku: selectedItem.sku,
+        category: selectedItem.category || 'General',
+        unit: selectedItem.unit,
+        price: selectedItem.price,
+        quantity: selectedItem.quantity,
+        cost: selectedItem.cost,
+        minStockLevel: selectedItem.minStockLevel,
       };
       await InventoryApiService.updateInventoryItem(
         selectedItem.itemId,
@@ -672,7 +674,7 @@ const SimpleInventoryPage: React.FC = () => {
                 <TextField
                   fullWidth
                   label='SKU *'
-                  value={selectedItem.sku}
+                  value={selectedItem.sku || ''}
                   onChange={(e) =>
                     setSelectedItem((prev) =>
                       prev ? { ...prev, sku: e.target.value } : null
@@ -734,6 +736,47 @@ const SimpleInventoryPage: React.FC = () => {
                       ),
                     }}
                   />
+                  <TextField
+                    fullWidth
+                    label='Unit'
+                    value={selectedItem.unit || 'piece'}
+                    onChange={(e) =>
+                      setSelectedItem((prev) =>
+                        prev ? { ...prev, unit: e.target.value } : null
+                      )
+                    }
+                    placeholder='lb, kg, dozen, each'
+                    helperText='Enter the unit of measurement'
+                  />
+                  <FormControl fullWidth disabled={loadingCategories}>
+                    <InputLabel>Category</InputLabel>
+                    <Select
+                      value={selectedItem.category || 'General'}
+                      label='Category'
+                      onChange={(e) =>
+                        setSelectedItem((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                category: e.target.value,
+                              }
+                            : null
+                        )
+                      }
+                    >
+                      <MenuItem value='General'>
+                        <em>General</em>
+                      </MenuItem>
+                      {categories.map((category) => (
+                        <MenuItem
+                          key={category.categoryId}
+                          value={category.name}
+                        >
+                          {category.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Box>
               </Box>
             )}

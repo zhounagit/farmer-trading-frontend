@@ -156,7 +156,7 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
 
   const filteredProducts = products.filter(
     (product) =>
-      product.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (product.description &&
         product.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -241,7 +241,7 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
                           <DragIndicator color='action' />
                           <Box flexGrow={1}>
                             <Typography variant='subtitle2'>
-                              {product.itemName}
+                              {product.name}
                             </Typography>
                             <Typography
                               variant='caption'
@@ -313,7 +313,7 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
                         <Box display='flex' alignItems='center' gap={1}>
                           <Box flexGrow={1}>
                             <Typography variant='subtitle2'>
-                              {product.itemName}
+                              {product.name}
                             </Typography>
                             <Typography
                               variant='caption'

@@ -734,7 +734,7 @@ const StorefrontCustomizationPage: React.FC = () => {
         })
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [] // Intentionally empty to prevent infinite loop - function uses setModules with prevModules callback
   );
 

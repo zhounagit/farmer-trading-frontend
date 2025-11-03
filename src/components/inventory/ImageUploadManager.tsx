@@ -15,8 +15,6 @@ import {
   FormControlLabel,
   Checkbox,
   Alert,
-  CircularProgress,
-  Tooltip,
   Menu,
   MenuItem,
   Chip,
@@ -28,15 +26,10 @@ import {
   Delete,
   Edit,
   Star,
-  StarBorder,
   MoreVert,
   DragIndicator,
   Image as ImageIcon,
-  Crop,
-  ZoomIn,
-  Download,
   Visibility,
-  Info,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -99,45 +92,62 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file drop and selection
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (disabled) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (disabled) return;
 
-    const validFiles = acceptedFiles.filter(file => {
-      if (!acceptedFileTypes.includes(file.type)) {
-        showSnackbar(`File ${file.name} is not a supported image format`);
-        return false;
-      }
-      if (file.size > maxFileSize) {
-        showSnackbar(`File ${file.name} is too large (max ${maxFileSize / 1024 / 1024}MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    if (images.length + uploadingFiles.length + validFiles.length > maxImages) {
-      showSnackbar(`Cannot upload more than ${maxImages} images`);
-      return;
-    }
-
-    const filesWithPreview: ImageUploadFile[] = validFiles.map(file => {
-      const fileWithPreview = Object.assign(file, {
-        preview: URL.createObjectURL(file),
-        uploadProgress: 0,
-        tempId: `temp_${Date.now()}_${Math.random()}`,
+      const validFiles = acceptedFiles.filter((file) => {
+        if (!acceptedFileTypes.includes(file.type)) {
+          showSnackbar(`File ${file.name} is not a supported image format`);
+          return false;
+        }
+        if (file.size > maxFileSize) {
+          showSnackbar(
+            `File ${file.name} is too large (max ${maxFileSize / 1024 / 1024}MB)`
+          );
+          return false;
+        }
+        return true;
       });
-      return fileWithPreview;
-    });
 
-    setUploadingFiles(prev => [...prev, ...filesWithPreview]);
+      if (
+        images.length + uploadingFiles.length + validFiles.length >
+        maxImages
+      ) {
+        showSnackbar(`Cannot upload more than ${maxImages} images`);
+        return;
+      }
 
-    // Start uploading files
-    filesWithPreview.forEach(uploadFile);
-  }, [images, uploadingFiles, maxImages, maxFileSize, acceptedFileTypes, disabled]);
+      const filesWithPreview: ImageUploadFile[] = validFiles.map((file) => {
+        const fileWithPreview = Object.assign(file, {
+          preview: URL.createObjectURL(file),
+          uploadProgress: 0,
+          tempId: `temp_${Date.now()}_${Math.random()}`,
+        });
+        return fileWithPreview;
+      });
+
+      setUploadingFiles((prev) => [...prev, ...filesWithPreview]);
+
+      // Start uploading files
+      filesWithPreview.forEach(uploadFile);
+    },
+    [
+      images,
+      uploadingFiles,
+      maxImages,
+      maxFileSize,
+      acceptedFileTypes,
+      disabled,
+    ]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': acceptedFileTypes.map(type => type.split('/')[1]).map(ext => `.${ext}`),
+      'image/*': acceptedFileTypes
+        .map((type) => type.split('/')[1])
+        .map((ext) => `.${ext}`),
     },
     multiple: true,
     disabled,
@@ -156,11 +166,9 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
 
       // Simulate upload progress
       const updateProgress = (progress: number) => {
-        setUploadingFiles(prev =>
-          prev.map(f =>
-            f.tempId === file.tempId
-              ? { ...f, uploadProgress: progress }
-              : f
+        setUploadingFiles((prev) =>
+          prev.map((f) =>
+            f.tempId === file.tempId ? { ...f, uploadProgress: progress } : f
           )
         );
       };
@@ -168,7 +176,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       // Simulate upload with progress
       for (let progress = 0; progress <= 100; progress += 10) {
         updateProgress(progress);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Mock API call - replace with actual API
@@ -192,23 +200,29 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
           uploaded_at: new Date().toISOString(),
         };
 
-        setImages(prev => {
+        setImages((prev) => {
           const updated = [...prev, newImage];
           onImagesChange(updated);
           return updated;
         });
 
-        setUploadingFiles(prev => prev.filter(f => f.tempId !== file.tempId));
+        setUploadingFiles((prev) =>
+          prev.filter((f) => f.tempId !== file.tempId)
+        );
         showSnackbar(`Image ${file.name} uploaded successfully`);
       } else {
         throw new Error(response.error || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadingFiles(prev =>
-        prev.map(f =>
+      setUploadingFiles((prev) =>
+        prev.map((f) =>
           f.tempId === file.tempId
-            ? { ...f, uploadError: error instanceof Error ? error.message : 'Upload failed' }
+            ? {
+                ...f,
+                uploadError:
+                  error instanceof Error ? error.message : 'Upload failed',
+              }
             : f
         )
       );
@@ -217,7 +231,10 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   // Mock API function - replace with actual API call
-  const mockUploadImage = async (file: File, itemId?: number): Promise<{
+  const mockUploadImage = async (
+    file: File,
+    itemId?: number
+  ): Promise<{
     success: boolean;
     image_id?: number;
     url?: string;
@@ -227,7 +244,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     error?: string;
   }> => {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return {
       success: true,
@@ -240,10 +257,10 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   const handleSetPrimary = (imageId: number) => {
-    setImages(prev => {
-      const updated = prev.map(img => ({
+    setImages((prev) => {
+      const updated = prev.map((img) => ({
         ...img,
-        is_primary: img.image_id === imageId
+        is_primary: img.image_id === imageId,
       }));
       onImagesChange(updated);
       return updated;
@@ -251,15 +268,15 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     showSnackbar('Primary image updated');
   };
 
-  const handleDeleteImage = async (imageId: number) => {
+  const handleDeleteImage = () => {
     try {
       // Mock API call - replace with actual API
       await mockDeleteImage(imageId);
 
-      setImages(prev => {
-        const updated = prev.filter(img => img.image_id !== imageId);
+      setImages((prev) => {
+        const updated = prev.filter((img) => img.image_id !== imageId);
         // If we deleted the primary image, make the first remaining image primary
-        if (updated.length > 0 && !updated.some(img => img.is_primary)) {
+        if (updated.length > 0 && !updated.some((img) => img.is_primary)) {
           updated[0].is_primary = true;
         }
         onImagesChange(updated);
@@ -272,7 +289,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   const mockDeleteImage = async (imageId: number): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
   const handleReorderImages = (result: any) => {
@@ -285,7 +302,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     // Update display_order
     const updatedImages = reorderedImages.map((img, index) => ({
       ...img,
-      display_order: index
+      display_order: index,
     }));
 
     setImages(updatedImages);
@@ -304,8 +321,8 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       // Mock API call - replace with actual API
       await mockUpdateImage(editingImage);
 
-      setImages(prev => {
-        const updated = prev.map(img =>
+      setImages((prev) => {
+        const updated = prev.map((img) =>
           img.image_id === editingImage.image_id ? editingImage : img
         );
         onImagesChange(updated);
@@ -321,7 +338,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   const mockUpdateImage = async (image: InventoryImage): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
   const handlePreviewImage = (image: InventoryImage) => {
@@ -329,7 +346,10 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     setPreviewDialogOpen(true);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, imageId: number) => {
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    imageId: number
+  ) => {
     setAnchorEl(event.currentTarget);
     setSelectedImageId(imageId);
   };
@@ -340,8 +360,8 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   const retryUpload = (file: ImageUploadFile) => {
-    setUploadingFiles(prev =>
-      prev.map(f =>
+    setUploadingFiles((prev) =>
+      prev.map((f) =>
         f.tempId === file.tempId
           ? { ...f, uploadError: undefined, uploadProgress: 0 }
           : f
@@ -351,22 +371,22 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
   };
 
   const removeFailedUpload = (tempId: string) => {
-    setUploadingFiles(prev => prev.filter(f => f.tempId !== tempId));
+    setUploadingFiles((prev) => prev.filter((f) => f.tempId !== tempId));
   };
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant='h6' gutterBottom>
         Product Images
       </Typography>
 
       {/* Upload Area */}
-      {(!disabled && images.length + uploadingFiles.length < maxImages) && (
+      {!disabled && images.length + uploadingFiles.length < maxImages && (
         <Card
           sx={{
             mb: 3,
             border: isDragActive ? '2px dashed #1976d2' : '2px dashed #ccc',
-            backgroundColor: isDragActive ? '#f0f8ff' : '#fafafa'
+            backgroundColor: isDragActive ? '#f0f8ff' : '#fafafa',
           }}
         >
           <CardContent>
@@ -383,13 +403,16 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
             >
               <input {...getInputProps()} ref={fileInputRef} />
               <CloudUpload sx={{ fontSize: 48, color: '#666', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                {isDragActive ? 'Drop images here' : 'Drag & drop images here, or click to select'}
+              <Typography variant='h6' gutterBottom>
+                {isDragActive
+                  ? 'Drop images here'
+                  : 'Drag & drop images here, or click to select'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Supports JPEG, PNG, WebP up to {maxFileSize / 1024 / 1024}MB each
+              <Typography variant='body2' color='text.secondary'>
+                Supports JPEG, PNG, WebP up to {maxFileSize / 1024 / 1024}MB
+                each
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant='body2' color='text.secondary'>
                 Maximum {maxImages} images total
               </Typography>
             </Box>
@@ -401,47 +424,47 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       {uploadingFiles.length > 0 && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="subtitle1" gutterBottom>
+            <Typography variant='subtitle1' gutterBottom>
               Uploading Images
             </Typography>
             {uploadingFiles.map((file) => (
               <Box key={file.tempId} sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
+                  <Typography variant='body2' sx={{ flex: 1 }}>
                     {file.name}
                   </Typography>
                   {file.uploadError ? (
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Button
-                        size="small"
+                        size='small'
                         onClick={() => retryUpload(file)}
-                        variant="outlined"
-                        color="primary"
+                        variant='outlined'
+                        color='primary'
                       >
                         Retry
                       </Button>
                       <Button
-                        size="small"
+                        size='small'
                         onClick={() => removeFailedUpload(file.tempId!)}
-                        variant="outlined"
-                        color="error"
+                        variant='outlined'
+                        color='error'
                       >
                         Remove
                       </Button>
                     </Box>
                   ) : (
-                    <Typography variant="body2">
+                    <Typography variant='body2'>
                       {file.uploadProgress}%
                     </Typography>
                   )}
                 </Box>
                 {file.uploadError ? (
-                  <Alert severity="error" sx={{ mt: 1 }}>
+                  <Alert severity='error' sx={{ mt: 1 }}>
                     {file.uploadError}
                   </Alert>
                 ) : (
                   <LinearProgress
-                    variant="determinate"
+                    variant='determinate'
                     value={file.uploadProgress || 0}
                   />
                 )}
@@ -455,15 +478,14 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       {images.length > 0 && (
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" gutterBottom>
+            <Typography variant='subtitle1' gutterBottom>
               Uploaded Images ({images.length}/{maxImages})
             </Typography>
 
             <DragDropContext onDragEnd={handleReorderImages}>
-              <Droppable droppableId="images" direction="horizontal">
+              <Droppable droppableId='images' direction='horizontal'>
                 {(provided) => (
                   <Grid
-                    container
                     spacing={2}
                     ref={provided.innerRef}
                     {...provided.droppableProps}
@@ -487,16 +509,18 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
                             <Card
                               sx={{
                                 position: 'relative',
-                                transform: snapshot.isDragging ? 'rotate(5deg)' : undefined,
+                                transform: snapshot.isDragging
+                                  ? 'rotate(5deg)'
+                                  : undefined,
                                 opacity: snapshot.isDragging ? 0.8 : 1,
                               }}
                             >
                               {/* Primary Badge */}
                               {image.is_primary && (
                                 <Chip
-                                  label="Primary"
-                                  color="primary"
-                                  size="small"
+                                  label='Primary'
+                                  color='primary'
+                                  size='small'
                                   sx={{
                                     position: 'absolute',
                                     top: 8,
@@ -526,8 +550,10 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
 
                               {/* More Options Menu */}
                               <IconButton
-                                size="small"
-                                onClick={(e) => handleMenuOpen(e, image.image_id!)}
+                                size='small'
+                                onClick={(e) =>
+                                  handleMenuOpen(e, image.image_id!)
+                                }
                                 sx={{
                                   position: 'absolute',
                                   top: 8,
@@ -554,14 +580,21 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
 
                               {/* Image Info */}
                               <CardContent sx={{ p: 1 }}>
-                                <Typography variant="caption" display="block" noWrap>
+                                <Typography
+                                  variant='caption'
+                                  display='block'
+                                  noWrap
+                                >
                                   {image.file_name}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant='caption'
+                                  color='text.secondary'
+                                >
                                   {Math.round(image.file_size_bytes / 1024)}KB
-                                  {image.width_pixels && image.height_pixels &&
-                                    ` • ${image.width_pixels}×${image.height_pixels}`
-                                  }
+                                  {image.width_pixels &&
+                                    image.height_pixels &&
+                                    ` • ${image.width_pixels}×${image.height_pixels}`}
                                 </Typography>
                               </CardContent>
                             </Card>
@@ -586,7 +619,9 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       >
         <MenuItem
           onClick={() => {
-            const image = images.find(img => img.image_id === selectedImageId);
+            const image = images.find(
+              (img) => img.image_id === selectedImageId
+            );
             if (image) handlePreviewImage(image);
             handleMenuClose();
           }}
@@ -596,7 +631,9 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            const image = images.find(img => img.image_id === selectedImageId);
+            const image = images.find(
+              (img) => img.image_id === selectedImageId
+            );
             if (image) handleEditImage(image);
             handleMenuClose();
           }}
@@ -629,35 +666,49 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       </Menu>
 
       {/* Edit Image Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth='sm'
+        fullWidth
+      >
         <DialogTitle>Edit Image Details</DialogTitle>
         <DialogContent>
           {editingImage && (
             <Box sx={{ pt: 2 }}>
               <TextField
                 fullWidth
-                label="Alt Text"
+                label='Alt Text'
                 value={editingImage.alt_text || ''}
-                onChange={(e) => setEditingImage({ ...editingImage, alt_text: e.target.value })}
-                margin="normal"
-                helperText="Describe the image for accessibility"
+                onChange={(e) =>
+                  setEditingImage({ ...editingImage, alt_text: e.target.value })
+                }
+                margin='normal'
+                helperText='Describe the image for accessibility'
               />
               <TextField
                 fullWidth
-                label="Caption"
+                label='Caption'
                 value={editingImage.caption || ''}
-                onChange={(e) => setEditingImage({ ...editingImage, caption: e.target.value })}
-                margin="normal"
-                helperText="Optional caption to display with the image"
+                onChange={(e) =>
+                  setEditingImage({ ...editingImage, caption: e.target.value })
+                }
+                margin='normal'
+                helperText='Optional caption to display with the image'
               />
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={editingImage.is_primary}
-                    onChange={(e) => setEditingImage({ ...editingImage, is_primary: e.target.checked })}
+                    onChange={(e) =>
+                      setEditingImage({
+                        ...editingImage,
+                        is_primary: e.target.checked,
+                      })
+                    }
                   />
                 }
-                label="Set as primary image"
+                label='Set as primary image'
                 sx={{ mt: 2 }}
               />
             </Box>
@@ -665,12 +716,19 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained">Save</Button>
+          <Button onClick={handleSaveEdit} variant='contained'>
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Preview Dialog */}
-      <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={previewDialogOpen}
+        onClose={() => setPreviewDialogOpen(false)}
+        maxWidth='md'
+        fullWidth
+      >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ImageIcon />
           Image Preview
@@ -679,7 +737,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
           {previewImage && (
             <Box>
               <Box
-                component="img"
+                component='img'
                 src={previewImage.original_url}
                 alt={previewImage.alt_text || previewImage.file_name}
                 sx={{
@@ -692,33 +750,43 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
               />
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography variant="body2"><strong>File Name:</strong> {previewImage.file_name}</Typography>
-                  <Typography variant="body2"><strong>Size:</strong> {Math.round(previewImage.file_size_bytes / 1024)}KB</Typography>
-                  <Typography variant="body2"><strong>Type:</strong> {previewImage.mime_type}</Typography>
+                  <Typography variant='body2'>
+                    <strong>File Name:</strong> {previewImage.file_name}
+                  </Typography>
+                  <Typography variant='body2'>
+                    <strong>Size:</strong>{' '}
+                    {Math.round(previewImage.file_size_bytes / 1024)}KB
+                  </Typography>
+                  <Typography variant='body2'>
+                    <strong>Type:</strong> {previewImage.mime_type}
+                  </Typography>
                 </Grid>
                 <Grid item xs={6}>
                   {previewImage.width_pixels && previewImage.height_pixels && (
-                    <Typography variant="body2">
-                      <strong>Dimensions:</strong> {previewImage.width_pixels}×{previewImage.height_pixels}px
+                    <Typography variant='body2'>
+                      <strong>Dimensions:</strong> {previewImage.width_pixels}×
+                      {previewImage.height_pixels}px
                     </Typography>
                   )}
-                  <Typography variant="body2">
-                    <strong>Primary:</strong> {previewImage.is_primary ? 'Yes' : 'No'}
+                  <Typography variant='body2'>
+                    <strong>Primary:</strong>{' '}
+                    {previewImage.is_primary ? 'Yes' : 'No'}
                   </Typography>
-                  <Typography variant="body2">
-                    <strong>Uploaded:</strong> {previewImage.uploaded_at ?
-                      new Date(previewImage.uploaded_at).toLocaleDateString() : 'Unknown'
-                    }
+                  <Typography variant='body2'>
+                    <strong>Uploaded:</strong>{' '}
+                    {previewImage.uploaded_at
+                      ? new Date(previewImage.uploaded_at).toLocaleDateString()
+                      : 'Unknown'}
                   </Typography>
                 </Grid>
               </Grid>
               {previewImage.alt_text && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
+                <Typography variant='body2' sx={{ mt: 1 }}>
                   <strong>Alt Text:</strong> {previewImage.alt_text}
                 </Typography>
               )}
               {previewImage.caption && (
-                <Typography variant="body2">
+                <Typography variant='body2'>
                   <strong>Caption:</strong> {previewImage.caption}
                 </Typography>
               )}

@@ -369,24 +369,6 @@ export class StorefrontApiService {
     return response;
   }
 
-  // Enhanced search analytics recording
-  private static async recordSearchAnalytics(
-    query: string,
-    resultCount: number
-  ): Promise<void> {
-    try {
-      await apiClient.post('/api/analytics/search', {
-        query,
-        resultCount,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-      });
-    } catch (error) {
-      // Silent fail for analytics - don't break search functionality
-      console.debug('⚠️ Analytics recording failed (non-critical):', error);
-    }
-  }
-
   // Search and Discovery
   static async searchStorefrontProducts(
     storefrontId: number,
@@ -656,15 +638,26 @@ export class StorefrontApiService {
         searchParams.append('limit', params.limit.toString());
 
       const startTime = Date.now();
-      const response = await apiClient.get<{
+      const searchData = await apiClient.get<{
         results: Array<{
-          id: string;
-          title: string;
-          type: string;
-          description: string;
-          imageUrl?: string;
+          entityType: string;
+          entityId: number;
+          primaryName: string;
+          description?: string;
+          sku?: string;
+          storeName?: string;
+          storeId?: number;
+          storeSlug?: string;
+          location?: string;
+          categoryName?: string;
           price?: number;
-          rating?: number;
+          unitPrice?: number;
+          unit?: string;
+          quantity?: number;
+          imageUrl?: string;
+          isActive?: boolean;
+          relevanceScore?: number;
+          highlightedFields?: string[];
         }>;
         facets: {
           categories: Array<{ value: string; label: string; count: number }>;
@@ -681,39 +674,43 @@ export class StorefrontApiService {
       const clientTime = Date.now() - startTime;
 
       console.log('✅ Unified search completed successfully:', {
-        resultsCount: response.results?.length || 0,
-        totalResults: response.total,
-        searchTimeMs: response.searchTimeMs,
+        resultsCount: searchData.results?.length || 0,
+        totalResults: searchData.total,
+        searchTimeMs: searchData.searchTimeMs,
         clientTimeMs: clientTime,
         facets: {
-          categories: response.facets?.categories?.length || 0,
-          locations: response.facets?.locations?.length || 0,
-          stores: response.facets?.stores?.length || 0,
+          categories: searchData.facets?.categories?.length || 0,
+          locations: searchData.facets?.locations?.length || 0,
+          stores: searchData.facets?.stores?.length || 0,
         },
       });
 
-      // Record search analytics if query is present
-      if (params.query) {
-        try {
-          await this.recordSearchAnalytics(params.query, response.total || 0);
-        } catch (analyticsError) {
-          console.warn('⚠️ Failed to record search analytics:', analyticsError);
-        }
-      }
+      // Transform API response to expected format
+      const transformedResults = (searchData.results || []).map(
+        (result: any) => ({
+          id: `${result.entityType}-${result.entityId}`,
+          title: result.primaryName,
+          type: result.entityType,
+          description: result.description || '',
+          imageUrl: result.imageUrl,
+          price: result.price || result.unitPrice,
+          rating: undefined, // Not provided by API
+        })
+      );
 
       return {
-        results: response.results,
-        facets: response.facets || {
+        results: transformedResults,
+        facets: searchData.facets || {
           categories: [],
           locations: [],
           stores: [],
           priceRange: { min: 0, max: 1000, avgPrice: 0 },
         },
-        total: response.total,
-        page: response.page,
-        totalPages: response.totalPages,
-        hasMore: response.page < response.totalPages,
-        searchTimeMs: response.searchTimeMs || 0,
+        total: searchData.total,
+        page: searchData.page,
+        totalPages: searchData.totalPages,
+        hasMore: searchData.page < searchData.totalPages,
+        searchTimeMs: searchData.searchTimeMs || 0,
       };
     } catch (error: unknown) {
       console.error(

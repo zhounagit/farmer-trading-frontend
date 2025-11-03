@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   TextField,
   InputAdornment,
@@ -9,7 +8,6 @@ import {
   Stack,
   Grid,
   useTheme,
-  useMediaQuery,
   Paper,
   Chip,
 } from '@mui/material';
@@ -28,7 +26,6 @@ const MotionBox = motion(Box);
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

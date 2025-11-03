@@ -3,35 +3,43 @@
 export interface InventoryItem {
   itemId: number;
   storeId: number;
-  Name: string;
+  name: string;
   description?: string;
   sku: string;
   category: string;
   subcategory?: string;
-  unitType: UnitType;
-  pricePerUnit: number;
-  quantityAvailable: number;
+  unit?: string;
+  unitType?: UnitType;
+  price?: number;
+  pricePerUnit?: number;
+  quantity?: number;
+  quantityAvailable?: number;
+  cost?: number;
+  minStockLevel?: number;
   minimumOrderQuantity?: number;
   maximumOrderQuantity?: number;
-  isOrganic: boolean;
+  isOrganic?: boolean;
   harvestDate?: string;
   expirationDate?: string;
   storageInstructions?: string;
   nutritionalInfo?: NutritionalInfo;
   certifications?: string[];
   tags?: string[];
-  status: InventoryStatus;
-  visibility: InventoryVisibility;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number;
-  updatedBy: number;
+  isActive?: boolean;
+  status?: InventoryStatus;
+  visibility?: InventoryVisibility;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: number;
+  updatedBy?: number;
+  allowOffers?: boolean;
+  minOfferPrice?: number;
 
   // Computed properties
-  isInStock: boolean;
-  isLowStock: boolean;
-  isExpiringSoon: boolean;
-  totalValue: number;
+  isInStock?: boolean;
+  isLowStock?: boolean;
+  isExpiringSoon?: boolean;
+  totalValue?: number;
 
   // Related data (optional)
   images?: InventoryImage[];
@@ -147,34 +155,36 @@ export interface InventoryCategory {
 export interface CreateInventoryItemRequest {
   storeId: number;
   sku: string;
-  Name: string;
+  name: string;
   description?: string;
-  Price: number;
-  Cost?: number;
-  Quantity: number;
-  MinStockLevel?: number;
-  AllowOffers?: boolean;
-  MinOfferPrice?: number;
-  Attributes?: string;
-  Unit?: string;
-  Category: string;
-  ItemType?: string;
-  ServiceCategory?: string;
-  ProcessingTimeDays?: number;
-  RequiresRawMaterial?: boolean;
+  price: number;
+  cost?: number;
+  quantity: number;
+  minStockLevel?: number;
+  allowOffers?: boolean;
+  minOfferPrice?: number;
+  attributes?: string;
+  unit?: string;
+  category: string;
+  itemType?: string;
+  serviceCategory?: string;
+  processingTimeDays?: number;
+  requiresRawMaterial?: boolean;
 }
 
 export interface UpdateInventoryItemRequest {
-  Name?: string;
+  storeId?: number;
+  name?: string;
   description?: string;
-  Price?: number;
-  Cost?: number;
-  Quantity?: number;
-  MinStockLevel?: number;
-  Unit?: string;
-  Category?: string;
-  AllowOffers?: boolean;
-  MinOfferPrice?: number;
+  sku?: string;
+  price?: number;
+  cost?: number;
+  quantity?: number;
+  minStockLevel?: number;
+  unit?: string;
+  category?: string;
+  allowOffers?: boolean;
+  minOfferPrice?: number;
 }
 
 export interface InventoryFilters {
@@ -182,11 +192,14 @@ export interface InventoryFilters {
   category?: string;
   subcategory?: string;
   isOrganic?: boolean;
+  isActive?: boolean;
   status?: InventoryStatus[];
   visibility?: InventoryVisibility[];
   inStock?: boolean;
   lowStock?: boolean;
   expiringSoon?: boolean;
+  min_price?: number;
+  max_price?: number;
   priceRange?: {
     min: number;
     max: number;
@@ -276,6 +289,8 @@ export interface BulkInventoryOperation {
 export interface BulkInventoryResult {
   successful: number[];
   failed: { itemId: number; error: string }[];
+  successCount?: number;
+  failedCount?: number;
   summary: {
     totalProcessed: number;
     successful: number;

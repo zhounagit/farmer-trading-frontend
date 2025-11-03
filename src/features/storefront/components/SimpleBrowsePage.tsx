@@ -36,7 +36,7 @@ import {
 import Header from '../../../components/layout/Header';
 import StorefrontApiService, {
   type PublicStorefront,
-} from '../../services/storefront.api';
+} from '../../../features/search/services/storefront.api';
 
 const SimpleBrowsePage: React.FC = () => {
   const navigate = useNavigate();

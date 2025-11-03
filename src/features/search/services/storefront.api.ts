@@ -8,6 +8,10 @@ export interface SearchSuggestion {
   text: string;
   type: string;
   description?: string;
+  entityType?: string;
+  category?: string;
+  store?: string;
+  matchCount?: number;
 }
 
 export interface SearchResult {
@@ -55,6 +59,7 @@ export interface PublicStorefront {
   products: PublicProduct[];
   isActive: boolean;
   lastUpdated: string;
+  contactEmail?: string;
 }
 
 export interface StorefrontCustomizationDto {
@@ -75,6 +80,29 @@ export interface PublicStoreInfo {
   storeId: number;
   storeName: string;
   description?: string;
+  logoUrl?: string;
+  categories?: Array<{
+    categoryId: string | number;
+    categoryName: string;
+    id?: string;
+    name?: string;
+    icon?: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> & {
+      muiName: string;
+    };
+    description?: string;
+  }>;
+  contactEmail?: string;
+  contactPhone?: string;
+  addresses?: Array<{
+    addressType?: string;
+    locationName?: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    streetAddress?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  }>;
 }
 
 export interface PublicProduct {

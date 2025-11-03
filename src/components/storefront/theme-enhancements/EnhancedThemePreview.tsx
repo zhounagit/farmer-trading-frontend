@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -8,26 +8,19 @@ import {
   Button,
   Grid,
   Paper,
-  Avatar,
   Rating,
   Chip,
   IconButton,
-  Tabs,
-  Tab,
   Container,
-  Divider,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   Badge,
-  TextField,
-  InputAdornment,
 } from '@mui/material';
 import {
   ShoppingCart,
   Favorite,
-  Star,
   LocationOn,
   Phone,
   Email,
@@ -35,19 +28,10 @@ import {
   Instagram,
   Twitter,
   Search,
-  LocalShipping,
-  Assignment,
-  AccessTime,
-  CheckCircle,
   Category,
   Store,
-  ArrowForward,
   FavoriteBorder,
-  Share,
-  CompareArrows,
   YouTube,
-  LinkedIn,
-  Pinterest,
 } from '@mui/icons-material';
 import { generateThemeCSS } from '../../../types/themes';
 import type { StorefrontTheme } from '../../../types/themes';
@@ -66,10 +50,8 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
   previewMode = 'full',
   showMockData = true,
   realStoreData = null,
-  onApplyTheme,
   className,
 }) => {
-  const [selectedTab, setSelectedTab] = useState(0);
   const [isHovering, setIsHovering] = useState<string | null>(null);
 
   // Generate CSS variables for the theme

@@ -1,5 +1,5 @@
 // Admin component exports
-export { default as AdminDashboard } from '../../pages/admin/AdminDashboard';
+export { default as AdminDashboard } from '../../features/dashboard/components/AdminDashboard';
 export { default as AdminKPICards } from './AdminKPICards';
 export { default as AdminAlertHub } from './AdminAlertHub';
 export { default as AdminActivityLog } from './AdminActivityLog';

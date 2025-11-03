@@ -178,16 +178,16 @@ class PartnershipsApiService {
     try {
       this.logOperation('Fetching partnership by ID', { partnershipId: id });
 
-      const response = await apiClient.get<ApiResponse<Partnership>>(
+      const response = await apiClient.get<Partnership>(
         `/api/partnerships/${id}`
       );
 
       this.logOperation('Partnership fetched successfully', {
-        partnershipId: id,
-        status: response.data?.data?.status,
+        partnershipId: response.partnershipId,
+        status: response.status,
       });
 
-      return response.data?.data || null;
+      return response || null;
     } catch (error: unknown) {
       this.logError('getPartnershipById', error);
       throw error;
@@ -258,7 +258,7 @@ class PartnershipsApiService {
         initiatedByStoreId: request.initiatedByStoreId,
       });
 
-      const response = await apiClient.post<ApiResponse<Partnership>>(
+      const response = await apiClient.post<Partnership>(
         '/api/partnerships',
         request
       );
@@ -292,10 +292,10 @@ class PartnershipsApiService {
 
       this.logOperation('Partnership updated successfully', {
         partnershipId: request.partnershipId,
-        newStatus: response.data?.data?.status,
+        newStatus: response.status,
       });
 
-      return response.data?.data || null;
+      return response || null;
     } catch (error: unknown) {
       this.logError('updatePartnership', error);
       throw error;
@@ -316,7 +316,7 @@ class PartnershipsApiService {
       // Try primary API first, fallback to secondary if needed
       let response;
       try {
-        response = await apiClient.post<ApiResponse<Partnership>>(
+        response = await apiClient.post<Partnership>(
           `/api/partnerships/${partnershipId}/approve`,
           {
             partnershipId,
@@ -339,10 +339,10 @@ class PartnershipsApiService {
 
       this.logOperation('Partnership approved successfully', {
         partnershipId,
-        newStatus: response.data?.data?.status,
+        newStatus: response.status,
       });
 
-      return response.data?.data || null;
+      return response || null;
     } catch (error: unknown) {
       this.logError('approvePartnership', error);
       throw error;
@@ -424,7 +424,7 @@ class PartnershipsApiService {
       // Try primary API first, fallback to secondary if needed
       let response;
       try {
-        response = await apiClient.post<ApiResponse<Partnership>>(
+        response = await apiClient.post<Partnership>(
           `/api/partnerships/${partnershipId}/reactivate`,
           { storeId }
         );
@@ -439,10 +439,10 @@ class PartnershipsApiService {
 
       this.logOperation('Partnership reactivated successfully', {
         partnershipId,
-        newStatus: response.data?.data?.status,
+        newStatus: response.status,
       });
 
-      return response.data?.data || null;
+      return response || null;
     } catch (error: unknown) {
       this.logError('reactivatePartnership', error);
       throw error;
@@ -479,7 +479,7 @@ class PartnershipsApiService {
       let response;
       try {
         // Try primary API first
-        response = await apiClient.get<ApiResponse<EnhancedPotentialPartner[]>>(
+        response = await apiClient.get<EnhancedPotentialPartner[]>(
           `/api/partnerships/store/${request.storeId}/potential-partners?${params.toString()}`
         );
       } catch (primaryError) {
@@ -493,22 +493,16 @@ class PartnershipsApiService {
       }
 
       console.log('🔍 Raw API response:', response);
-      console.log('🔍 Response data:', response.data);
-      console.log('🔍 Response data.data:', response.data?.data);
+      console.log('🔍 Response data:', response);
 
-      // Handle both direct array response and ApiResponse wrapper
-      const partners = Array.isArray(response)
-        ? response
-        : Array.isArray(response.data)
-          ? response.data
-          : response.data?.data;
+      const partnersList = Array.isArray(response) ? response : response;
 
       this.logOperation('Partner search completed successfully', {
-        resultCount: (partners || []).length,
+        resultCount: (partnersList || []).length,
         storeId: request.storeId,
       });
 
-      return partners || [];
+      return partnersList || [];
     } catch (error: unknown) {
       this.logError('searchPotentialPartners', error);
       // Enhanced fallback with empty array

@@ -103,7 +103,7 @@ export const getEstimatedCompletionDate = (
 ): Date => {
   try {
     const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
-    let currentDate = new Date(start);
+    const currentDate = new Date(start);
     let daysAdded = 0;
 
     while (daysAdded < businessDays) {

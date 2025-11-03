@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Provides comprehensive end-to-end testing setup with performance monitoring
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
   outputDir: './test-results/e2e',
 
   // Run tests in files in parallel
@@ -157,8 +157,4 @@ export default defineConfig({
     // GitHub Actions reporter if running in CI
     ...(process.env.CI ? [['github'] as [string]] : []),
   ],
-
-  // Global setup and teardown
-  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
-  globalTeardown: require.resolve('./tests/e2e/global-teardown.ts'),
 });

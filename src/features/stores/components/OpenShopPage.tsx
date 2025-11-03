@@ -44,14 +44,8 @@ import {
 } from './steps';
 
 import { STEP_NAMES } from '../services/open-shop.types';
-import type {
-  OpenShopFormState,
-  SellingMethod,
-  StoreImage,
-} from '../services/open-shop.types';
+import type { OpenShopFormState } from '../services/open-shop.types';
 import OpenShopApiService from '../services/open-shop.api';
-
-import { useUserStore } from '../../../hooks/useUserStore';
 
 // Type for draft data that includes metadata
 interface SavedDraftData extends OpenShopFormState {
@@ -79,7 +73,7 @@ const DraftUtils = {
   /**
    * Save draft with user validation
    */
-  saveUserDraft: (userId: number | string, draftData: any) => {
+  saveUserDraft: (userId: number | string, draftData: OpenShopFormState) => {
     const draftWithUser = {
       ...draftData,
       userId: userId,
@@ -133,7 +127,6 @@ const OpenShopPage: React.FC = () => {
   const { user, updateStoreStatus } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { primaryStore } = useUserStore();
 
   // Check if we're in edit mode - use URL parameter directly to avoid timing issues
   const isEditMode = searchParams.get('edit') === 'true';
@@ -370,10 +363,10 @@ const OpenShopPage: React.FC = () => {
       }
 
       // Safe array access for all data arrays with error handling
-      let addresses: any[] = [];
-      let openHours: any[] = [];
-      let images: any[] = [];
-      let categories: any[] = [];
+      let addresses: unknown[] = [];
+      let openHours: unknown[] = [];
+      let images: unknown[] = [];
+      let categories: unknown[] = [];
 
       // Handle enhanced store API response structure
       if (
@@ -418,7 +411,7 @@ const OpenShopPage: React.FC = () => {
       ) {
         console.log('🖼️ Processing images object:', storeData.images);
         images = Array.isArray(storeData.images.gallery)
-          ? storeData.images.gallery.map((img: any) => ({
+          ? storeData.images.gallery.map((img: unknown) => ({
               ...img,
               isActive: img.isActive !== undefined ? img.isActive : true,
             }))
@@ -470,9 +463,9 @@ const OpenShopPage: React.FC = () => {
       };
 
       // Convert store data to form state format
-      let primaryAddress: any = null;
-      let billingAddress: any = null;
-      let pickupAddress: any = null;
+      let primaryAddress: unknown = null;
+      let billingAddress: unknown = null;
+      let pickupAddress: unknown = null;
 
       primaryAddress =
         (Array.isArray(addresses)
@@ -656,8 +649,13 @@ const OpenShopPage: React.FC = () => {
               primaryAddress.zipCode === pickupAddress.zipCode &&
               primaryAddress.country === pickupAddress.country),
           enableProcessorNotifications: (() => {
-            const setupFlowData = (storeData as any).setupFlowData
-              ? JSON.parse((storeData as any).setupFlowData)
+            const setupFlowData = (
+              storeData as unknown as { setupFlowData?: string }
+            ).setupFlowData
+              ? JSON.parse(
+                  (storeData as unknown as { setupFlowData?: string })
+                    .setupFlowData
+                )
               : null;
             return (
               setupFlowData?.processorLogistics?.enableProcessorNotifications ||
@@ -665,8 +663,13 @@ const OpenShopPage: React.FC = () => {
             );
           })(),
           enableCustomerProcessorContact: (() => {
-            const setupFlowData = (storeData as any).setupFlowData
-              ? JSON.parse((storeData as any).setupFlowData)
+            const setupFlowData = (
+              storeData as unknown as { setupFlowData?: string }
+            ).setupFlowData
+              ? JSON.parse(
+                  (storeData as unknown as { setupFlowData?: string })
+                    .setupFlowData
+                )
               : null;
             return (
               setupFlowData?.processorLogistics
@@ -674,8 +677,13 @@ const OpenShopPage: React.FC = () => {
             );
           })(),
           processorInstructions: (() => {
-            const setupFlowData = (storeData as any).setupFlowData
-              ? JSON.parse((storeData as any).setupFlowData)
+            const setupFlowData = (
+              storeData as unknown as { setupFlowData?: string }
+            ).setupFlowData
+              ? JSON.parse(
+                  (storeData as unknown as { setupFlowData?: string })
+                    .setupFlowData
+                )
               : null;
             return (
               setupFlowData?.processorLogistics?.processorInstructions || ''
@@ -780,8 +788,12 @@ const OpenShopPage: React.FC = () => {
         }
       }
 
-      const parsedSetupFlowData = (storeData as any).setupFlowData
-        ? JSON.parse((storeData as any).setupFlowData)
+      const parsedSetupFlowData = (
+        storeData as unknown as { setupFlowData?: string }
+      ).setupFlowData
+        ? JSON.parse(
+            (storeData as unknown as { setupFlowData?: string }).setupFlowData
+          )
         : null;
 
       const existingSetupFlow = {
@@ -939,7 +951,7 @@ const OpenShopPage: React.FC = () => {
 
   const handleNext = () => {
     const showPartnerships = shouldShowPartnershipStep();
-    let nextStep = formState.currentStep + 1;
+    const nextStep = formState.currentStep + 1;
 
     // For stores without partnership, max step is 4 (0-4 = 5 steps)
     // For stores with partnership, max step is 5 (0-5 = 6 steps)

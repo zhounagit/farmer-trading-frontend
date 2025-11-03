@@ -188,7 +188,13 @@ export const SimpleStoreCreationModal: React.FC<
 
     try {
       // The backend expects PascalCase properties based on the error message
-      const storeFields = {
+      const storeFields: {
+        StoreName: string;
+        DeliveryRadiusKm: number;
+        AcceptedPaymentMethods: string[];
+        OpenHours: string;
+        Description?: string;
+      } = {
         StoreName: formData.storeName.trim(),
         DeliveryRadiusKm: formData.deliveryRadiusKm,
         AcceptedPaymentMethods: formData.acceptedPaymentMethods,

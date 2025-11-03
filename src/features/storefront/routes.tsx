@@ -21,16 +21,11 @@ const ProtectedStorefrontCustomization = lazy(async () => {
 });
 
 // Lazy load storefront components from local feature directory
-const LiveStorefrontPage = lazy(
-  () => import('./components/LiveStorefrontPage')
-);
+
 const PublishedStorePage = lazy(
   () => import('./components/PublishedStorePage')
 );
 const SimpleBrowsePage = lazy(() => import('./components/SimpleBrowsePage'));
-const StorefrontTestPage = lazy(
-  () => import('./components/StorefrontTestPage')
-);
 
 export const storefrontRoutes: RouteObject[] = [
   // Public storefront routes
@@ -58,14 +53,7 @@ export const storefrontRoutes: RouteObject[] = [
       </StorefrontFeatureWrapper>
     ),
   },
-  {
-    path: '/store/:slug/live',
-    element: (
-      <StorefrontFeatureWrapper>
-        <LiveStorefrontPage />
-      </StorefrontFeatureWrapper>
-    ),
-  },
+
   // Protected storefront customization
   {
     path: '/stores/:storeId/customize',
@@ -76,14 +64,6 @@ export const storefrontRoutes: RouteObject[] = [
     ),
   },
   // Test and demo page
-  {
-    path: '/storefront-demo',
-    element: (
-      <StorefrontFeatureWrapper>
-        <StorefrontTestPage />
-      </StorefrontFeatureWrapper>
-    ),
-  },
 ];
 
 export default storefrontRoutes;

@@ -65,7 +65,7 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <Container maxWidth="md" sx={{ py: 8 }}>
+        <Container maxWidth='md' sx={{ py: 8 }}>
           <Paper
             elevation={3}
             sx={{
@@ -84,8 +84,8 @@ class ErrorBoundary extends Component<Props, State> {
             />
 
             <Typography
-              variant="h4"
-              component="h1"
+              variant='h4'
+              component='h1'
               gutterBottom
               sx={{ fontWeight: 600, color: 'error.main' }}
             >
@@ -93,8 +93,8 @@ class ErrorBoundary extends Component<Props, State> {
             </Typography>
 
             <Typography
-              variant="body1"
-              color="text.secondary"
+              variant='body1'
+              color='text.secondary'
               sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}
             >
               We encountered an unexpected error. Don't worry, our team has been
@@ -103,13 +103,13 @@ class ErrorBoundary extends Component<Props, State> {
 
             {/* Error Details (Development Only) */}
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <Alert severity="error" sx={{ textAlign: 'left', mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
+              <Alert severity='error' sx={{ textAlign: 'left', mb: 3 }}>
+                <Typography variant='subtitle2' gutterBottom>
                   Error Details (Development Mode):
                 </Typography>
                 <Typography
-                  variant="body2"
-                  component="pre"
+                  variant='body2'
+                  component='pre'
                   sx={{
                     fontSize: '0.8rem',
                     fontFamily: 'monospace',
@@ -128,12 +128,19 @@ class ErrorBoundary extends Component<Props, State> {
               </Alert>
             )}
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
               <Button
-                variant="contained"
+                variant='contained'
                 startIcon={<RefreshIcon />}
                 onClick={this.handleReset}
-                size="large"
+                size='large'
                 sx={{
                   px: 4,
                   py: 1.5,
@@ -147,10 +154,10 @@ class ErrorBoundary extends Component<Props, State> {
               </Button>
 
               <Button
-                variant="outlined"
+                variant='outlined'
                 startIcon={<HomeIcon />}
                 onClick={this.handleGoHome}
-                size="large"
+                size='large'
                 sx={{
                   px: 4,
                   py: 1.5,
@@ -166,13 +173,13 @@ class ErrorBoundary extends Component<Props, State> {
 
             {/* Help Text */}
             <Typography
-              variant="caption"
-              color="text.secondary"
+              variant='caption'
+              color='text.secondary'
               sx={{ mt: 3, display: 'block' }}
             >
               If this problem persists, please contact our support team at{' '}
               <a
-                href="mailto:support@farmertrading.com"
+                href='mailto:support@farmertrading.com'
                 style={{ color: 'inherit', textDecoration: 'underline' }}
               >
                 support@farmertrading.com
@@ -203,7 +210,7 @@ export const withErrorBoundary = <P extends object>(
 
 // Hook to manually trigger error boundary (for testing)
 export const useErrorHandler = () => {
-  return (error: Error, errorInfo?: ErrorInfo) => {
+  return (error: Error) => {
     // This will trigger the error boundary
     throw error;
   };

@@ -386,11 +386,11 @@ const createOptimizedRoutes = () => {
     // Core routes (landing pages) with immediate preloading
     ...coreRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/');
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -400,7 +400,7 @@ const createOptimizedRoutes = () => {
     // Authentication routes with user-specific preloading
     ...authRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/auth');
 
         // Preload dashboard for successful login
@@ -412,7 +412,7 @@ const createOptimizedRoutes = () => {
 
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -422,7 +422,7 @@ const createOptimizedRoutes = () => {
     // Dashboard routes with intelligent preloading
     ...dashboardRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(
           route.path || '/dashboard'
         );
@@ -435,7 +435,7 @@ const createOptimizedRoutes = () => {
 
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -445,7 +445,7 @@ const createOptimizedRoutes = () => {
     // Store management routes with context-aware preloading
     ...storesRoutes.map((route) => ({
       ...route,
-      loader: async ({ request, params }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/stores');
 
         // Preload storefront customization for store pages
@@ -459,7 +459,7 @@ const createOptimizedRoutes = () => {
 
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request, params })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -469,7 +469,7 @@ const createOptimizedRoutes = () => {
     // Storefront routes with theme and module preloading
     ...storefrontRoutes.map((route) => ({
       ...route,
-      loader: async ({ request, params }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(
           route.path || '/storefront'
         );
@@ -485,7 +485,7 @@ const createOptimizedRoutes = () => {
 
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request, params })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -495,7 +495,7 @@ const createOptimizedRoutes = () => {
     // Inventory routes with product data preloading
     ...inventoryRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(
           route.path || '/inventory'
         );
@@ -508,7 +508,7 @@ const createOptimizedRoutes = () => {
 
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -518,13 +518,13 @@ const createOptimizedRoutes = () => {
     // Account settings routes
     ...accountSettingsRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(
           route.path || '/account-settings'
         );
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -534,11 +534,11 @@ const createOptimizedRoutes = () => {
     // Search and product routes
     ...searchRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/search');
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;
@@ -548,13 +548,13 @@ const createOptimizedRoutes = () => {
     // Referral program routes
     ...referralRoutes.map((route) => ({
       ...route,
-      loader: async ({ request }: LoaderArgs) => {
+      loader: async ({ request, params, context }: LoaderArgs) => {
         const trackEnd = bundleAnalyzer.trackRouteLoad(
           route.path || '/referral'
         );
         const result =
           route.loader && typeof route.loader === 'function'
-            ? await route.loader({ request })
+            ? await route.loader({ request, params: params ?? {}, context })
             : null;
         trackEnd();
         return result;

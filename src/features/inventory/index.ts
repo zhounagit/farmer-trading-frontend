@@ -1,6 +1,5 @@
 // Inventory feature barrel exports
 export { default as SimpleInventoryPage } from './components/SimpleInventoryPage';
-export { default as InventoryManagementPage } from './components/InventoryManagementPage';
 export { default as InventoryFeatureWrapper } from './components/InventoryFeatureWrapper';
 
 // Export routes

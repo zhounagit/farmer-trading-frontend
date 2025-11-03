@@ -3,13 +3,13 @@
  * Handles user profile, addresses, profile pictures, and user-related operations
  */
 
-import { apiService } from '../shared/services/api-service';
-import { API_ENDPOINTS } from '../shared/types/api-contracts';
+import { apiService } from '../../shared/services/api-service';
+import { API_ENDPOINTS } from '../../shared/types/api-contracts';
 import {
   apiTypeConverter,
   normalizeToBackendUserType,
   normalizeToFrontendUserType,
-} from '../utils/typeMapping';
+} from '../../utils/typeMapping';
 import type {
   User,
   UpdateProfileRequest,
@@ -17,7 +17,7 @@ import type {
   UserPreferences,
   UserProfile,
   SessionInfo,
-} from '../types/auth-standardized';
+} from '../../types/auth-standardized';
 
 // Standardized API response types
 interface ApiResponse<T> {

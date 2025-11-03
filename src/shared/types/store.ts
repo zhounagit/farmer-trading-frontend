@@ -55,6 +55,7 @@ export interface StoreAddress {
   addressType: AddressType;
   locationName?: string;
   contactPhone: string;
+  contactEmail?: string;
   streetAddress: string;
   city: string;
   state: string;
@@ -108,6 +109,8 @@ export interface StoreImage {
   // Optional computed properties
   url?: string;
   thumbnailUrl?: string;
+  fileUrl?: string;
+  fullUrl?: string;
 
   // Video-specific properties
   isVideo?: boolean;

@@ -76,7 +76,7 @@ export default defineConfig(({ command, mode }) => {
     build: {
       target: 'esnext',
       minify: isProduction ? 'terser' : false,
-      sourcemap: isProduction ? 'hidden' : true,
+      sourcemap: false,
 
       // Bundle size optimizations
       chunkSizeWarningLimit: 1600,
