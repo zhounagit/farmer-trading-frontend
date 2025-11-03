@@ -45,7 +45,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     lastName: '',
     phone: '',
     referralCode: '',
-    userType: 'Customer',
+    userType: 'customer',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

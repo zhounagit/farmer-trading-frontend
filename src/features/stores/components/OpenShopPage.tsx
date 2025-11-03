@@ -44,7 +44,11 @@ import {
 } from './steps';
 
 import { STEP_NAMES } from '../services/open-shop.types';
-import type { OpenShopFormState } from '../services/open-shop.types';
+import type {
+  OpenShopFormState,
+  StoreImage,
+  StoreAddress,
+} from '../services/open-shop.types';
 import OpenShopApiService from '../services/open-shop.api';
 
 // Type for draft data that includes metadata
@@ -231,7 +235,7 @@ const OpenShopPage: React.FC = () => {
       storeName: '',
       description: '',
       categories: [],
-      needPartnership: 'no',
+      needsPartnerships: false,
     },
     locationLogistics: {
       businessAddress: {
@@ -246,19 +250,7 @@ const OpenShopPage: React.FC = () => {
         pickupInstructions: '',
         sameAsBusinessAddress: false,
       },
-      billingAddress: {
-        locationName: '',
-        contactPhone: '',
-        contactEmail: '',
-        streetAddress: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'US',
-        pickupInstructions: '',
-        sameAsBusinessAddress: false,
-      },
-      billingSameAsBusinessAddress: true,
+
       sellingMethods: [],
     },
     storeHours: {
@@ -304,6 +296,11 @@ const OpenShopPage: React.FC = () => {
         closeTime: '17:00',
         isAllDay: false,
       },
+    },
+    partnerships: {
+      partnershipRadiusMi: 50,
+      selectedPartnerIds: [],
+      potentialPartners: [],
     },
     branding: {},
     agreedToTerms: false,
@@ -384,9 +381,7 @@ const OpenShopPage: React.FC = () => {
         ) {
           addressArray.push(...storeData.addresses.pickupLocations);
         }
-        if (storeData.addresses.billing) {
-          addressArray.push(storeData.addresses.billing);
-        }
+
         addresses = addressArray;
       } else {
         addresses = Array.isArray(storeData.addresses)
@@ -398,10 +393,6 @@ const OpenShopPage: React.FC = () => {
         openHours = Array.isArray(storeData.operations.openHours)
           ? storeData.operations.openHours
           : [];
-      } else {
-        openHours = Array.isArray(storeData.openHours)
-          ? storeData.openHours
-          : [];
       }
 
       if (
@@ -411,10 +402,16 @@ const OpenShopPage: React.FC = () => {
       ) {
         console.log('🖼️ Processing images object:', storeData.images);
         images = Array.isArray(storeData.images.gallery)
-          ? storeData.images.gallery.map((img: unknown) => ({
-              ...img,
-              isActive: img.isActive !== undefined ? img.isActive : true,
-            }))
+          ? storeData.images.gallery.map((img) => {
+              const image = img as unknown as {
+                imageType?: string;
+                isActive?: boolean;
+              };
+              return {
+                ...image,
+                isActive: image.isActive !== undefined ? image.isActive : true,
+              };
+            })
           : [];
         console.log('🖼️ Gallery images after mapping:', images);
 
@@ -464,36 +461,34 @@ const OpenShopPage: React.FC = () => {
 
       // Convert store data to form state format
       let primaryAddress: unknown = null;
-      let billingAddress: unknown = null;
-      let pickupAddress: unknown = null;
 
       primaryAddress =
         (Array.isArray(addresses)
-          ? addresses.find(
-              (addr) => addr.addressType === 'business' || addr.isPrimary
-            ) || addresses[0]
+          ? ((addresses.find(
+              (addr) =>
+                (addr as StoreAddress).addressType === 'business' ||
+                (addr as StoreAddress).isPrimary
+            ) || addresses[0]) as StoreAddress | undefined)
           : null) || null;
-
-      billingAddress =
-        storeData.addresses?.billing ||
-        (Array.isArray(addresses)
-          ? addresses.find((addr) => addr.addressType === 'billing') || null
-          : null) ||
-        null;
-
-      pickupAddress =
-        storeData.addresses?.pickup ||
-        (Array.isArray(addresses)
-          ? addresses.find((addr) => addr.addressType === 'pickup') || null
-          : null) ||
-        null;
 
       const businessHours =
         openHours.reduce(
-          (acc, hour) => {
+          (
+            acc: Record<
+              string,
+              { isOpen: boolean; openTime?: string; closeTime?: string }
+            >,
+            hour: unknown
+          ) => {
+            const hourData = hour as unknown as {
+              dayOfWeek?: string | number;
+              isClosed?: boolean;
+              openTime?: string;
+              closeTime?: string;
+            };
             // Handle both numeric and string dayOfWeek values
             const dayName =
-              typeof hour.dayOfWeek === 'number'
+              typeof hourData.dayOfWeek === 'number'
                 ? [
                     'sunday',
                     'monday',
@@ -502,8 +497,8 @@ const OpenShopPage: React.FC = () => {
                     'thursday',
                     'friday',
                     'saturday',
-                  ][hour.dayOfWeek]
-                : hour.dayOfWeek?.toLowerCase();
+                  ][hourData.dayOfWeek]
+                : hourData.dayOfWeek?.toLowerCase();
 
             const formatTime = (
               timeString: string | null | undefined
@@ -531,9 +526,9 @@ const OpenShopPage: React.FC = () => {
               ].includes(dayName)
             ) {
               acc[dayName] = {
-                isOpen: !hour.isClosed,
-                openTime: formatTime(hour.openTime) || '09:00',
-                closeTime: formatTime(hour.closeTime) || '17:00',
+                isOpen: !hourData.isClosed,
+                openTime: formatTime(hourData.openTime) || '09:00',
+                closeTime: formatTime(hourData.closeTime) || '17:00',
               };
             }
             return acc;
@@ -545,7 +540,10 @@ const OpenShopPage: React.FC = () => {
         ) || {};
 
       let categoryNames: string[] = [];
-      categoryNames = categories.map((cat) => cat.name);
+      categoryNames = categories.map((cat: unknown) => {
+        const category = cat as unknown as { name?: string };
+        return category.name || '';
+      });
 
       setFormState({
         currentStep: 0,
@@ -553,55 +551,38 @@ const OpenShopPage: React.FC = () => {
           storeName: storeData.storeName || '',
           description: storeData.description || '',
           categories: categoryNames,
-          needPartnership: storeData.needPartnership || 'no',
+          needsPartnerships:
+            (storeData as unknown as { needsPartnerships?: boolean })
+              .needsPartnerships || false,
         },
         locationLogistics: {
           businessAddress: {
-            locationName: primaryAddress?.locationName || '',
+            locationName: (primaryAddress as StoreAddress)?.locationName || '',
             contactPhone:
-              primaryAddress?.contactPhone || storeData.contactPhone || '',
+              (primaryAddress as StoreAddress)?.contactPhone ||
+              storeData.contactPhone ||
+              '',
             contactEmail:
-              primaryAddress?.contactEmail || storeData.contactEmail || '',
-            streetAddress: primaryAddress?.streetAddress || '',
-            city: primaryAddress?.city || '',
-            state: primaryAddress?.state || '',
-            zipCode: primaryAddress?.zipCode || '',
-            country: primaryAddress?.country || 'US',
-            pickupInstructions: primaryAddress?.pickupInstructions || '',
-            sameAsBusinessAddress: false,
-          },
-          billingAddress: {
-            locationName: billingAddress?.locationName || '',
-            contactPhone:
-              billingAddress?.contactPhone || storeData.contactPhone || '',
-            contactEmail:
-              billingAddress?.contactEmail || storeData.contactEmail || '',
-            streetAddress: billingAddress?.streetAddress || '',
-            city: billingAddress?.city || '',
-            state: billingAddress?.state || '',
-            zipCode: billingAddress?.zipCode || '',
-            country: billingAddress?.country || 'US',
-            pickupInstructions: billingAddress?.pickupInstructions || '',
+              (primaryAddress as unknown as { contactEmail?: string })
+                ?.contactEmail ||
+              storeData.contactEmail ||
+              '',
+            streetAddress:
+              (primaryAddress as StoreAddress)?.streetAddress || '',
+            city: (primaryAddress as StoreAddress)?.city || '',
+            state: (primaryAddress as StoreAddress)?.state || '',
+            zipCode: (primaryAddress as StoreAddress)?.zipCode || '',
+            country: (primaryAddress as StoreAddress)?.country || 'US',
+            pickupInstructions:
+              (primaryAddress as StoreAddress)?.pickupInstructions || '',
             sameAsBusinessAddress: false,
           },
 
-          billingSameAsBusinessAddress:
-            !billingAddress ||
-            (primaryAddress &&
-              billingAddress &&
-              primaryAddress.locationName === billingAddress.locationName &&
-              primaryAddress.contactPhone === billingAddress.contactPhone &&
-              primaryAddress.contactEmail === billingAddress.contactEmail &&
-              primaryAddress.streetAddress === billingAddress.streetAddress &&
-              primaryAddress.city === billingAddress.city &&
-              primaryAddress.state === billingAddress.state &&
-              primaryAddress.zipCode === billingAddress.zipCode &&
-              primaryAddress.country === billingAddress.country),
           sellingMethods: (() => {
-            const methods: string[] = [];
+            const methods: Array<'pickup' | 'local-delivery'> = [];
 
             const pickupAddresses = addresses?.filter(
-              (addr) => addr.addressType === 'pickup'
+              (addr: unknown) => (addr as StoreAddress).addressType === 'pickup'
             );
             if (pickupAddresses && pickupAddresses.length > 0) {
               methods.push('pickup');
@@ -615,79 +596,34 @@ const OpenShopPage: React.FC = () => {
           })(),
           deliveryRadiusMi: storeData.deliveryRadiusMi || 5,
           pickupPointAddress: (() => {
-            const pickupAddress = Array.isArray(addresses)
-              ? addresses.find((addr) => addr.addressType === 'pickup')
+            const pickupAddr = Array.isArray(addresses)
+              ? addresses.find(
+                  (addr: unknown) =>
+                    (addr as StoreAddress).addressType === 'pickup'
+                )
               : undefined;
 
-            if (pickupAddress) {
+            if (pickupAddr) {
+              const addr = pickupAddr as StoreAddress;
               return {
-                locationName: pickupAddress.locationName || '',
-                contactPhone: pickupAddress.contactPhone || '',
-                contactEmail:
-                  pickupAddress.contactEmail || storeData.contactEmail || '',
-                streetAddress: pickupAddress.streetAddress || '',
-                city: pickupAddress.city || '',
-                state: pickupAddress.state || '',
-                zipCode: pickupAddress.zipCode || '',
-                country: pickupAddress.country || 'US',
-                pickupInstructions: pickupAddress.pickupInstructions || '',
+                locationName: addr.locationName || '',
+                contactPhone: addr.contactPhone || '',
+                contactEmail: ((addr as unknown as { contactEmail?: string })
+                  ?.contactEmail ||
+                  storeData.contactEmail ||
+                  storeData.contactPhone ||
+                  '') as string,
+                streetAddress: addr.streetAddress || '',
+                city: addr.city || '',
+                state: addr.state || '',
+                zipCode: addr.zipCode || '',
+                country: addr.country || 'US',
+                pickupInstructions: addr.pickupInstructions || '',
+                sameAsBusinessAddress: false,
               };
             }
 
             return undefined;
-          })(),
-          pickupPointSameAsBusinessAddress:
-            !pickupAddress ||
-            (primaryAddress &&
-              pickupAddress &&
-              primaryAddress.locationName === pickupAddress.locationName &&
-              primaryAddress.contactPhone === pickupAddress.contactPhone &&
-              primaryAddress.contactEmail === pickupAddress.contactEmail &&
-              primaryAddress.streetAddress === pickupAddress.streetAddress &&
-              primaryAddress.city === pickupAddress.city &&
-              primaryAddress.state === pickupAddress.state &&
-              primaryAddress.zipCode === pickupAddress.zipCode &&
-              primaryAddress.country === pickupAddress.country),
-          enableProcessorNotifications: (() => {
-            const setupFlowData = (
-              storeData as unknown as { setupFlowData?: string }
-            ).setupFlowData
-              ? JSON.parse(
-                  (storeData as unknown as { setupFlowData?: string })
-                    .setupFlowData
-                )
-              : null;
-            return (
-              setupFlowData?.processorLogistics?.enableProcessorNotifications ||
-              false
-            );
-          })(),
-          enableCustomerProcessorContact: (() => {
-            const setupFlowData = (
-              storeData as unknown as { setupFlowData?: string }
-            ).setupFlowData
-              ? JSON.parse(
-                  (storeData as unknown as { setupFlowData?: string })
-                    .setupFlowData
-                )
-              : null;
-            return (
-              setupFlowData?.processorLogistics
-                ?.enableCustomerProcessorContact || false
-            );
-          })(),
-          processorInstructions: (() => {
-            const setupFlowData = (
-              storeData as unknown as { setupFlowData?: string }
-            ).setupFlowData
-              ? JSON.parse(
-                  (storeData as unknown as { setupFlowData?: string })
-                    .setupFlowData
-                )
-              : null;
-            return (
-              setupFlowData?.processorLogistics?.processorInstructions || ''
-            );
           })(),
         },
         storeHours: {
@@ -702,19 +638,43 @@ const OpenShopPage: React.FC = () => {
         branding: {
           logoUrl: (() => {
             const logoImage = Array.isArray(images)
-              ? images.find((img) => img.imageType === 'logo' && img.isActive)
+              ? images.find((img: unknown) => {
+                  const image = img as unknown as {
+                    imageType?: string;
+                    isActive?: boolean;
+                    filePath?: string;
+                  };
+                  return image.imageType === 'logo' && image.isActive;
+                })
               : undefined;
-            if (logoImage?.filePath) {
-              return buildImageUrl(logoImage.filePath);
+            const logoImagePath = (
+              logoImage as unknown as {
+                filePath?: string;
+              }
+            )?.filePath;
+            if (logoImagePath) {
+              return buildImageUrl(logoImagePath as string);
             }
             return storeData.logoUrl;
           })(),
           bannerUrl: (() => {
             const bannerImage = Array.isArray(images)
-              ? images.find((img) => img.imageType === 'banner' && img.isActive)
+              ? images.find((img: unknown) => {
+                  const image = img as unknown as {
+                    imageType?: string;
+                    isActive?: boolean;
+                    filePath?: string;
+                  };
+                  return image.imageType === 'banner' && image.isActive;
+                })
               : undefined;
-            if (bannerImage?.filePath) {
-              return buildImageUrl(bannerImage.filePath);
+            const bannerImagePath = (
+              bannerImage as unknown as {
+                filePath?: string;
+              }
+            )?.filePath;
+            if (bannerImagePath) {
+              return buildImageUrl(bannerImagePath as string);
             }
             return storeData.bannerUrl;
           })(),
@@ -722,17 +682,33 @@ const OpenShopPage: React.FC = () => {
             console.log('🖼️ Filtering gallery images from:', images);
             const galleryImages =
               images
-                ?.filter(
-                  (img) => img.imageType === 'gallery' && img.isActive !== false
-                )
-                .sort(
-                  (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)
-                ) || [];
+                ?.filter((img: unknown) => {
+                  const image = img as unknown as {
+                    imageType?: string;
+                    isActive?: boolean;
+                  };
+                  return (
+                    image.imageType === 'gallery' && image.isActive !== false
+                  );
+                })
+                .sort((a: unknown, b: unknown) => {
+                  const imageA = a as unknown as { displayOrder?: number };
+                  const imageB = b as unknown as { displayOrder?: number };
+                  return (
+                    (imageA.displayOrder || 0) - (imageB.displayOrder || 0)
+                  );
+                }) || [];
             console.log('🖼️ Filtered gallery images:', galleryImages);
 
-            const galleryUrls = galleryImages.map((img) =>
-              buildImageUrl(img.filePath)
-            );
+            const galleryUrls = galleryImages
+              .map((img: unknown) => {
+                const image = img as unknown as { filePath?: string };
+                if (image.filePath) {
+                  return buildImageUrl(image.filePath as string);
+                }
+                return '';
+              })
+              .filter((url: string) => url !== '');
             console.log('🖼️ Final gallery URLs:', galleryUrls);
             return galleryUrls;
           })(),
@@ -740,12 +716,24 @@ const OpenShopPage: React.FC = () => {
             console.log('🎥 Processing video data:', { images, videoData });
             // Check for video in images array first
             const videoImage = Array.isArray(images)
-              ? images.find((img) => img.imageType === 'video' && img.isActive)
+              ? images.find((img: unknown) => {
+                  const image = img as unknown as {
+                    imageType?: string;
+                    isActive?: boolean;
+                    displayOrder?: number;
+                  };
+                  return image.imageType === 'video' && image.isActive;
+                })
               : undefined;
             console.log('🎥 Found video image:', videoImage);
 
-            if (videoImage?.filePath) {
-              const videoUrl = buildImageUrl(videoImage.filePath);
+            const videoImagePath = (
+              videoImage as unknown as {
+                filePath?: string;
+              }
+            )?.filePath;
+            if (videoImagePath) {
+              const videoUrl = buildImageUrl(videoImagePath as string);
               console.log('🎥 Using video from images array:', videoUrl);
               return videoUrl;
             }
@@ -767,10 +755,16 @@ const OpenShopPage: React.FC = () => {
             }
 
             // Return any existing video URL from store data
-            const fallbackUrl = (storeData as any).videoUrl;
+            const fallbackUrl = (storeData as unknown as { videoUrl?: string })
+              .videoUrl;
             console.log('🎥 Using fallback video URL:', fallbackUrl);
             return fallbackUrl;
           })(),
+        },
+        partnerships: {
+          partnershipRadiusMi: 50,
+          selectedPartnerIds: [],
+          potentialPartners: [],
         },
         agreedToTerms: !!storeData.submittedAt || !!storeData.approvalStatus,
         storeId: editStoreId,
@@ -778,10 +772,21 @@ const OpenShopPage: React.FC = () => {
 
       const categoryResponses: { [key: string]: string } = {};
 
-      if (categories?.some((cat) => cat.name === 'Live Animals')) {
-        if (storeData.canProcess && storeData.canProduce) {
+      if (
+        categories?.some((cat: unknown) => {
+          const category = cat as unknown as { name?: string };
+          return category.name === 'Live Animals';
+        })
+      ) {
+        if (
+          (storeData as unknown as { canProcess?: boolean }).canProcess &&
+          (storeData as unknown as { canProduce?: boolean }).canProduce
+        ) {
           categoryResponses['Live Animals'] = 'self_processing';
-        } else if (storeData.canProduce && !storeData.canProcess) {
+        } else if (
+          (storeData as unknown as { canProduce?: boolean }).canProduce &&
+          !(storeData as unknown as { canProcess?: boolean }).canProcess
+        ) {
           categoryResponses['Live Animals'] = 'recommend_processors';
         } else {
           categoryResponses['Live Animals'] = 'independent_sales';
@@ -792,33 +797,49 @@ const OpenShopPage: React.FC = () => {
         storeData as unknown as { setupFlowData?: string }
       ).setupFlowData
         ? JSON.parse(
-            (storeData as unknown as { setupFlowData?: string }).setupFlowData
+            (storeData as unknown as { setupFlowData?: string })
+              .setupFlowData as string
           )
         : null;
 
       const existingSetupFlow = {
-        selectedCategoryIds: categories?.map((cat) => cat.categoryId) || [],
+        selectedCategoryIds:
+          (categories as unknown as Array<{ categoryId?: number }>)?.map(
+            (cat: unknown): number => {
+              const category = cat as unknown as { categoryId?: number };
+              return (category.categoryId as number) || 0;
+            }
+          ) || [],
         categoryResponses,
         partnershipRadiusMi:
           parsedSetupFlowData?.partnershipRadiusMi ||
           storeData.partnershipRadiusMi ||
           50,
         selectedPartnerIds: [],
-        derivedStoreType: storeData.storeType || 'independent',
-        derivedCanProduce: storeData.canProduce || false,
-        derivedCanProcess: storeData.canProcess || false,
-        derivedCanRetail: storeData.canRetail || true,
-        needPartnership:
-          parsedSetupFlowData?.needPartnership ||
-          storeData.needPartnership ||
-          'no',
+        derivedStoreType:
+          (storeData as unknown as { storeType?: string }).storeType ||
+          'independent',
+        derivedCanProduce:
+          (storeData as unknown as { canProduce?: boolean }).canProduce ||
+          false,
+        derivedCanProcess:
+          (storeData as unknown as { canProcess?: boolean }).canProcess ||
+          false,
+        derivedCanRetail:
+          (storeData as unknown as { canRetail?: boolean }).canRetail || true,
+        needsPartnerships:
+          parsedSetupFlowData?.needsPartnerships ||
+          (storeData as unknown as { needsPartnerships?: boolean })
+            .needsPartnerships ||
+          false,
         partnershipType:
-          parsedSetupFlowData?.partnershipType ||
-          (storeData.canProcess
+          (parsedSetupFlowData?.partnershipType as string) ||
+          ((storeData as unknown as { canProcess?: boolean }).canProcess
             ? 'processor'
-            : storeData.canProduce
+            : (storeData as unknown as { canProduce?: boolean }).canProduce
               ? 'producer'
-              : ''),
+              : '') ||
+          '',
       };
 
       setFormState((prevState) => ({

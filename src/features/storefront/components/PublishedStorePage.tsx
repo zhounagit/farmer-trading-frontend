@@ -52,10 +52,7 @@ const PublishedStorePage: React.FC = () => {
 
   useEffect(() => {
     const loadStorefront = async () => {
-      console.log('🔍 PublishedStorePage loading with slug:', slug);
-
       if (!slug) {
-        console.error('❌ No slug provided to PublishedStorePage');
         setError('Store not found');
         setLoading(false);
         return;
@@ -64,15 +61,8 @@ const PublishedStorePage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('🚀 Calling getPublicStorefront with slug:', slug);
 
         const response = await StorefrontApiService.getPublicStorefront(slug);
-        console.log('📦 Raw API response:', response);
-        console.log('📦 Response type:', typeof response);
-        console.log(
-          '📦 Response keys:',
-          response ? Object.keys(response) : 'null'
-        );
 
         // Handle different response formats
         let data: PublicStorefront | null = null;
@@ -81,31 +71,15 @@ const PublishedStorePage: React.FC = () => {
           // Check if it's wrapped in a data property
           if ('data' in response && response.data) {
             data = response.data as PublicStorefront;
-            console.log('✅ Found data in response.data');
           } else if ('storeName' in response && 'storeId' in response) {
             // Response is already the storefront data
             data = response as PublicStorefront;
-            console.log('✅ Response is direct storefront data');
-          } else {
-            console.warn(
-              '⚠️ Response structure:',
-              JSON.stringify(response, null, 2)
-            );
           }
         }
 
         if (!data) {
           throw new Error('Unable to parse storefront data from API response');
         }
-
-        console.log('📦 Storefront data extracted:', {
-          storeName: data.storeName,
-          slug: data.slug,
-          modulesCount: data.customization?.modules?.length || 0,
-          isPublished: data.customization?.isPublished,
-          bannerUrl: data.bannerUrl,
-          logoUrl: data.logoUrl,
-        });
 
         setStorefront(data);
 
@@ -145,16 +119,18 @@ const PublishedStorePage: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Error loading storefront:', err);
-        console.error('Error details:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : 'No stack trace',
-        });
-        setError(
-          `Failed to load storefront: ${
-            err instanceof Error ? err.message : 'Unknown error'
-          }`
-        );
+        // Check if it's a 404 error (storefront not published)
+        if (err instanceof Error && err.message.includes('404')) {
+          setError(
+            'This store is not published yet. The store owner needs to configure and publish their storefront before it can be viewed publicly.'
+          );
+        } else {
+          setError(
+            `Failed to load storefront: ${
+              err instanceof Error ? err.message : 'Unknown error'
+            }`
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -193,7 +169,10 @@ const PublishedStorePage: React.FC = () => {
   if (error || !storefront) {
     return (
       <Container maxWidth='md' sx={{ py: 8, textAlign: 'center' }}>
-        <Alert severity='error' sx={{ mb: 4 }}>
+        <Alert
+          severity={error?.includes('not published') ? 'info' : 'error'}
+          sx={{ mb: 4 }}
+        >
           {error || 'Store not found'}
         </Alert>
         <Button

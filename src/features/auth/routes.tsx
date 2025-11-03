@@ -4,7 +4,7 @@ import AuthFeatureWrapper from './components/AuthFeatureWrapper';
 
 // Lazy load auth components from local feature directory
 const LoginPage = lazy(() => import('./components/LoginPage'));
-const RegisterPage = lazy(() => import('./components/RegisterPage'));
+const RegisterFormPage = lazy(() => import('./components/RegisterFormPage'));
 const ForgotPasswordPage = lazy(
   () => import('./components/ForgotPasswordPage')
 );
@@ -28,7 +28,7 @@ export const authRoutes: RouteObject[] = [
     path: '/register',
     element: (
       <AuthFeatureWrapper>
-        <RegisterPage />
+        <RegisterFormPage />
       </AuthFeatureWrapper>
     ),
   },
