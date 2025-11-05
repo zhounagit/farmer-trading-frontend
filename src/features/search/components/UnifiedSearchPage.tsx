@@ -90,7 +90,7 @@ const UnifiedSearchPage: React.FC = () => {
 
   // Filters
   const [filters, setFilters] = useState<SearchFilters>({
-    entityTypes: ['product', 'store', 'category'],
+    entityTypes: ['product'],
   });
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [searchTimeMs, setSearchTimeMs] = useState(0);
@@ -236,7 +236,10 @@ const UnifiedSearchPage: React.FC = () => {
     if (filters.store) params.set('store', filters.store);
     if (sortBy !== 'relevance') params.set('sort', sortBy);
     if (currentPage !== 1) params.set('page', currentPage.toString());
-    if (filters.entityTypes.length < 3) {
+    if (
+      filters.entityTypes.length !== 1 ||
+      filters.entityTypes[0] !== 'product'
+    ) {
       params.set('entityTypes', filters.entityTypes.join(','));
     }
 
@@ -252,13 +255,14 @@ const UnifiedSearchPage: React.FC = () => {
       filters.priceMin ||
       filters.priceMax ||
       filters.inStock ||
-      filters.entityTypes.length < 3
+      filters.entityTypes.length !== 1 ||
+      filters.entityTypes[0] !== 'product'
     );
   };
 
   // Clear all filters
   const clearFilters = () => {
-    setFilters({ entityTypes: ['product', 'store', 'category'] });
+    setFilters({ entityTypes: ['product'] });
     setCurrentPage(1);
   };
 
@@ -881,7 +885,7 @@ const UnifiedSearchPage: React.FC = () => {
                     onDelete={() =>
                       setFilters((prev) => ({
                         ...prev,
-                        entityTypes: ['product', 'store', 'category'],
+                        entityTypes: ['product'],
                       }))
                     }
                     size='small'
