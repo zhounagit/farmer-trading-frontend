@@ -16,6 +16,7 @@ import type {
   SocialMediaSettings,
 } from '../../../shared/types/storefront';
 import type { ApiResponse, PaginatedResponse } from '../../../shared/types/api';
+import type { PublicStorefront } from '../types/public-storefront';
 
 export class StorefrontApiService {
   private static readonly BASE_PATH = '/api/storefronts';
@@ -850,7 +851,7 @@ export class StorefrontApiService {
     page?: number;
     limit?: number;
   }): Promise<{
-    storefronts: unknown[];
+    storefronts: PublicStorefront[];
     totalCount: number;
     totalPages: number;
     currentPage: number;
@@ -871,7 +872,7 @@ export class StorefrontApiService {
       ? `?${queryParams.toString()}`
       : '';
     const response = await apiClient.get<{
-      storefronts: unknown[];
+      storefronts: PublicStorefront[];
       totalCount: number;
       totalPages: number;
       currentPage: number;

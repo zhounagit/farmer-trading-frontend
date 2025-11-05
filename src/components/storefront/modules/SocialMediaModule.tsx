@@ -3,17 +3,14 @@ import { Box, Container, Typography } from '@mui/material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface SocialMediaModuleProps {
   module: StorefrontModule;
   storefront: PublicStorefront;
 }
 
-const SocialMediaModule: React.FC<SocialMediaModuleProps> = ({
-  module,
-  storefront,
-}) => {
+const SocialMediaModule: React.FC<SocialMediaModuleProps> = ({ module }) => {
   const settings = module.settings || {};
   const title = (settings.title as string) || 'Follow Us';
 

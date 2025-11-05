@@ -20,7 +20,8 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
+import type { StorefrontProduct } from '@/shared/types/storefront';
 
 interface FeaturedProductsModuleProps {
   module: StorefrontModule;
@@ -43,14 +44,15 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
   const maxProducts = (settings.maxProducts as number) || 6;
   const productIds = (settings.productIds as string[]) || [];
 
-  // Get products from storefront
-  const allProducts = storefront.products || [];
+  // Get products from storefront and safely cast to StorefrontProduct[]
+  const allProducts =
+    (storefront.products as unknown as StorefrontProduct[]) || [];
 
   // Filter products based on productIds if specified, otherwise use all products
   const featuredProducts =
     productIds.length > 0
-      ? allProducts.filter((product: Record<string, unknown>) =>
-          productIds.includes((product.productId as string)?.toString())
+      ? allProducts.filter((product: StorefrontProduct) =>
+          productIds.includes(product.productId.toString())
         )
       : allProducts.slice(0, maxProducts);
 
@@ -112,12 +114,12 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
     );
   }
 
-  const handleAddToCart = (product: Record<string, unknown>) => {
+  const handleAddToCart = (product: StorefrontProduct) => {
     // TODO: Implement add to cart functionality
     console.log('Add to cart:', product);
   };
 
-  const handleRequestQuote = (product: Record<string, unknown>) => {
+  const handleRequestQuote = (product: StorefrontProduct) => {
     // TODO: Implement request quote functionality
     console.log('Request quote for:', product);
   };
@@ -129,34 +131,27 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
     }).format(price);
   };
 
-  const renderProduct = (product: Record<string, unknown>, index: number) => {
-    const price =
-      (product.price as number) || (product.unitPrice as number) || 0;
-    const imageUrl =
-      (product.imageUrl as string) ||
-      (product.images as Array<{ imageUrl: string }>)?.[0]?.imageUrl;
-    const model = (product.model as string) || (product.sku as string) || '';
-    const inStock = (product.inStock as boolean) !== false;
-    const isProfessionalGrade =
-      (product.tags as string[])?.includes('professional') ||
-      (product.isProfessional as boolean) ||
-      true;
+  const renderProductCard = (product: StorefrontProduct, index: number) => {
+    const price = product.price || 0;
+    const imageUrl = product.imageUrl || '';
+    const inStock = product.isInStock !== false;
+    const isProfessionalGrade = product.tags?.includes('professional') || false;
 
     // Debug logging for product image
     console.log('🖼️ Product image debug:', {
       productId: product.productId || product.itemId,
-      productName: product.productName || product.itemName,
+      productName: product.name,
       imageUrl: product.imageUrl,
       images: product.images,
       finalImageUrl: imageUrl,
       hasImageUrl: !!imageUrl,
-      quantityAvailable: product.quantityAvailable || product.quantity,
+      quantityAvailable: product.quantityAvailable,
       inStock: inStock,
     });
 
     return (
       <Box
-        key={(product.productId as string) || index}
+        key={product.productId || index}
         sx={{
           width: '100%',
           minHeight: '100%',
@@ -189,7 +184,7 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
                 imageUrl ||
                 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTIwTDE4MCA5MEwyMjAgOTBMMjAwIDEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHN2ZyBpZD0iSWNvbmx5YWZpbGwtUGhvdG8iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Im0xOSAzaDRjMS4xIDAgMiAuOSAyIDJ2MTRjMCAxLjEtLjkgMi0yIDJoLTE0Yy0xLjEgMC0yLS45L/placeholder/400/240'
               }
-              alt={(product.productName as string) || 'Product'}
+              alt={product.name || 'Product Name'}
               sx={{ objectFit: 'cover' }}
             />
 
@@ -271,11 +266,11 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              {(product.productName as string) || 'Product Name'}
+              {product.name || 'Product Name'}
             </Typography>
 
             {/* Model/SKU */}
-            {model && (
+            {product.unit && (
               <Typography
                 variant='body2'
                 sx={{
@@ -285,12 +280,12 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
                   fontWeight: 500,
                 }}
               >
-                Model: {model}
+                Unit: {product.unit}
               </Typography>
             )}
 
             {/* Product Description */}
-            {(product.description as string) && (
+            {product.description && (
               <Typography
                 variant='body2'
                 color='text.secondary'
@@ -470,7 +465,7 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
             justifyItems: 'stretch',
           }}
         >
-          {featuredProducts.map(renderProduct)}
+          {featuredProducts.map(renderProductCard)}
         </Box>
 
         {/* Products Count Display */}

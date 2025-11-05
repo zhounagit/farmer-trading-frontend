@@ -322,14 +322,15 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
                               ${product.pricePerUnit?.toFixed(2)} •{' '}
                               {product.unitType}
                             </Typography>
-                            {product.quantityAvailable <= 5 && (
-                              <Chip
-                                label='Low Stock'
-                                size='small'
-                                color='warning'
-                                sx={{ ml: 1 }}
-                              />
-                            )}
+                            {product.quantityAvailable &&
+                              product.quantityAvailable <= 5 && (
+                                <Chip
+                                  label='Low Stock'
+                                  size='small'
+                                  color='warning'
+                                  sx={{ ml: 1 }}
+                                />
+                              )}
                           </Box>
                           <Tooltip title='Add to featured'>
                             <IconButton

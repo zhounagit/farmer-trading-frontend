@@ -79,9 +79,12 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
         Configure your local delivery service area, fees, and scheduling
         options.
       </Typography>
-
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             select
             label='Delivery Radius'
@@ -106,7 +109,11 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           </TextField>
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             type='number'
             label='Custom Radius (miles)'
@@ -121,7 +128,11 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             type='number'
             label='Minimum Order for Delivery'
@@ -142,7 +153,11 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             type='number'
             label='Delivery Fee'
@@ -163,13 +178,19 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Typography variant='body1' fontWeight={600} sx={{ mb: 2 }}>
             Delivery Days
           </Typography>
           <Grid container spacing={1}>
             {deliveryDaysOptions.map((day) => (
-              <Grid item xs={12} sm={6} md={4} key={day.value}>
+              <Grid
+                key={day.value}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -200,7 +221,7 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           )}
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Delivery Time Windows'
             placeholder='e.g., 2pm-5pm, 6pm-8pm'
@@ -218,7 +239,7 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Delivery Instructions'
             placeholder='e.g., "Leave at front door", "Call upon arrival"'
@@ -238,7 +259,7 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <FormControlLabel
             control={
               <Checkbox
@@ -257,7 +278,7 @@ export const ShippingOptionsForm: React.FC<ShippingOptionsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Advance Notice Required'
             placeholder='e.g., "24 hours", "2 days"'

@@ -16,10 +16,7 @@ import {
   InputLabel,
   Select,
 } from '@mui/material';
-import {
-  Close,
-  Store,
-} from '@mui/icons-material';
+import { Close, Store } from '@mui/icons-material';
 import { storeApi } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -53,18 +50,20 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = event.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
 
     // Clear field error when user starts typing
     if (formErrors[name]) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
         [name]: '',
       }));
@@ -78,14 +77,14 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
 
   const handleCategoryChange = (event: any) => {
     const value = event.target.value;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       category: value,
     }));
 
     // Clear category error
     if (formErrors.category) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
         category: '',
       }));
@@ -97,7 +96,7 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
   };
 
   const validateForm = () => {
-    const errors: {[key: string]: string} = {};
+    const errors: { [key: string]: string } = {};
 
     if (!formData.storeName.trim()) {
       errors.storeName = 'Store name is required';
@@ -131,7 +130,9 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
       await storeApi.create({
         storeName: formData.storeName.trim(),
         description: formData.description.trim() || undefined,
-        category: formData.category,
+        openHours: JSON.stringify({}),
+        acceptedPaymentMethods: [],
+        deliveryRadiusKm: 5,
       });
 
       toast.success('Store created successfully!');
@@ -170,7 +171,7 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth='sm'
       fullWidth
       PaperProps={{
         sx: {
@@ -187,14 +188,14 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Store color="primary" />
-          <Typography variant="h6" fontWeight={600}>
+          <Store color='primary' />
+          <Typography variant='h6' fontWeight={600}>
             Open Your Store
           </Typography>
         </Box>
         <IconButton
           onClick={handleClose}
-          size="small"
+          size='small'
           sx={{ color: 'grey.500' }}
           disabled={isLoading}
         >
@@ -204,21 +205,22 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
 
       <DialogContent sx={{ pb: 2 }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity='error' sx={{ mb: 3 }}>
             {error}
           </Alert>
         )}
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Create your online store to start selling your products to customers in your area.
+        <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+          Create your online store to start selling your products to customers
+          in your area.
         </Typography>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component='form' onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            name="storeName"
-            label="Store Name"
-            placeholder="Enter your store name"
+            name='storeName'
+            label='Store Name'
+            placeholder='Enter your store name'
             value={formData.storeName}
             onChange={handleInputChange}
             error={!!formErrors.storeName}
@@ -228,12 +230,17 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
             disabled={isLoading}
           />
 
-          <FormControl fullWidth sx={{ mb: 2 }} error={!!formErrors.category} required>
+          <FormControl
+            fullWidth
+            sx={{ mb: 2 }}
+            error={!!formErrors.category}
+            required
+          >
             <InputLabel>Category</InputLabel>
             <Select
               value={formData.category}
               onChange={handleCategoryChange}
-              label="Category"
+              label='Category'
               disabled={isLoading}
             >
               {storeCategories.map((category) => (
@@ -243,7 +250,11 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
               ))}
             </Select>
             {formErrors.category && (
-              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+              <Typography
+                variant='caption'
+                color='error'
+                sx={{ mt: 0.5, ml: 2 }}
+              >
                 {formErrors.category}
               </Typography>
             )}
@@ -251,13 +262,16 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
 
           <TextField
             fullWidth
-            name="description"
-            label="Store Description"
-            placeholder="Describe your store and what you sell (optional)"
+            name='description'
+            label='Store Description'
+            placeholder='Describe your store and what you sell (optional)'
             value={formData.description}
             onChange={handleInputChange}
             error={!!formErrors.description}
-            helperText={formErrors.description || `${formData.description.length}/500 characters`}
+            helperText={
+              formErrors.description ||
+              `${formData.description.length}/500 characters`
+            }
             multiline
             rows={4}
             sx={{ mb: 3 }}
@@ -266,14 +280,16 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
 
           {/* Store Benefits */}
           <Box sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1, mb: 2 }}>
-            <Typography variant="subtitle2" color="success.main" sx={{ mb: 1 }}>
+            <Typography variant='subtitle2' color='success.main' sx={{ mb: 1 }}>
               Benefits of opening your store:
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • Reach customers in your local area<br />
-              • Set your own prices and manage inventory<br />
-              • Build relationships with regular customers<br />
-              • Track sales and earnings through your dashboard
+            <Typography variant='body2' color='text.secondary'>
+              • Reach customers in your local area
+              <br />
+              • Set your own prices and manage inventory
+              <br />
+              • Build relationships with regular customers
+              <br />• Track sales and earnings through your dashboard
             </Typography>
           </Box>
         </Box>
@@ -289,7 +305,7 @@ export const StoreCreationModal: React.FC<StoreCreationModalProps> = ({
         </Button>
         <Button
           onClick={handleSubmit}
-          variant="contained"
+          variant='contained'
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={16} /> : <Store />}
           sx={{

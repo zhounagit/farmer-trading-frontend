@@ -9,48 +9,54 @@ export type FrontendUserType = 'customer' | 'store_owner' | 'admin';
 export type DisplayUserType = 'Customer' | 'Store Owner' | 'Admin';
 
 // Mapping objects for conversions
-const BACKEND_TO_FRONTEND_USER_TYPE: Record<BackendUserType, FrontendUserType> = {
-  'Customer': 'customer',
-  'StoreOwner': 'store_owner',
-  'Admin': 'admin'
-};
+const BACKEND_TO_FRONTEND_USER_TYPE: Record<BackendUserType, FrontendUserType> =
+  {
+    Customer: 'customer',
+    StoreOwner: 'store_owner',
+    Admin: 'admin',
+  };
 
-const FRONTEND_TO_BACKEND_USER_TYPE: Record<FrontendUserType, BackendUserType> = {
-  'customer': 'Customer',
-  'store_owner': 'StoreOwner',
-  'admin': 'Admin'
-};
+const FRONTEND_TO_BACKEND_USER_TYPE: Record<FrontendUserType, BackendUserType> =
+  {
+    customer: 'Customer',
+    store_owner: 'StoreOwner',
+    admin: 'Admin',
+  };
 
 const BACKEND_TO_DISPLAY_USER_TYPE: Record<BackendUserType, DisplayUserType> = {
-  'Customer': 'Customer',
-  'StoreOwner': 'Store Owner',
-  'Admin': 'Admin'
+  Customer: 'Customer',
+  StoreOwner: 'Store Owner',
+  Admin: 'Admin',
 };
 
-const FRONTEND_TO_DISPLAY_USER_TYPE: Record<FrontendUserType, DisplayUserType> = {
-  'customer': 'Customer',
-  'store_owner': 'Store Owner',
-  'admin': 'Admin'
-};
+const FRONTEND_TO_DISPLAY_USER_TYPE: Record<FrontendUserType, DisplayUserType> =
+  {
+    customer: 'Customer',
+    store_owner: 'Store Owner',
+    admin: 'Admin',
+  };
 
 const DISPLAY_TO_BACKEND_USER_TYPE: Record<DisplayUserType, BackendUserType> = {
-  'Customer': 'Customer',
+  Customer: 'Customer',
   'Store Owner': 'StoreOwner',
-  'Admin': 'Admin'
+  Admin: 'Admin',
 };
 
-const DISPLAY_TO_FRONTEND_USER_TYPE: Record<DisplayUserType, FrontendUserType> = {
-  'Customer': 'customer',
-  'Store Owner': 'store_owner',
-  'Admin': 'admin'
-};
+const DISPLAY_TO_FRONTEND_USER_TYPE: Record<DisplayUserType, FrontendUserType> =
+  {
+    Customer: 'customer',
+    'Store Owner': 'store_owner',
+    Admin: 'admin',
+  };
 
 /**
  * Convert backend userType format to frontend format
  * Backend: 'Customer' | 'StoreOwner' | 'Admin'
  * Frontend: 'customer' | 'store_owner' | 'admin'
  */
-export const toFrontendUserType = (backendType: BackendUserType): FrontendUserType => {
+export const toFrontendUserType = (
+  backendType: BackendUserType
+): FrontendUserType => {
   return BACKEND_TO_FRONTEND_USER_TYPE[backendType];
 };
 
@@ -59,7 +65,9 @@ export const toFrontendUserType = (backendType: BackendUserType): FrontendUserTy
  * Frontend: 'customer' | 'store_owner' | 'admin'
  * Backend: 'Customer' | 'StoreOwner' | 'Admin'
  */
-export const toBackendUserType = (frontendType: FrontendUserType): BackendUserType => {
+export const toBackendUserType = (
+  frontendType: FrontendUserType
+): BackendUserType => {
   return FRONTEND_TO_BACKEND_USER_TYPE[frontendType];
 };
 
@@ -68,7 +76,9 @@ export const toBackendUserType = (frontendType: FrontendUserType): BackendUserTy
  * Backend: 'Customer' | 'StoreOwner' | 'Admin'
  * Display: 'Customer' | 'Store Owner' | 'Admin'
  */
-export const toDisplayUserType = (backendType: BackendUserType): DisplayUserType => {
+export const toDisplayUserType = (
+  backendType: BackendUserType
+): DisplayUserType => {
   return BACKEND_TO_DISPLAY_USER_TYPE[backendType];
 };
 
@@ -77,7 +87,9 @@ export const toDisplayUserType = (backendType: BackendUserType): DisplayUserType
  * Frontend: 'customer' | 'store_owner' | 'admin'
  * Display: 'Customer' | 'Store Owner' | 'Admin'
  */
-export const frontendToDisplayUserType = (frontendType: FrontendUserType): DisplayUserType => {
+export const frontendToDisplayUserType = (
+  frontendType: FrontendUserType
+): DisplayUserType => {
   return FRONTEND_TO_DISPLAY_USER_TYPE[frontendType];
 };
 
@@ -86,7 +98,9 @@ export const frontendToDisplayUserType = (frontendType: FrontendUserType): Displ
  * Display: 'Customer' | 'Store Owner' | 'Admin'
  * Backend: 'Customer' | 'StoreOwner' | 'Admin'
  */
-export const displayToBackendUserType = (displayType: DisplayUserType): BackendUserType => {
+export const displayToBackendUserType = (
+  displayType: DisplayUserType
+): BackendUserType => {
   return DISPLAY_TO_BACKEND_USER_TYPE[displayType];
 };
 
@@ -95,7 +109,9 @@ export const displayToBackendUserType = (displayType: DisplayUserType): BackendU
  * Display: 'Customer' | 'Store Owner' | 'Admin'
  * Frontend: 'customer' | 'store_owner' | 'admin'
  */
-export const displayToFrontendUserType = (displayType: DisplayUserType): FrontendUserType => {
+export const displayToFrontendUserType = (
+  displayType: DisplayUserType
+): FrontendUserType => {
   return DISPLAY_TO_FRONTEND_USER_TYPE[displayType];
 };
 
@@ -103,7 +119,9 @@ export const displayToFrontendUserType = (displayType: DisplayUserType): Fronten
  * Auto-detect and convert any userType format to backend format
  * Useful when you're unsure of the input format
  */
-export const normalizeToBackendUserType = (userType: string): BackendUserType => {
+export const normalizeToBackendUserType = (
+  userType: string
+): BackendUserType => {
   const normalized = userType.toLowerCase().trim();
 
   // Check if it's already in backend format
@@ -131,7 +149,9 @@ export const normalizeToBackendUserType = (userType: string): BackendUserType =>
       return 'Admin';
     default:
       // Default to Customer if unrecognized
-      console.warn(`Unrecognized userType: ${userType}, defaulting to 'Customer'`);
+      console.warn(
+        `Unrecognized userType: ${userType}, defaulting to 'Customer'`
+      );
       return 'Customer';
   }
 };
@@ -140,7 +160,9 @@ export const normalizeToBackendUserType = (userType: string): BackendUserType =>
  * Auto-detect and convert any userType format to frontend format
  * Useful when you're unsure of the input format
  */
-export const normalizeToFrontendUserType = (userType: string): FrontendUserType => {
+export const normalizeToFrontendUserType = (
+  userType: string
+): FrontendUserType => {
   const backendType = normalizeToBackendUserType(userType);
   return toFrontendUserType(backendType);
 };
@@ -149,7 +171,9 @@ export const normalizeToFrontendUserType = (userType: string): FrontendUserType 
  * Auto-detect and convert any userType format to display format
  * Useful when you're unsure of the input format
  */
-export const normalizeToDisplayUserType = (userType: string): DisplayUserType => {
+export const normalizeToDisplayUserType = (
+  userType: string
+): DisplayUserType => {
   const backendType = normalizeToBackendUserType(userType);
   return toDisplayUserType(backendType);
 };
@@ -183,15 +207,21 @@ export const getUserTypeLabel = (userType: string): string => {
 /**
  * Check if user is of specific type (case-insensitive)
  */
-export const isUserType = (userType: string, checkType: 'customer' | 'store_owner' | 'admin'): boolean => {
+export const isUserType = (
+  userType: string,
+  checkType: 'customer' | 'store_owner' | 'admin'
+): boolean => {
   const normalizedUserType = normalizeToFrontendUserType(userType);
   return normalizedUserType === checkType;
 };
 
 // Export commonly used type checkers
-export const isCustomer = (userType: string): boolean => isUserType(userType, 'customer');
-export const isStoreOwner = (userType: string): boolean => isUserType(userType, 'store_owner');
-export const isAdmin = (userType: string): boolean => isUserType(userType, 'admin');
+export const isCustomer = (userType: string): boolean =>
+  isUserType(userType, 'customer');
+export const isStoreOwner = (userType: string): boolean =>
+  isUserType(userType, 'store_owner');
+export const isAdmin = (userType: string): boolean =>
+  isUserType(userType, 'admin');
 
 // Type conversion utilities for API requests/responses
 export interface ApiTypeConverter {
@@ -212,24 +242,24 @@ export interface ApiTypeConverter {
  */
 export const createApiTypeConverter = (): ApiTypeConverter => ({
   requestToBackend: <T extends Record<string, any>>(obj: T): T => {
-    const converted = { ...obj };
+    const converted = { ...obj } as Record<string, any>;
 
     if ('userType' in converted && typeof converted.userType === 'string') {
       converted.userType = normalizeToBackendUserType(converted.userType);
     }
 
-    return converted;
+    return converted as T;
   },
 
   responseToFrontend: <T extends Record<string, any>>(obj: T): T => {
-    const converted = { ...obj };
+    const converted = { ...obj } as Record<string, any>;
 
     if ('userType' in converted && typeof converted.userType === 'string') {
       converted.userType = normalizeToFrontendUserType(converted.userType);
     }
 
-    return converted;
-  }
+    return converted as T;
+  },
 });
 
 // Default converter instance

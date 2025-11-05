@@ -1,5 +1,7 @@
 import type { StoreOpenHours } from '../features/stores/services/open-shop.types';
 
+export type { StoreOpenHours };
+
 export interface ConsolidatedHours {
   day: string;
   hours: string;
@@ -135,8 +137,12 @@ export const getStoreOpenStatus = (
   }
 
   // Check if currently within open hours
-  const isOpen =
-    currentTime >= todayHours.openTime && currentTime <= todayHours.closeTime;
+  const isOpen = Boolean(
+    todayHours.openTime &&
+      todayHours.closeTime &&
+      currentTime >= todayHours.openTime &&
+      currentTime <= todayHours.closeTime
+  );
 
   return { isOpen };
 };

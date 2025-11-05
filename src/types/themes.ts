@@ -113,6 +113,7 @@ export interface StorefrontTheme {
   customProperties: Record<string, string>;
   recommendedFor: string[];
   inspiration: string;
+  premium?: boolean;
 }
 
 // Theme 1: Clean & Modern Template

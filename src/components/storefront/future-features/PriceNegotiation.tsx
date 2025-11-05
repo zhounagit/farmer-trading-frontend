@@ -8,16 +8,11 @@ import {
   TextField,
   Chip,
   Avatar,
-  Divider,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   Badge,
   Alert,
   LinearProgress,
@@ -32,7 +27,6 @@ import {
   Cancel,
   Message,
   Send,
-  History,
   Notifications,
 } from '@mui/icons-material';
 
@@ -81,9 +75,10 @@ const mockOffers: PriceOffer[] = [
     sellerId: 201,
     originalPrice: 4.99,
     offeredPrice: 4.25,
-    currentPrice: 4.60,
+    currentPrice: 4.6,
     quantity: 50,
-    message: 'Looking for weekly supply for our restaurant. Can you do $4.25/lb for 50lbs weekly?',
+    message:
+      'Looking for weekly supply for our restaurant. Can you do $4.25/lb for 50lbs weekly?',
     status: 'countered',
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
@@ -97,9 +92,9 @@ const mockOffers: PriceOffer[] = [
     buyerId: 102,
     buyerName: 'Sarah Johnson',
     sellerId: 201,
-    originalPrice: 6.00,
-    offeredPrice: 5.50,
-    currentPrice: 5.50,
+    originalPrice: 6.0,
+    offeredPrice: 5.5,
+    currentPrice: 5.5,
     quantity: 5,
     message: 'Regular customer, would like bulk pricing for 5 dozen',
     status: 'pending',
@@ -115,7 +110,8 @@ const mockNegotiationMessages: NegotiationMessage[] = [
     senderId: 101,
     senderName: 'Restaurant Plaza',
     senderType: 'buyer',
-    message: 'Looking for weekly supply for our restaurant. Can you do $4.25/lb for 50lbs weekly?',
+    message:
+      'Looking for weekly supply for our restaurant. Can you do $4.25/lb for 50lbs weekly?',
     priceOffer: 4.25,
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     type: 'offer',
@@ -125,8 +121,9 @@ const mockNegotiationMessages: NegotiationMessage[] = [
     senderId: 201,
     senderName: 'Sunshine Farm',
     senderType: 'seller',
-    message: 'Thank you for your interest! For that volume, I can offer $4.60/lb. These are premium organic tomatoes.',
-    priceOffer: 4.60,
+    message:
+      'Thank you for your interest! For that volume, I can offer $4.60/lb. These are premium organic tomatoes.',
+    priceOffer: 4.6,
     timestamp: new Date(Date.now() - 30 * 60 * 1000),
     type: 'counter_offer',
   },
@@ -163,13 +160,15 @@ export const MakeOfferButton: React.FC<{
   };
 
   const discountPercentage = offerPrice
-    ? Math.round(((originalPrice - parseFloat(offerPrice)) / originalPrice) * 100)
+    ? Math.round(
+        ((originalPrice - parseFloat(offerPrice)) / originalPrice) * 100
+      )
     : 0;
 
   return (
     <>
       <Button
-        variant="outlined"
+        variant='outlined'
         startIcon={<LocalOffer />}
         onClick={() => setOpen(true)}
         sx={{
@@ -183,25 +182,30 @@ export const MakeOfferButton: React.FC<{
         Make Offer
       </Button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth='sm'
+        fullWidth
+      >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LocalOffer color="primary" />
-            <Typography variant="h6">Make an Offer</Typography>
+            <LocalOffer color='primary' />
+            <Typography variant='h6'>Make an Offer</Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Typography variant='body2' color='text.secondary' gutterBottom>
             {productName}
           </Typography>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant='h6' gutterBottom>
             Original Price: ${originalPrice.toFixed(2)}
           </Typography>
 
           <TextField
             fullWidth
-            label="Your Offer Price"
-            type="number"
+            label='Your Offer Price'
+            type='number'
             value={offerPrice}
             onChange={(e) => setOfferPrice(e.target.value)}
             inputProps={{ step: 0.01, min: 0.01 }}
@@ -215,8 +219,8 @@ export const MakeOfferButton: React.FC<{
 
           <TextField
             fullWidth
-            label="Quantity"
-            type="number"
+            label='Quantity'
+            type='number'
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             inputProps={{ min: 1 }}
@@ -225,19 +229,22 @@ export const MakeOfferButton: React.FC<{
 
           <TextField
             fullWidth
-            label="Message (Optional)"
+            label='Message (Optional)'
             multiline
             rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Explain your offer, mention bulk discounts, regular orders, etc."
+            placeholder='Explain your offer, mention bulk discounts, regular orders, etc.'
             sx={{ mb: 2 }}
           />
 
           {offerPrice && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Total: ${(parseFloat(offerPrice) * parseInt(quantity || '1')).toFixed(2)}
+            <Alert severity='info' sx={{ mb: 2 }}>
+              <Typography variant='body2'>
+                Total: $
+                {(parseFloat(offerPrice) * parseInt(quantity || '1')).toFixed(
+                  2
+                )}
                 ({quantity} × ${parseFloat(offerPrice).toFixed(2)})
               </Typography>
             </Alert>
@@ -246,7 +253,7 @@ export const MakeOfferButton: React.FC<{
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button
-            variant="contained"
+            variant='contained'
             onClick={handleSubmit}
             disabled={!offerPrice || parseFloat(offerPrice) <= 0}
           >
@@ -263,12 +270,16 @@ export const NegotiationDashboard: React.FC<{
   offers?: PriceOffer[];
   onAcceptOffer?: (offerId: string) => void;
   onRejectOffer?: (offerId: string) => void;
-  onCounterOffer?: (offerId: string, newPrice: number, message?: string) => void;
+  onCounterOffer?: (
+    offerId: string,
+    newPrice: number,
+    message?: string
+  ) => void;
 }> = ({
   offers = mockOffers,
   onAcceptOffer,
   onRejectOffer,
-  onCounterOffer
+  onCounterOffer,
 }) => {
   const [selectedOffer, setSelectedOffer] = useState<PriceOffer | null>(null);
   const [counterPrice, setCounterPrice] = useState('');
@@ -276,28 +287,42 @@ export const NegotiationDashboard: React.FC<{
 
   const getStatusColor = (status: PriceOffer['status']) => {
     switch (status) {
-      case 'pending': return 'warning';
-      case 'accepted': return 'success';
-      case 'rejected': return 'error';
-      case 'countered': return 'info';
-      case 'expired': return 'default';
-      default: return 'default';
+      case 'pending':
+        return 'warning';
+      case 'accepted':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      case 'countered':
+        return 'info';
+      case 'expired':
+        return 'default';
+      default:
+        return 'default';
     }
   };
 
   const getStatusIcon = (status: PriceOffer['status']) => {
     switch (status) {
-      case 'pending': return <AccessTime />;
-      case 'accepted': return <CheckCircle />;
-      case 'rejected': return <Cancel />;
-      case 'countered': return <Gavel />;
-      case 'expired': return <AccessTime />;
-      default: return <LocalOffer />;
+      case 'pending':
+        return <AccessTime />;
+      case 'accepted':
+        return <CheckCircle />;
+      case 'rejected':
+        return <Cancel />;
+      case 'countered':
+        return <Gavel />;
+      case 'expired':
+        return <AccessTime />;
+      default:
+        return <LocalOffer />;
     }
   };
 
   const timeUntilExpiry = (expiresAt: Date) => {
-    const hours = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60));
+    const hours = Math.ceil(
+      (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)
+    );
     return hours > 0 ? `${hours}h remaining` : 'Expired';
   };
 
@@ -312,26 +337,40 @@ export const NegotiationDashboard: React.FC<{
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant='h5'
+        gutterBottom
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+      >
         <Gavel />
         Price Negotiations
-        <Badge badgeContent={offers.filter(o => o.status === 'pending').length} color="primary">
+        <Badge
+          badgeContent={offers.filter((o) => o.status === 'pending').length}
+          color='primary'
+        >
           <Notifications />
         </Badge>
       </Typography>
 
-      <List>
+      <div>
         {offers.map((offer) => (
           <Card key={offer.id} sx={{ mb: 2 }}>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  mb: 2,
+                }}
+              >
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                   <Avatar src={offer.productImage} alt={offer.productName}>
                     {offer.productName[0]}
                   </Avatar>
                   <Box>
-                    <Typography variant="h6">{offer.productName}</Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant='h6'>{offer.productName}</Typography>
+                    <Typography variant='body2' color='text.secondary'>
                       from {offer.buyerName} • {offer.quantity} units
                     </Typography>
                   </Box>
@@ -340,76 +379,92 @@ export const NegotiationDashboard: React.FC<{
                   label={offer.status.toUpperCase()}
                   color={getStatusColor(offer.status)}
                   icon={getStatusIcon(offer.status)}
-                  size="small"
+                  size='small'
                 />
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Typography variant="body2">
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}
+              >
+                <Typography variant='body2'>
                   Original: <strong>${offer.originalPrice.toFixed(2)}</strong>
                 </Typography>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography
+                  variant='body2'
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                >
                   {offer.offeredPrice < offer.originalPrice ? (
-                    <TrendingDown color="error" />
+                    <TrendingDown color='error' />
                   ) : (
-                    <TrendingUp color="success" />
+                    <TrendingUp color='success' />
                   )}
                   Offered: <strong>${offer.offeredPrice.toFixed(2)}</strong>
                 </Typography>
                 {offer.status === 'countered' && (
-                  <Typography variant="body2" color="primary">
+                  <Typography variant='body2' color='primary'>
                     Current: <strong>${offer.currentPrice.toFixed(2)}</strong>
                   </Typography>
                 )}
               </Box>
 
               {offer.message && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  <Typography variant="body2">"{offer.message}"</Typography>
+                <Alert severity='info' sx={{ mb: 2 }}>
+                  <Typography variant='body2'>"{offer.message}"</Typography>
                 </Alert>
               )}
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="caption" color="text.secondary">
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography variant='caption' color='text.secondary'>
                   {timeUntilExpiry(offer.expiresAt)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Total Value: ${(offer.currentPrice * offer.quantity).toFixed(2)}
+                <Typography variant='caption' color='text.secondary'>
+                  Total Value: $
+                  {(offer.currentPrice * offer.quantity).toFixed(2)}
                 </Typography>
               </Box>
 
               {offer.status === 'pending' || offer.status === 'countered' ? (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
-                    size="small"
-                    variant="contained"
-                    color="success"
+                    size='small'
+                    variant='contained'
+                    color='success'
                     onClick={() => onAcceptOffer?.(offer.id)}
                   >
-                    Accept ${offer.status === 'countered' ? offer.currentPrice.toFixed(2) : offer.offeredPrice.toFixed(2)}
+                    Accept $
+                    {offer.status === 'countered'
+                      ? offer.currentPrice.toFixed(2)
+                      : offer.offeredPrice.toFixed(2)}
                   </Button>
                   <Button
-                    size="small"
-                    variant="outlined"
+                    size='small'
+                    variant='outlined'
                     onClick={() => setSelectedOffer(offer)}
                   >
                     Counter Offer
                   </Button>
                   <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
+                    size='small'
+                    variant='outlined'
+                    color='error'
                     onClick={() => onRejectOffer?.(offer.id)}
                   >
                     Decline
                   </Button>
-                  <IconButton size="small" title="View conversation">
+                  <IconButton size='small' title='View conversation'>
                     <Message />
                   </IconButton>
                 </Box>
               ) : (
                 <LinearProgress
-                  variant="determinate"
+                  variant='determinate'
                   value={offer.status === 'accepted' ? 100 : 0}
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -417,30 +472,30 @@ export const NegotiationDashboard: React.FC<{
             </CardContent>
           </Card>
         ))}
-      </List>
+      </div>
 
       {/* Counter Offer Dialog */}
       <Dialog
         open={selectedOffer !== null}
         onClose={() => setSelectedOffer(null)}
-        maxWidth="sm"
+        maxWidth='sm'
         fullWidth
       >
         <DialogTitle>Counter Offer</DialogTitle>
         <DialogContent>
           {selectedOffer && (
             <>
-              <Typography variant="body2" gutterBottom>
+              <Typography variant='body2' gutterBottom>
                 {selectedOffer.productName} • {selectedOffer.quantity} units
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant='body2' color='text.secondary' gutterBottom>
                 Their offer: ${selectedOffer.offeredPrice.toFixed(2)}
               </Typography>
 
               <TextField
                 fullWidth
-                label="Your Counter Offer"
-                type="number"
+                label='Your Counter Offer'
+                type='number'
                 value={counterPrice}
                 onChange={(e) => setCounterPrice(e.target.value)}
                 inputProps={{ step: 0.01, min: 0.01 }}
@@ -449,12 +504,12 @@ export const NegotiationDashboard: React.FC<{
 
               <TextField
                 fullWidth
-                label="Message (Optional)"
+                label='Message (Optional)'
                 multiline
                 rows={3}
                 value={counterMessage}
                 onChange={(e) => setCounterMessage(e.target.value)}
-                placeholder="Explain your counter offer..."
+                placeholder='Explain your counter offer...'
               />
             </>
           )}
@@ -462,7 +517,7 @@ export const NegotiationDashboard: React.FC<{
         <DialogActions>
           <Button onClick={() => setSelectedOffer(null)}>Cancel</Button>
           <Button
-            variant="contained"
+            variant='contained'
             onClick={() => selectedOffer && handleCounterOffer(selectedOffer)}
             disabled={!counterPrice || parseFloat(counterPrice) <= 0}
           >
@@ -482,7 +537,7 @@ export const NegotiationChat: React.FC<{
 }> = ({
   messages = mockNegotiationMessages,
   currentUserId = 201,
-  onSendMessage
+  onSendMessage,
 }) => {
   const [newMessage, setNewMessage] = useState('');
   const [newOffer, setNewOffer] = useState('');
@@ -497,40 +552,56 @@ export const NegotiationChat: React.FC<{
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography
+        variant='h6'
+        gutterBottom
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+      >
         <Message />
         Negotiation History
       </Typography>
 
-      <Box sx={{ maxHeight: 400, overflow: 'auto', mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+      <Box
+        sx={{
+          maxHeight: 400,
+          overflow: 'auto',
+          mb: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          p: 1,
+        }}
+      >
         {messages.map((msg) => (
           <Box
             key={msg.id}
             sx={{
               display: 'flex',
-              justifyContent: msg.senderId === currentUserId ? 'flex-end' : 'flex-start',
-              mb: 2
+              justifyContent:
+                msg.senderId === currentUserId ? 'flex-end' : 'flex-start',
+              mb: 2,
             }}
           >
             <Card
               sx={{
                 maxWidth: '70%',
-                backgroundColor: msg.senderId === currentUserId ? 'primary.light' : 'grey.100'
+                backgroundColor:
+                  msg.senderId === currentUserId ? 'primary.light' : 'grey.100',
               }}
             >
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant='caption' color='text.secondary'>
                   {msg.senderName} • {msg.timestamp.toLocaleTimeString()}
                 </Typography>
                 {msg.priceOffer && (
                   <Chip
                     label={`$${msg.priceOffer.toFixed(2)}`}
-                    size="small"
-                    color="primary"
+                    size='small'
+                    color='primary'
                     sx={{ ml: 1, mb: 1 }}
                   />
                 )}
-                <Typography variant="body2" sx={{ mt: 1 }}>
+                <Typography variant='body2' sx={{ mt: 1 }}>
                   {msg.message}
                 </Typography>
               </CardContent>
@@ -544,20 +615,20 @@ export const NegotiationChat: React.FC<{
           fullWidth
           multiline
           rows={2}
-          placeholder="Type your message..."
+          placeholder='Type your message...'
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
         <TextField
-          label="Price Offer"
-          type="number"
+          label='Price Offer'
+          type='number'
           value={newOffer}
           onChange={(e) => setNewOffer(e.target.value)}
           inputProps={{ step: 0.01, min: 0 }}
           sx={{ width: 120 }}
         />
         <IconButton
-          color="primary"
+          color='primary'
           onClick={handleSend}
           disabled={!newMessage.trim() && !newOffer}
         >
@@ -572,47 +643,60 @@ export const NegotiationChat: React.FC<{
 export const PriceNegotiationSystem: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant='h4' gutterBottom>
         🚧 Future Feature: Price Negotiation System
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          This is a mockup of the planned price negotiation feature. It will allow buyers to make offers
-          and negotiate prices with sellers in real-time.
+      <Alert severity='info' sx={{ mb: 3 }}>
+        <Typography variant='body2'>
+          This is a mockup of the planned price negotiation feature. It will
+          allow buyers to make offers and negotiate prices with sellers in
+          real-time.
         </Typography>
       </Alert>
 
       <Box sx={{ display: 'grid', gap: 3 }}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>1. Make Offer Button (Buyer View)</Typography>
+            <Typography variant='h6' gutterBottom>
+              1. Make Offer Button (Buyer View)
+            </Typography>
             <MakeOfferButton
               productId={1}
-              productName="Organic Heirloom Tomatoes"
+              productName='Organic Heirloom Tomatoes'
               originalPrice={4.99}
-              onOfferSubmitted={(offer) => console.log('Offer submitted:', offer)}
+              onOfferSubmitted={(offer) =>
+                console.log('Offer submitted:', offer)
+              }
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>2. Negotiation Dashboard (Seller View)</Typography>
+            <Typography variant='h6' gutterBottom>
+              2. Negotiation Dashboard (Seller View)
+            </Typography>
             <NegotiationDashboard
               onAcceptOffer={(id) => console.log('Accepted offer:', id)}
               onRejectOffer={(id) => console.log('Rejected offer:', id)}
-              onCounterOffer={(id, price, msg) => console.log('Counter offer:', { id, price, msg })}
+              onCounterOffer={(id, price, msg) =>
+                console.log('Counter offer:', { id, price, msg })
+              }
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>3. Negotiation Chat</Typography>
+            <Typography variant='h6' gutterBottom>
+              3. Negotiation Chat
+            </Typography>
             <NegotiationChat
               currentUserId={201}
-              onSendMessage={(msg, price) => console.log('Sent message:', { msg, price })}
+              onSendMessage={(msg, price) =>
+                console.log('Sent message:', { msg, price })
+              }
             />
           </CardContent>
         </Card>

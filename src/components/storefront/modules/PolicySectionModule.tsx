@@ -30,7 +30,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface PolicySectionModuleProps {
   module: StorefrontModule;
@@ -97,7 +97,10 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
           (addr: Record<string, unknown>) =>
             (addr.addressType as string) === 'business' ||
             (addr.addressType as string) === 'business_address'
-        ) && Boolean(storeData.contactPhone); // Basic delivery capability check
+        ) &&
+        Boolean(
+          (storeData as any).contactPhone || storeData.addresses?.[0]?.phone
+        ); // Basic delivery capability check
 
       const hasFarmPickup = storeData.addresses?.some(
         (addr: Record<string, unknown>) =>
@@ -264,9 +267,13 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
     if (!showContact) return null;
 
     const phone =
-      contactInfo.phone || storefront.store.contactPhone || '1-800-BUSINESS';
+      contactInfo.phone ||
+      (storefront.store as any).contactPhone ||
+      '1-800-BUSINESS';
     const email =
-      contactInfo.email || storefront.store.contactEmail || 'sales@company.com';
+      contactInfo.email ||
+      (storefront.store as any).contactEmail ||
+      'sales@company.com';
 
     return (
       <Box>

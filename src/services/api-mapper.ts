@@ -19,6 +19,12 @@ import type {
   UserProfile,
 } from '../shared/types/api-contracts';
 
+import type {
+  StoreAddress,
+  StoreAddressRequest,
+  AddressType,
+} from '../shared/types/store';
+
 // Backend response types (PascalCase)
 export interface BackendInventoryItem {
   ItemId: number;
@@ -85,6 +91,40 @@ interface BackendUpdateInventoryItemRequest {
   RequiresRawMaterial?: boolean;
 }
 
+// Backend StoreAddress types (PascalCase)
+interface BackendStoreAddress {
+  AddressId: number;
+  StoreId: number;
+  AddressType: string;
+  LocationName?: string;
+  ContactPhone: string;
+  ContactEmail?: string;
+  StreetAddress: string;
+  City: string;
+  State: string;
+  ZipCode: string;
+  Country: string;
+  IsPrimary: boolean;
+  PickupInstructions?: string;
+  IsActive: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+interface BackendStoreAddressRequest {
+  AddressType: string;
+  LocationName: string;
+  ContactPhone: string;
+  ContactEmail: string;
+  StreetAddress: string;
+  City: string;
+  State: string;
+  ZipCode: string;
+  Country?: string;
+  IsPrimary?: boolean;
+  PickupInstructions?: string;
+}
+
 export class ApiMapper {
   /**
    * Convert frontend CreateInventoryItemRequest (camelCase) to backend format (PascalCase)
@@ -138,23 +178,42 @@ export class ApiMapper {
   /**
    * Convert backend ProductCategory (PascalCase) to frontend format (camelCase)
    */
-  static toFrontendProductCategory(backendCategory: any): ProductCategory {
+  static toFrontendProductCategory(backendCategory: {
+    CategoryId: number;
+    Name: string;
+    Description?: string;
+    IconUrl?: string;
+    Slug?: string;
+    SortOrder?: number;
+    IsActive?: boolean;
+    CreatedAt?: string;
+  }): ProductCategory {
     return {
       categoryId: backendCategory.CategoryId,
       name: backendCategory.Name,
       description: backendCategory.Description,
       iconUrl: backendCategory.IconUrl,
-      slug: backendCategory.Slug,
-      sortOrder: backendCategory.SortOrder,
-      isActive: backendCategory.IsActive,
-      createdAt: backendCategory.CreatedAt,
+      slug: backendCategory.Slug || '',
+      sortOrder: backendCategory.SortOrder || 0,
+      isActive: backendCategory.IsActive || false,
+      createdAt: backendCategory.CreatedAt || new Date().toISOString(),
     };
   }
 
   /**
    * Convert backend Store (PascalCase) to frontend format (camelCase)
    */
-  static toFrontendStore(backendStore: any): Store {
+  static toFrontendStore(backendStore: {
+    StoreId: number;
+    StoreName: string;
+    Description?: string;
+    LogoUrl?: string;
+    BannerUrl?: string;
+    OwnerId: number;
+    IsActive: boolean;
+    CreatedAt: string;
+    UpdatedAt: string;
+  }): Store {
     return {
       storeId: backendStore.StoreId,
       storeName: backendStore.StoreName,
@@ -171,14 +230,33 @@ export class ApiMapper {
   /**
    * Convert backend Order (PascalCase) to frontend format (camelCase)
    */
-  static toFrontendOrder(backendOrder: any): Order {
+  static toFrontendOrder(backendOrder: {
+    OrderId: number;
+    CustomerId: number;
+    StoreId: number;
+    TotalAmount: number;
+    Status: string;
+    PaymentStatus: string;
+    CreatedAt: string;
+    UpdatedAt: string;
+  }): Order {
     return {
       orderId: backendOrder.OrderId,
       customerId: backendOrder.CustomerId,
       storeId: backendOrder.StoreId,
       totalAmount: backendOrder.TotalAmount,
-      status: backendOrder.Status,
-      paymentStatus: backendOrder.PaymentStatus,
+      status: backendOrder.Status as
+        | 'pending'
+        | 'confirmed'
+        | 'preparing'
+        | 'ready'
+        | 'completed'
+        | 'cancelled',
+      paymentStatus: backendOrder.PaymentStatus as
+        | 'pending'
+        | 'paid'
+        | 'failed'
+        | 'refunded',
       createdAt: backendOrder.CreatedAt,
       updatedAt: backendOrder.UpdatedAt,
     };
@@ -187,7 +265,15 @@ export class ApiMapper {
   /**
    * Convert backend OrderItem (PascalCase) to frontend format (camelCase)
    */
-  static toFrontendOrderItem(backendOrderItem: any): OrderItem {
+  static toFrontendOrderItem(backendOrderItem: {
+    OrderItemId: number;
+    OrderId: number;
+    ItemId: number;
+    Quantity: number;
+    UnitPrice: number;
+    TotalPrice: number;
+    InventoryItem?: BackendInventoryItem;
+  }): OrderItem {
     return {
       orderItemId: backendOrderItem.OrderItemId,
       orderId: backendOrderItem.OrderId,
@@ -204,13 +290,23 @@ export class ApiMapper {
   /**
    * Convert backend UserProfile (PascalCase) to frontend format (camelCase)
    */
-  static toFrontendUserProfile(backendProfile: any): UserProfile {
+  static toFrontendUserProfile(backendProfile: {
+    UserId: number;
+    Email: string;
+    FirstName?: string;
+    LastName?: string;
+    UserType: string;
+    ProfilePictureUrl?: string;
+    PhoneNumber?: string;
+    CreatedAt: string;
+    UpdatedAt: string;
+  }): UserProfile {
     return {
       userId: backendProfile.UserId,
       email: backendProfile.Email,
-      firstName: backendProfile.FirstName,
-      lastName: backendProfile.LastName,
-      userType: backendProfile.UserType,
+      firstName: backendProfile.FirstName || '',
+      lastName: backendProfile.LastName || '',
+      userType: backendProfile.UserType as 'customer' | 'store_owner' | 'admin',
       profilePictureUrl: backendProfile.ProfilePictureUrl,
       phoneNumber: backendProfile.PhoneNumber,
       createdAt: backendProfile.CreatedAt,
@@ -222,9 +318,9 @@ export class ApiMapper {
    * Generic method to convert any backend object from PascalCase to camelCase
    * Useful for objects that don't have specific mapping methods
    */
-  static toCamelCase<T>(backendObject: any): T {
+  static toCamelCase<T>(backendObject: unknown): T {
     if (!backendObject || typeof backendObject !== 'object') {
-      return backendObject;
+      return backendObject as T;
     }
 
     if (Array.isArray(backendObject)) {
@@ -238,16 +334,63 @@ export class ApiMapper {
       const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
       result[camelKey] = this.toCamelCase(value);
     }
-    return result;
+    return result as T;
+  }
+
+  /**
+   * Convert backend StoreAddress (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendStoreAddress(
+    backendAddress: BackendStoreAddress
+  ): StoreAddress {
+    return {
+      addressId: backendAddress.AddressId,
+      storeId: backendAddress.StoreId,
+      addressType: backendAddress.AddressType as AddressType,
+      locationName: backendAddress.LocationName,
+      contactPhone: backendAddress.ContactPhone,
+      contactEmail: backendAddress.ContactEmail,
+      streetAddress: backendAddress.StreetAddress,
+      city: backendAddress.City,
+      state: backendAddress.State,
+      zipCode: backendAddress.ZipCode,
+      country: backendAddress.Country,
+      isPrimary: backendAddress.IsPrimary,
+      pickupInstructions: backendAddress.PickupInstructions,
+      isActive: backendAddress.IsActive,
+      createdAt: backendAddress.CreatedAt,
+      updatedAt: backendAddress.UpdatedAt,
+    };
+  }
+
+  /**
+   * Convert frontend StoreAddressRequest (camelCase) to backend format (PascalCase)
+   */
+  static toBackendStoreAddressRequest(
+    request: StoreAddressRequest
+  ): BackendStoreAddressRequest {
+    return {
+      AddressType: request.AddressType,
+      LocationName: request.LocationName,
+      ContactPhone: request.ContactPhone,
+      ContactEmail: request.ContactEmail,
+      StreetAddress: request.StreetAddress,
+      City: request.City,
+      State: request.State,
+      ZipCode: request.ZipCode,
+      Country: request.Country,
+      IsPrimary: request.IsPrimary,
+      PickupInstructions: request.PickupInstructions,
+    };
   }
 
   /**
    * Generic method to convert any frontend object from camelCase to PascalCase
    * Useful for objects that don't have specific mapping methods
    */
-  static toPascalCase<T>(frontendObject: any): T {
+  static toPascalCase<T>(frontendObject: unknown): T {
     if (!frontendObject || typeof frontendObject !== 'object') {
-      return frontendObject;
+      return frontendObject as T;
     }
 
     if (Array.isArray(frontendObject)) {
@@ -261,6 +404,6 @@ export class ApiMapper {
       const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
       result[pascalKey] = this.toPascalCase(value);
     }
-    return result;
+    return result as T;
   }
 }

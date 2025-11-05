@@ -153,7 +153,8 @@ const PartnershipStep: React.FC<StepProps> = ({
         '🔍 Form state after update - potentialPartners:',
         formState.partnerships?.potentialPartners
       );
-    } catch (error: any) { // Error type is intentionally loose for catch block
+    } catch (error: any) {
+      // Error type is intentionally loose for catch block
       console.error('Partnership search failed:', error);
       setSearchError('Failed to search for partners. Please try again.');
     } finally {
@@ -181,7 +182,6 @@ const PartnershipStep: React.FC<StepProps> = ({
         await partnershipsApi.getPartnershipsByStoreId(
           Number(formState.storeId),
           {
-            storeId: Number(formState.storeId),
             partnerType: partnershipType as 'producer' | 'processor',
           }
         );
@@ -223,7 +223,8 @@ const PartnershipStep: React.FC<StepProps> = ({
         setShowEstablished(false);
         setEstablishedPartnerships([]);
       }
-    } catch (error: any) { // Error type is intentionally loose for catch block
+    } catch (error: any) {
+      // Error type is intentionally loose for catch block
       console.error('❌ Error loading established partnerships:', error);
       setShowEstablished(false);
       setEstablishedPartnerships([]);
@@ -310,8 +311,11 @@ const PartnershipStep: React.FC<StepProps> = ({
           );
 
           // Check if it's a duplicate partnership error
-                    const errorData = (createError as unknown as Record<string, unknown>)?.response
-            ?.data;
+          const errorData = (
+            createError as unknown as {
+              response?: { data?: { message?: string; error?: string } };
+            }
+          )?.response?.data;
           if (
             errorData?.message?.includes('already exists') ||
             errorData?.error?.includes('already exists')
@@ -377,7 +381,8 @@ const PartnershipStep: React.FC<StepProps> = ({
 
       // Proceed to next step
       onNext();
-    } catch (error: any) { // Error type is intentionally loose for catch block
+    } catch (error: any) {
+      // Error type is intentionally loose for catch block
       console.error('❌ Error saving partnerships:', error);
 
       // Extract detailed error message
@@ -615,7 +620,8 @@ const PartnershipStep: React.FC<StepProps> = ({
       toast.success(`Partnership request sent to ${partnerName}`);
       handleCloseSearchDialog();
       loadEstablishedPartnerships();
-    } catch (error: any) { // @ts-ignore - error type intentionally loose for catch block
+    } catch (error: any) {
+      // @ts-ignore - error type intentionally loose for catch block
       console.error('Failed to create partnership:', error);
       toast.error('Failed to create partnership request');
     }

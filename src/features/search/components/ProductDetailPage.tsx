@@ -5,7 +5,6 @@ import {
   Grid,
   Card,
   CardMedia,
-  CardContent,
   Typography,
   Button,
   Box,
@@ -256,7 +255,7 @@ const ProductDetailPage: React.FC = () => {
       try {
         await navigator.share({
           title: product?.name,
-          text: `Check out ${product?.name} from ${product?.storeName}`,
+          text: `Check out ${product?.name}`,
           url: window.location.href,
         });
       } catch (err) {
@@ -266,19 +265,6 @@ const ProductDetailPage: React.FC = () => {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
-    }
-  };
-
-  const getStockStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Stock':
-        return 'success';
-      case 'Low Stock':
-        return 'warning';
-      case 'Out of Stock':
-        return 'error';
-      default:
-        return 'default';
     }
   };
 
@@ -292,13 +278,13 @@ const ProductDetailPage: React.FC = () => {
   if (loading) {
     return (
       <Box>
-        <Header />
+        <Header onLoginClick={() => {}} />
         <Container maxWidth='lg' sx={{ py: 4 }}>
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Skeleton variant='rectangular' height={400} />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Skeleton variant='text' width='60%' height={40} />
               <Skeleton variant='text' width='30%' height={30} />
               <Skeleton variant='text' width='100%' height={100} />
@@ -313,7 +299,7 @@ const ProductDetailPage: React.FC = () => {
   if (error || !product) {
     return (
       <Box>
-        <Header />
+        <Header onLoginClick={() => {}} />
         <Container maxWidth='lg' sx={{ py: 4 }}>
           <Alert severity='error' sx={{ mb: 2 }}>
             {error || 'Product not found'}
@@ -333,7 +319,7 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <Box>
-      <Header />
+      <Header onLoginClick={() => {}} />
       <Container maxWidth='lg' sx={{ py: 2 }}>
         {/* Breadcrumbs */}
         <Breadcrumbs
@@ -375,7 +361,7 @@ const ProductDetailPage: React.FC = () => {
 
         <Grid container spacing={4}>
           {/* Product Images */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
               {/* Main Image */}
               <Card sx={{ mb: 2, position: 'relative' }}>
@@ -388,15 +374,21 @@ const ProductDetailPage: React.FC = () => {
                   alt={currentImage?.altText || product.name}
                   sx={{
                     objectFit: 'cover',
-                    cursor: product?.images?.length > 0 ? 'pointer' : 'default',
+                    cursor:
+                      (product?.images ?? []).length > 0
+                        ? 'pointer'
+                        : 'default',
                     '&:hover':
-                      product?.images?.length > 0 ? { opacity: 0.9 } : {},
+                      (product?.images ?? []).length > 0
+                        ? { opacity: 0.9 }
+                        : {},
                   }}
                   onClick={() =>
-                    product?.images?.length > 0 && setImageDialogOpen(true)
+                    (product?.images ?? []).length > 0 &&
+                    setImageDialogOpen(true)
                   }
                 />
-                {product?.images?.length > 0 && (
+                {(product?.images ?? []).length > 0 && (
                   <IconButton
                     sx={{
                       position: 'absolute',
@@ -448,7 +440,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* No Image Placeholder */}
               {!product?.images ||
-                (product.images.length === 0 && (
+                ((product.images?.length ?? 0) === 0 && (
                   <Card sx={{ mb: 2 }}>
                     <CardMedia
                       component='img'
@@ -463,7 +455,7 @@ const ProductDetailPage: React.FC = () => {
           </Grid>
 
           {/* Product Information */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box
               sx={{
                 display: 'flex',
@@ -510,9 +502,9 @@ const ProductDetailPage: React.FC = () => {
               sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 2 }}
             >
               <Typography variant='h5' color='primary' sx={{ fontWeight: 700 }}>
-                {formatPrice(product.price)}
+                {formatPrice(product.price || 0)}
               </Typography>
-              {(product.unit || product.Unit) && (
+              {product.unit && (
                 <Typography variant='body1' color='text.secondary'>
                   per {product.unit}
                 </Typography>
@@ -574,19 +566,19 @@ const ProductDetailPage: React.FC = () => {
                       inputProps={{
                         style: { textAlign: 'center' },
                         min: 1,
-                        max: product.quantity,
+                        max: product.quantity ?? 1,
                       }}
                       type='number'
                       onChange={(e) => {
                         const val = parseInt(e.target.value);
-                        if (val >= 1 && val <= product.quantity) {
+                        if (val >= 1 && val <= (product.quantity ?? 1)) {
                           setQuantity(val);
                         }
                       }}
                     />
                     <IconButton
                       onClick={() => handleQuantityChange(1)}
-                      disabled={quantity >= product.quantity}
+                      disabled={quantity >= (product.quantity ?? 0)}
                       size='small'
                     >
                       <Add />
@@ -611,10 +603,10 @@ const ProductDetailPage: React.FC = () => {
                   >
                     {addingToCart
                       ? 'Adding to Cart...'
-                      : `Add to Cart - ${formatPrice((product.price || product.Price || 0) * quantity)}`}
+                      : `Add to Cart - ${formatPrice((product.price || 0) * quantity)}`}
                   </Button>
 
-                  {(product.allowOffers || product.AllowOffers) && (
+                  {product.allowOffers && (
                     <Button
                       variant='outlined'
                       size='large'
@@ -640,7 +632,7 @@ const ProductDetailPage: React.FC = () => {
                   src={store?.logoUrl ? getSafeImageUrl(store.logoUrl) : ''}
                   alt={store?.storeName}
                   sx={{ width: 48, height: 48, mr: 2 }}
-                  onError={(e) => {
+                  onError={() => {
                     console.error('🔴 Avatar image failed to load');
                     console.error('Attempted URL:', store?.logoUrl);
                     console.error(
@@ -703,11 +695,11 @@ const ProductDetailPage: React.FC = () => {
                 <Button
                   startIcon={<StoreIcon />}
                   size='small'
-                  onClick={() =>
+                  onClick={() => {
                     navigate(
                       `/store/${store?.slug || store?.storeName || 'store'}`
-                    )
-                  }
+                    );
+                  }}
                 >
                   Visit Store
                 </Button>
@@ -716,87 +708,7 @@ const ProductDetailPage: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Related Products */}
-        {product?.relatedProducts && product.relatedProducts.length > 0 && (
-          <Box sx={{ mt: 6 }}>
-            <Typography variant='h5' sx={{ mb: 3, fontWeight: 700 }}>
-              Related Products
-            </Typography>
-
-            <Grid container spacing={3}>
-              {product.relatedProducts.map((relatedProduct, index) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
-                  lg={3}
-                  key={`related-${relatedProduct.itemId}-${index}`}
-                >
-                  <Card
-                    sx={{
-                      height: '100%',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: 6,
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                    onClick={() =>
-                      navigate(`/product/${relatedProduct.itemId}`)
-                    }
-                  >
-                    <CardMedia
-                      component='img'
-                      height='200'
-                      image={getSafeImageUrl(relatedProduct.imageUrl)}
-                      alt={relatedProduct.name}
-                      sx={{ objectFit: 'cover' }}
-                    />
-                    <CardContent>
-                      <Typography
-                        variant='h6'
-                        sx={{ mb: 1, fontWeight: 600, fontSize: '1rem' }}
-                      >
-                        {relatedProduct.name}
-                      </Typography>
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'
-                        sx={{ mb: 1 }}
-                      >
-                        {relatedProduct.storeName}
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant='h6'
-                          color='primary'
-                          sx={{ fontWeight: 700 }}
-                        >
-                          {formatPrice(relatedProduct.price)}
-                        </Typography>
-                        <Chip
-                          label={
-                            relatedProduct.inStock ? 'In Stock' : 'Out of Stock'
-                          }
-                          size='small'
-                          color={relatedProduct.inStock ? 'success' : 'default'}
-                        />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        )}
+        {/* Related Products - TODO: Implement when relatedProducts is available on InventoryItem type */}
 
         {/* Image Dialog */}
         {currentImage && (

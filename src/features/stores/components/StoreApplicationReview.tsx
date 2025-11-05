@@ -101,9 +101,9 @@ const storeApplicationsApi = {
       return {
         storeId: response.storeId,
         storeName: response.storeName,
-        slug: response.slug,
-        description: response.description,
-        isPublished: response.storefrontInfo?.isPublished || false,
+        slug: response.slug || '',
+        description: response.description || '',
+        isPublished: false, // storefrontInfo property doesn't exist on Store type
       };
     } catch (error) {
       console.error('❌ Store details API error:', error);
@@ -117,7 +117,7 @@ const storeApplicationsApi = {
   ): Promise<{ message: string }> {
     console.log('✅ Approving submission:', submissionId, request);
     try {
-      const response = await apiService.post<ApiResponse>(
+      const response = await apiService.post<ApiResponse<any>>(
         `/api/admin/store-applications/${submissionId}/approve`,
         request.reviewNotes || ''
       );
@@ -140,7 +140,7 @@ const storeApplicationsApi = {
   ): Promise<{ message: string }> {
     console.log('❌ Rejecting submission:', submissionId, request);
     try {
-      const response = await apiService.post<ApiResponse>(
+      const response = await apiService.post<ApiResponse<any>>(
         `/api/admin/store-applications/${submissionId}/reject`,
         request.reviewNotes || ''
       );
@@ -163,7 +163,7 @@ const storeApplicationsApi = {
   ): Promise<{ message: string }> {
     console.log('📝 Requesting revision:', submissionId, request);
     try {
-      const response = await apiService.post<ApiResponse>(
+      const response = await apiService.post<ApiResponse<any>>(
         `/api/admin/store-applications/${submissionId}/request-revision`,
         request
       );
@@ -566,16 +566,16 @@ const StoreApplicationReview: React.FC = () => {
               <strong>Store ID:</strong> {submission?.storeId}
             </Typography>
             <Typography>
-              <strong>Owner:</strong> {submission.ownerName}
+              <strong>Owner:</strong> {submission.storeName || 'N/A'}
             </Typography>
             <Typography>
-              <strong>Email:</strong> {submission.ownerEmail}
+              <strong>Email:</strong> {submission.email || 'N/A'}
             </Typography>
             <Typography>
               <strong>Address:</strong> {submission?.address}
             </Typography>
             <Typography>
-              <strong>Phone:</strong> {submission?.ownerPhone}
+              <strong>Phone:</strong> {submission?.phoneNumber || 'N/A'}
             </Typography>
             <Typography>
               <strong>Submitted:</strong>{' '}
@@ -593,12 +593,12 @@ const StoreApplicationReview: React.FC = () => {
               </Box>
             )}
 
-            {submission.reviewComments && (
+            {submission.reviewNotes && (
               <Box>
                 <Typography variant='h6' gutterBottom>
                   Previous Review Comments
                 </Typography>
-                <Alert severity='info'>{submission.reviewComments}</Alert>
+                <Alert severity='info'>{submission.reviewNotes}</Alert>
               </Box>
             )}
           </Stack>

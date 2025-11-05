@@ -1,73 +1,11 @@
 import React from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Stack,
-  alpha,
-} from '@mui/material';
+import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { ArrowForward } from '@mui/icons-material';
 import { API_CONFIG } from '../../../utils/api';
-
-interface StorefrontModule {
-  id: string;
-  type: string;
-  title: string;
-  content: Record<string, unknown>;
-  settings: Record<string, unknown>;
-  order: number;
-  isVisible: boolean;
-}
-
-interface PublicStorefront {
-  storeId: number;
-  storeName: string;
-  slug: string;
-  description?: string;
-  logoUrl?: string;
-  bannerUrl?: string;
-  customization: {
-    storeId: number;
-    themeId?: string;
-    modules: StorefrontModule[];
-    globalSettings: Record<string, unknown>;
-    customCss?: string;
-    isPublished: boolean;
-  };
-  store: {
-    storeId: number;
-    storeName: string;
-    description?: string;
-    logoUrl?: string;
-    bannerUrl?: string;
-    addresses?: Array<{
-      type: string;
-      name: string;
-      phone: string;
-      street: string;
-      city: string;
-      state: string;
-      zip: string;
-      country: string;
-      instructions: string;
-    }>;
-    openHours?: Array<{
-      dayOfWeek: number;
-      openTime: string;
-      closeTime: string;
-      isClosed: boolean;
-    }>;
-    categories?: Array<{
-      name: string;
-      description: string;
-      icon: string;
-    }>;
-  };
-  products: Array<Record<string, unknown>>;
-  isActive: boolean;
-  lastUpdated: string;
-}
+import type {
+  StorefrontModule,
+  PublicStorefront,
+} from '@/features/storefront/types/public-storefront';
 
 interface HeroBannerModuleProps {
   module: StorefrontModule;
@@ -160,7 +98,7 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
 
       // Test 2: Check if it's a valid URL format
       try {
-        const url = new URL(backgroundImage);
+        new URL(backgroundImage);
         // Valid URL format
       } catch (e) {
         // Invalid URL format
@@ -174,10 +112,10 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
           }
           return response.blob();
         })
-        .then((blob) => {
+        .then(() => {
           // Image loaded successfully
         })
-        .catch((error) => {
+        .catch(() => {
           // Image fetch failed
         });
     }

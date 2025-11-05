@@ -25,7 +25,8 @@ export interface LoadingProps {
 }
 
 const StyledLoadingContainer = styled(Box, {
-  shouldForwardProp: (prop) => !['fullScreen', 'fullWidth', 'backdrop'].includes(prop as string),
+  shouldForwardProp: (prop) =>
+    !['fullScreen', 'fullWidth', 'backdrop'].includes(prop as string),
 })<{ fullScreen?: boolean; fullWidth?: boolean; backdrop?: boolean }>(
   ({ theme, fullScreen, fullWidth, backdrop }) => ({
     display: 'flex',
@@ -42,10 +43,11 @@ const StyledLoadingContainer = styled(Box, {
       zIndex: theme.zIndex.modal,
       backgroundColor: backdrop ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
     }),
-    ...(fullWidth && !fullScreen && {
-      width: '100%',
-      minHeight: '200px',
-    }),
+    ...(fullWidth &&
+      !fullScreen && {
+        width: '100%',
+        minHeight: '200px',
+      }),
   })
 );
 
@@ -63,7 +65,11 @@ const DotsContainer = styled(Box)(({ theme }) => ({
   alignItems: 'center',
 }));
 
-const Dot = styled(Box)<{ delay: number; size: string }>(({ theme, delay, size }) => {
+const Dot = styled(Box)<{ delay: number; size: string }>(({
+  theme,
+  delay,
+  size,
+}) => {
   const getDotSize = () => {
     switch (size) {
       case 'small':
@@ -92,18 +98,16 @@ const Dot = styled(Box)<{ delay: number; size: string }>(({ theme, delay, size }
   };
 });
 
-const SkeletonContainer = styled(Box)<{ rows: number }>(({ theme, rows }) => ({
+const SkeletonContainer = styled(Box)<{ rows: number }>(({ theme }) => ({
   width: '100%',
   '& > *:not(:last-child)': {
     marginBottom: theme.spacing(1),
   },
 }));
 
-const CircularLoading: React.FC<Pick<LoadingProps, 'size' | 'color' | 'text'>> = ({
-  size = 'medium',
-  color = 'primary',
-  text,
-}) => {
+const CircularLoading: React.FC<
+  Pick<LoadingProps, 'size' | 'color' | 'text'>
+> = ({ size = 'medium', color = 'primary', text }) => {
   const getSize = () => {
     switch (size) {
       case 'small':
@@ -123,11 +127,9 @@ const CircularLoading: React.FC<Pick<LoadingProps, 'size' | 'color' | 'text'>> =
   );
 };
 
-const LinearLoading: React.FC<Pick<LoadingProps, 'color' | 'text' | 'fullWidth'>> = ({
-  color = 'primary',
-  text,
-  fullWidth = true,
-}) => {
+const LinearLoading: React.FC<
+  Pick<LoadingProps, 'color' | 'text' | 'fullWidth'>
+> = ({ color = 'primary', text, fullWidth = true }) => {
   return (
     <Box sx={{ width: fullWidth ? '100%' : '200px' }}>
       <LinearProgress color={color} />
@@ -140,17 +142,15 @@ const LinearLoading: React.FC<Pick<LoadingProps, 'color' | 'text' | 'fullWidth'>
   );
 };
 
-const SkeletonLoading: React.FC<Pick<LoadingProps, 'height' | 'rows' | 'animation'>> = ({
-  height = 20,
-  rows = 3,
-  animation = 'pulse',
-}) => {
+const SkeletonLoading: React.FC<
+  Pick<LoadingProps, 'height' | 'rows' | 'animation'>
+> = ({ height = 20, rows = 3, animation = 'pulse' }) => {
   return (
     <SkeletonContainer rows={rows}>
       {Array.from({ length: rows }).map((_, index) => (
         <Skeleton
           key={index}
-          variant="rectangular"
+          variant='rectangular'
           height={height}
           animation={animation}
           sx={{
@@ -164,7 +164,9 @@ const SkeletonLoading: React.FC<Pick<LoadingProps, 'height' | 'rows' | 'animatio
   );
 };
 
-const DotsLoading: React.FC<Pick<LoadingProps, 'size'>> = ({ size = 'medium' }) => {
+const DotsLoading: React.FC<Pick<LoadingProps, 'size'>> = ({
+  size = 'medium',
+}) => {
   return (
     <DotsContainer>
       <Dot delay={0} size={size} />
@@ -190,9 +192,13 @@ export const Loading: React.FC<LoadingProps> = ({
   const renderLoadingContent = () => {
     switch (variant) {
       case 'linear':
-        return <LinearLoading color={color} text={text} fullWidth={fullWidth} />;
+        return (
+          <LinearLoading color={color} text={text} fullWidth={fullWidth} />
+        );
       case 'skeleton':
-        return <SkeletonLoading height={height} rows={rows} animation={animation} />;
+        return (
+          <SkeletonLoading height={height} rows={rows} animation={animation} />
+        );
       case 'dots':
         return (
           <>

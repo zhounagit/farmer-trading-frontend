@@ -302,8 +302,8 @@ export default defineConfig(({ command, mode }) => {
     // Experimental features for performance
     experimental: {
       renderBuiltUrl(filename) {
-        // Custom CDN URL logic could go here
-        return { runtime: `window.__assetsPath(${JSON.stringify(filename)})` };
+        // Use standard asset paths for PWA compatibility
+        return filename;
       },
     },
   };

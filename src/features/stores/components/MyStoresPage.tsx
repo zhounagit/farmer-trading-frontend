@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import OpenShopApiService from '../services/open-shop.api';
 import { API_CONFIG } from '@/utils/api';
 import {
@@ -20,7 +20,6 @@ import {
   InputLabel,
   Fab,
   Alert,
-  CircularProgress,
   IconButton,
   Menu,
   ListItemIcon,
@@ -49,15 +48,12 @@ import {
   CheckCircle,
   Schedule,
   Error as ErrorIcon,
-  Launch,
   OpenInNew,
   Delete,
-  Settings,
   Phone,
   Email,
   LocationOn,
   AccessTime,
-  Payment,
   Image as ImageIcon,
   Close,
   Refresh,
@@ -66,13 +62,12 @@ import {
   Storefront,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoresApiService } from '../services/storesApi';
 import type { Store } from '@/shared/types/store';
 import type { EnhancedStoreDto } from '../services/open-shop.types';
-import toast from 'react-hot-toast';
 
 interface FeaturedProduct {
   itemId: number;
@@ -86,7 +81,7 @@ interface FeaturedProduct {
 
 const MyStoresPage: React.FC = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -115,7 +110,7 @@ const MyStoresPage: React.FC = () => {
         // Fetching stores for user ID: ${user.userId}
         // Try to fetch stores specifically for the current user
         const storeListResponse = await StoresApiService.getUserStores(
-          user.userId
+          Number(user.userId)
         );
         stores = storeListResponse.stores || [];
       } catch (userStoresError) {
@@ -236,13 +231,96 @@ const MyStoresPage: React.FC = () => {
                 storeName:
                   store.store_name || store.storeName || 'Unnamed Store',
                 description: store.description || '',
+                slug: store.slug || '',
+                storeCreatorId:
+                  store.store_creator_id ||
+                  store.storeCreatorId ||
+                  user?.userId ||
+                  0,
+                storeType: store.store_type || store.storeType || 'retail',
+                canProduce: store.can_produce || store.canProduce || false,
+                canProcess: store.can_process || store.canProcess || false,
+                canRetail: store.can_retail || store.canRetail || true,
+                partnershipRadiusMi:
+                  store.partnership_radius_mi || store.partnershipRadiusMi || 0,
+                autoAcceptPartnerships:
+                  store.auto_accept_partnerships ||
+                  store.autoAcceptPartnerships ||
+                  false,
+                images: {
+                  logoUrl: store.logo_url || store.logoUrl || '',
+                  bannerUrl: store.banner_url || store.bannerUrl || '',
+                  gallery: [],
+                },
+                addresses: {
+                  business: undefined,
+                  pickupLocations: [],
+                },
+                contactInfo: {
+                  phone: store.contact_phone || store.contactPhone || '',
+                  email: store.contact_email || store.contactEmail || '',
+                },
+                socialLinks: {
+                  facebook: store.facebook_url || store.facebookUrl || '',
+                  instagram: store.instagram_url || store.instagramUrl || '',
+                  twitter: store.twitter_url || store.twitterUrl || '',
+                  youTube: store.youtube_url || store.youtubeUrl || '',
+                  tikTok: store.tiktok_url || store.tiktokUrl || '',
+                  linkedIn: store.linkedin_url || store.linkedinUrl || '',
+                },
+                categories: [],
+                featuredProducts: [],
+                totalProducts: 0,
+                averageRating: 0,
+                totalReviews: 0,
+                operations: {
+                  deliveryRadiusMiles:
+                    store.delivery_radius_mi || store.deliveryRadiusMi || 0,
+                  supportsDelivery:
+                    store.accepts_delivery || store.acceptsDelivery || false,
+                  supportsPickup:
+                    store.accepts_pickup || store.acceptsPickup || true,
+                  openHours: [],
+                  isOpenNow: false,
+                },
+                paymentMethods: {
+                  acceptedMethods: [],
+                  stripeAccountId:
+                    store.stripe_account_id || store.stripeAccountId || '',
+                },
+                policies: {
+                  returnPolicy: store.return_policy || store.returnPolicy || '',
+                  shippingPolicy:
+                    store.shipping_policy || store.shippingPolicy || '',
+                  privacyPolicy:
+                    store.privacy_policy || store.privacyPolicy || '',
+                },
+                storefront: {
+                  isPublished: false,
+                  status: 'draft',
+                  hasCustomization: false,
+                  viewCount: 0,
+                },
+                status: {
+                  approvalStatus:
+                    store.approval_status || store.approvalStatus || 'pending',
+                  isActive: store.is_active || store.isActive || true,
+                  isVerified: false,
+                  createdAt:
+                    store.created_at ||
+                    store.createdAt ||
+                    new Date().toISOString(),
+                  updatedAt:
+                    store.updated_at ||
+                    store.updatedAt ||
+                    new Date().toISOString(),
+                },
+                isProducer: store.can_produce || store.canProduce || false,
+                isProcessor: store.can_process || store.canProcess || false,
+                isHybrid: false,
+                isIndependent: true,
                 approvalStatus:
                   store.approval_status || store.approvalStatus || 'pending',
-                contactPhone: store.contact_phone || store.contactPhone || '',
-                contactEmail: store.contact_email || store.contactEmail || '',
-                logoUrl: store.logo_url || store.logoUrl || '',
-                bannerUrl: store.banner_url || store.bannerUrl || '',
-                slug: store.slug || '',
                 createdAt:
                   store.created_at ||
                   store.createdAt ||
@@ -251,15 +329,6 @@ const MyStoresPage: React.FC = () => {
                   store.updated_at ||
                   store.updatedAt ||
                   new Date().toISOString(),
-                addresses: [],
-                images: [],
-                openHours: [],
-                categories: [],
-                storeCreatorId:
-                  store.store_creator_id ||
-                  store.storeCreatorId ||
-                  user?.userId ||
-                  0,
               } as EnhancedStoreDto;
             }
           })
@@ -340,7 +409,7 @@ const MyStoresPage: React.FC = () => {
     store: EnhancedStoreDto
   ) => {
     setAnchorEl(event.currentTarget);
-    setSelectedStore(store);
+    setSelectedStore(store as any);
   };
 
   const handleMenuClose = () => {
@@ -350,9 +419,11 @@ const MyStoresPage: React.FC = () => {
 
   const handleImageGalleryOpen = (store: EnhancedStoreDto) => {
     const galleryImages =
-      store.images
-        ?.filter((img) => img.imageType === 'gallery' && img.isActive)
-        ?.map((img) => img.filePath) || [];
+      store.images?.gallery
+        ?.filter(
+          (img: any) => img.imageType === 'gallery' && img.isActive !== false
+        )
+        ?.map((img: any) => img.filePath) || [];
 
     if (store.bannerUrl) galleryImages.unshift(store.bannerUrl);
     if (store.logoUrl) galleryImages.unshift(store.logoUrl);
@@ -445,7 +516,7 @@ const MyStoresPage: React.FC = () => {
       'Friday',
       'Saturday',
     ];
-    const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
     const todayIndex = new Date().getDay();
     const todayName = days[todayIndex];
 
@@ -499,8 +570,7 @@ const MyStoresPage: React.FC = () => {
         : (store.images as any)?.gallery || [];
 
     // Extract openHours from nested operations object if available
-    const openHours =
-      (store as any)?.operations?.openHours || store.openHours || [];
+    const openHours = store.operations?.openHours || [];
 
     // Extract actual addresses count (business + pickup locations)
     const addressesCount =
@@ -545,7 +615,6 @@ const MyStoresPage: React.FC = () => {
             onClick={() => handleImageGalleryOpen(store)}
           />
         )}
-
         <CardContent sx={{ flexGrow: 1, p: 3 }}>
           {/* Store Header */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
@@ -650,7 +719,7 @@ const MyStoresPage: React.FC = () => {
 
           {/* Store Stats */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='primary.main'>
                   {galleryImages.length}
@@ -660,7 +729,7 @@ const MyStoresPage: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='info.main'>
                   {addressesCount}
@@ -670,7 +739,7 @@ const MyStoresPage: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h6' fontWeight={600} color='success.main'>
                   {totalProducts}
@@ -701,7 +770,7 @@ const MyStoresPage: React.FC = () => {
                 </Button>
               </Box>
               <ImageList cols={3} rowHeight={80} sx={{ m: 0 }}>
-                {galleryImages.slice(0, 3).map((image, index) => (
+                {galleryImages.slice(0, 3).map((image: any, index: number) => (
                   <ImageListItem
                     key={index}
                     sx={{ cursor: 'pointer' }}
@@ -727,7 +796,7 @@ const MyStoresPage: React.FC = () => {
               </Typography>
               <Grid container spacing={1}>
                 {featuredProducts.slice(0, 3).map((product) => (
-                  <Grid item xs={4} key={product.itemId}>
+                  <Grid key={product.itemId} size={4}>
                     <Card variant='outlined' sx={{ p: 1, textAlign: 'center' }}>
                       {product.imageUrl && (
                         <Box
@@ -761,7 +830,7 @@ const MyStoresPage: React.FC = () => {
 
           {/* Action Buttons */}
           <Grid container spacing={1}>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Button
                 variant='outlined'
                 size='small'
@@ -774,7 +843,7 @@ const MyStoresPage: React.FC = () => {
                 Edit Store
               </Button>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Button
                 variant='outlined'
                 size='small'
@@ -786,7 +855,7 @@ const MyStoresPage: React.FC = () => {
               </Button>
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Button
                 variant='outlined'
                 size='small'
@@ -800,7 +869,7 @@ const MyStoresPage: React.FC = () => {
 
             {/* Visit Published Store Button */}
             {store.slug && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Button
                   variant='contained'
                   size='small'
@@ -826,7 +895,15 @@ const MyStoresPage: React.FC = () => {
   const LoadingSkeleton = () => (
     <Grid container spacing={3}>
       {[1, 2, 3].map((n) => (
-        <Grid item xs={12} sm={6} lg={4} xl={3} key={n}>
+        <Grid
+          key={n}
+          size={{
+            xs: 12,
+            sm: 6,
+            lg: 4,
+            xl: 3,
+          }}
+        >
           <Card sx={{ height: 600 }}>
             <Skeleton variant='rectangular' height={200} />
             <CardContent>
@@ -893,7 +970,6 @@ const MyStoresPage: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       <Header onLoginClick={() => navigate('/login')} />
-
       <Container maxWidth='xl' sx={{ py: 4 }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
@@ -983,7 +1059,15 @@ const MyStoresPage: React.FC = () => {
             ) : (
               <Grid container spacing={3}>
                 {filteredStores.map((store) => (
-                  <Grid item xs={12} sm={6} lg={4} xl={3} key={store.storeId}>
+                  <Grid
+                    key={store.storeId}
+                    size={{
+                      xs: 12,
+                      sm: 6,
+                      lg: 4,
+                      xl: 3,
+                    }}
+                  >
                     <StoreCard store={store} />
                   </Grid>
                 ))}

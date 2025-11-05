@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -38,6 +38,8 @@ import {
 } from '@features/stores/services/open-shop.types';
 import OpenShopApiService from '../../services/open-shop.api';
 import toast from 'react-hot-toast';
+import { partnershipsApi } from '@features/partnerships/services/partnershipsApi';
+import type { Partnership } from '@features/partnerships/services/partnershipsApi';
 
 interface ReviewSubmitStepProps extends StepProps {
   onComplete: () => void;
@@ -48,10 +50,60 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
   updateFormState,
   onPrevious,
   onComplete,
+  isEditMode,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [establishedPartnerships, setEstablishedPartnerships] = useState<
+    Partnership[]
+  >([]);
+
+  // Load established partnerships in edit mode
+  useEffect(() => {
+    const loadPartnerships = async () => {
+      if (!isEditMode || !formState.storeId) {
+        setEstablishedPartnerships([]);
+        return;
+      }
+
+      try {
+        const storeType = formState.storeBasics?.setupFlow?.derivedStoreType;
+        const canProduce = formState.storeBasics?.setupFlow?.derivedCanProduce;
+
+        let partnershipType: 'producer' | 'processor' | undefined;
+        if (storeType === 'processor') partnershipType = 'processor';
+        else if (storeType === 'producer' && canProduce)
+          partnershipType = 'producer';
+
+        if (!partnershipType) {
+          setEstablishedPartnerships([]);
+          return;
+        }
+
+        const response = await partnershipsApi.getPartnershipsByStoreId(
+          Number(formState.storeId),
+          { partnerType: partnershipType }
+        );
+
+        if (response?.partnerships && response.partnerships.length > 0) {
+          setEstablishedPartnerships(response.partnerships);
+        } else {
+          setEstablishedPartnerships([]);
+        }
+      } catch (error) {
+        console.error('Error loading partnerships:', error);
+        setEstablishedPartnerships([]);
+      }
+    };
+
+    loadPartnerships();
+  }, [
+    isEditMode,
+    formState.storeId,
+    formState.storeBasics?.setupFlow?.derivedStoreType,
+    formState.storeBasics?.setupFlow?.derivedCanProduce,
+  ]);
 
   // Determine if partnership section should be shown
   const shouldShowPartnershipSection = () => {
@@ -317,60 +369,174 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({
     </Card>
   );
 
-  const renderPartnerships = () => (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <HandshakeIcon sx={{ mr: 2, color: 'primary.main' }} />
-          <Typography variant='h6' sx={{ fontWeight: 600 }}>
-            Partnerships
-          </Typography>
-        </Box>
+  const getPartnerStoreName = (partnership: Partnership): string => {
+    if (partnership.producerStoreId === formState.storeId) {
+      return partnership.processorStoreName || 'Unknown Partner';
+    }
+    return partnership.producerStoreName || 'Unknown Partner';
+  };
 
-        {formState.partnerships?.selectedPartnerIds &&
-        formState.partnerships.selectedPartnerIds.length > 0 ? (
-          <Box>
-            <Typography variant='body2' sx={{ mb: 2 }}>
-              You have selected{' '}
-              {formState.partnerships.selectedPartnerIds.length} partner
-              {formState.partnerships.selectedPartnerIds.length > 1 ? 's' : ''}:
-            </Typography>
+  const renderPartnerships = () => {
+    // In edit mode with established partnerships, display them
+    if (isEditMode && establishedPartnerships.length > 0) {
+      return (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <HandshakeIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Typography variant='h6' sx={{ fontWeight: 600 }}>
+                Partnerships ({establishedPartnerships.length})
+              </Typography>
+            </Box>
+
             <List dense>
-              {formState.partnerships.potentialPartners
-                ?.filter((partner) =>
-                  formState.partnerships.selectedPartnerIds.includes(
-                    partner.storeId
-                  )
-                )
-                .map((partner) => (
-                  <ListItem key={partner.storeId} disablePadding sx={{ mb: 1 }}>
-                    <ListItemText
-                      primary={partner.storeName}
-                      secondary={
-                        <Box>
-                          <Typography variant='body2' color='text.secondary'>
-                            {partner.address?.city}, {partner.address?.state}
-                          </Typography>
-                          {partner.distanceMiles > 0 && (
-                            <Typography variant='body2' color='text.secondary'>
-                              {partner.distanceMiles.toFixed(1)} miles away
-                            </Typography>
-                          )}
+              {establishedPartnerships.map((partnership) => (
+                <ListItem
+                  key={partnership.partnershipId}
+                  disablePadding
+                  sx={{ mb: 1 }}
+                >
+                  <Box
+                    sx={{
+                      width: '100%',
+                      p: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
+                          {getPartnerStoreName(partnership)}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mt: 1,
+                          }}
+                        >
+                          <Chip
+                            label={partnership.status}
+                            size='small'
+                            color={
+                              partnership.status === 'active'
+                                ? 'success'
+                                : 'warning'
+                            }
+                            variant='outlined'
+                          />
                         </Box>
-                      }
-                    />
-                  </ListItem>
-                ))}
+                        {partnership.partnershipTerms && (
+                          <Typography
+                            variant='caption'
+                            color='text.secondary'
+                            display='block'
+                            sx={{ mt: 1 }}
+                          >
+                            Services:{' '}
+                            {(() => {
+                              try {
+                                const terms = JSON.parse(
+                                  partnership.partnershipTerms
+                                );
+                                return (
+                                  terms.services?.join(', ') || 'collaboration'
+                                );
+                              } catch {
+                                return 'collaboration';
+                              }
+                            })()}
+                          </Typography>
+                        )}
+                      </Box>
+                      {partnership.status === 'active' && (
+                        <CheckIcon sx={{ color: 'success.main', ml: 2 }} />
+                      )}
+                    </Box>
+                  </Box>
+                </ListItem>
+              ))}
             </List>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // In new store mode or edit mode without partnerships, display selected partnerships
+    return (
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <HandshakeIcon sx={{ mr: 2, color: 'primary.main' }} />
+            <Typography variant='h6' sx={{ fontWeight: 600 }}>
+              Partnerships
+            </Typography>
           </Box>
-        ) : (
-          <Typography variant='body2' color='text.secondary'>
-            No partnerships selected
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
-  );
+
+          {formState.partnerships?.selectedPartnerIds &&
+          formState.partnerships.selectedPartnerIds.length > 0 ? (
+            <Box>
+              <Typography variant='body2' sx={{ mb: 2 }}>
+                You have selected{' '}
+                {formState.partnerships.selectedPartnerIds.length} partner
+                {formState.partnerships.selectedPartnerIds.length > 1
+                  ? 's'
+                  : ''}
+                :
+              </Typography>
+              <List dense>
+                {formState.partnerships.potentialPartners
+                  ?.filter((partner) =>
+                    formState.partnerships.selectedPartnerIds.includes(
+                      partner.storeId
+                    )
+                  )
+                  .map((partner) => (
+                    <ListItem
+                      key={partner.storeId}
+                      disablePadding
+                      sx={{ mb: 1 }}
+                    >
+                      <ListItemText
+                        primary={partner.storeName}
+                        secondary={
+                          <Box>
+                            <Typography variant='body2' color='text.secondary'>
+                              {partner.address?.city}, {partner.address?.state}
+                            </Typography>
+                            {partner.distanceMiles > 0 && (
+                              <Typography
+                                variant='body2'
+                                color='text.secondary'
+                              >
+                                {partner.distanceMiles.toFixed(1)} miles away
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+              </List>
+            </Box>
+          ) : (
+            <Typography variant='body2' color='text.secondary'>
+              No partnerships selected
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderStorePolicies = () => (
     <Card sx={{ mb: 3 }}>

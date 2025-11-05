@@ -1,4 +1,5 @@
 // Consolidated Storefront Types - Single Source of Truth
+import type { StorefrontModuleConfig } from '../../types/storefront';
 
 export interface Storefront {
   storefrontId: number;
@@ -32,6 +33,12 @@ export interface Storefront {
 }
 
 export interface StorefrontCustomization {
+  // Store reference
+  storeId: number;
+
+  // Modules and Configuration
+  modules: StorefrontModuleConfig[];
+
   // Theme and Layout
   theme: StorefrontTheme;
   layout: LayoutType;
@@ -48,8 +55,18 @@ export interface StorefrontCustomization {
   // Product Display
   productDisplay: ProductDisplaySettings;
 
+  // Global Settings
+  globalSettings: Record<string, any>;
+
   // Footer
   footer: FooterSettings;
+
+  // Publication Status
+  isPublished: boolean;
+
+  // Timestamps
+  lastModified: string;
+  createdAt: string;
 
   // Custom CSS
   customCss?: string;
@@ -528,6 +545,12 @@ export const DEFAULT_TYPOGRAPHY: TypographySettings = {
 };
 
 export const DEFAULT_STOREFRONT_CUSTOMIZATION: StorefrontCustomization = {
+  storeId: 0,
+  modules: [],
+  globalSettings: {},
+  isPublished: false,
+  lastModified: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
   theme: STOREFRONT_THEMES[0],
   layout: 'default',
   colorScheme: DEFAULT_COLOR_SCHEME,

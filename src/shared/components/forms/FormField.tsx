@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  Box,
-  Typography,
-} from '@mui/material';
+import { Box, FormControl, FormLabel, FormHelperText } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
@@ -131,11 +125,6 @@ export function FormField<
               <Box sx={{ mt: label ? 0.5 : 0 }}>
                 {React.cloneElement(children, {
                   ...field,
-                  error: !!hasError,
-                  disabled,
-                  fullWidth,
-                  required,
-                  ...children.props,
                 })}
               </Box>
 
@@ -170,15 +159,7 @@ export function FormField<
         </FormLabel>
       )}
 
-      <Box sx={{ mt: label ? 0.5 : 0 }}>
-        {React.cloneElement(children, {
-          error: hasError,
-          disabled,
-          fullWidth,
-          required,
-          ...children.props,
-        })}
-      </Box>
+      <Box sx={{ mt: label ? 0.5 : 0 }}>{React.cloneElement(children, {})}</Box>
 
       {(helperText || displayErrorMessage) && (
         <FormHelperText error={hasError}>

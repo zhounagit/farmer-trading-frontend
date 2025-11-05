@@ -17,7 +17,6 @@ class ProfilePictureCacheService {
   private cache: Map<string, CachedProfilePicture> = new Map();
   private activeRequests: Map<string, ProfilePictureRequest> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private readonly DEBOUNCE_DELAY = 1000; // 1 second
 
   /**
    * Get profile picture with caching and deduplication

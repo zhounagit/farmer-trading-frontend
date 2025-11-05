@@ -21,7 +21,7 @@ import { type StepProps } from '../../services/open-shop.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OpenShopApiService from '../../services/open-shop.api';
-import { StoresApiService } from '@/shared/services';
+
 import toast from 'react-hot-toast';
 
 const DAYS_OF_WEEK = [
@@ -263,11 +263,9 @@ const StorePoliciesStep: React.FC<StepProps> = ({
       >
         Store Policies
       </Typography>
-
       <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
         Set up your store hours and accepted payment methods.
       </Typography>
-
       {/* Store Hours Section */}
       <Paper elevation={1} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
         <Typography
@@ -331,10 +329,14 @@ const StorePoliciesStep: React.FC<StepProps> = ({
                     />
                   )}
                 </Box>
-
                 {isOpen && (
                   <Grid container spacing={2} alignItems='center'>
-                    <Grid item xs={12} sm={5}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        sm: 5,
+                      }}
+                    >
                       <TextField
                         label='Opens'
                         type='time'
@@ -355,13 +357,24 @@ const StorePoliciesStep: React.FC<StepProps> = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={2} sx={{ textAlign: 'center' }}>
+                    <Grid
+                      sx={{ textAlign: 'center' }}
+                      size={{
+                        xs: 12,
+                        sm: 2,
+                      }}
+                    >
                       <Typography variant='body2' color='text.secondary'>
                         to
                       </Typography>
                     </Grid>
 
-                    <Grid item xs={12} sm={5}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        sm: 5,
+                      }}
+                    >
                       <TextField
                         label='Closes'
                         type='time'
@@ -383,7 +396,6 @@ const StorePoliciesStep: React.FC<StepProps> = ({
                     </Grid>
                   </Grid>
                 )}
-
                 {!isOpen && (
                   <Typography
                     variant='body2'
@@ -404,13 +416,11 @@ const StorePoliciesStep: React.FC<StepProps> = ({
           </Alert>
         )}
       </Paper>
-
       {Object.keys(errors).length > 0 && (
         <Alert severity='error' sx={{ mb: 3 }}>
           Please fix the issues above before continuing.
         </Alert>
       )}
-
       <Box
         sx={{
           display: 'flex',

@@ -4,7 +4,7 @@ import { styled } from '@mui/material/styles';
 import type { BoxProps } from '@mui/material';
 
 export interface ContainerProps extends Omit<BoxProps, 'maxWidth'> {
-  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'fluid' | false;
+  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'fluid';
   padding?: 'none' | 'small' | 'medium' | 'large';
   centered?: boolean;
   children: React.ReactNode;
@@ -15,7 +15,6 @@ const StyledContainer = styled(Box, {
     !['padding', 'centered'].includes(prop as string),
 })<ContainerProps>(({ theme, maxWidth, padding, centered }) => {
   const getMaxWidth = () => {
-    if (maxWidth === false) return 'none';
     if (maxWidth === 'fluid') return '100%';
 
     const breakpoints = {

@@ -344,9 +344,22 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
               img.fullUrl ||
               img.url ||
               buildImageUrl(img.filePath);
+            // Validate imageType is one of the allowed values, default to 'gallery' if not
+            const validImageTypes: readonly StoreImage['imageType'][] = [
+              'logo',
+              'banner',
+              'gallery',
+              'hero',
+              'thumbnail',
+            ];
+            const imageType: StoreImage['imageType'] = validImageTypes.includes(
+              img.imageType as StoreImage['imageType']
+            )
+              ? (img.imageType as StoreImage['imageType'])
+              : 'gallery';
             return {
               ...img,
-              imageType: img.imageType as string,
+              imageType,
               url: fileUrl,
             };
           });
@@ -1093,7 +1106,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           </Typography>
         )}
       </Box>
-
       {/* Authentication Warning */}
       {!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) && (
         <Alert severity='warning' sx={{ mb: 3 }}>
@@ -1103,7 +1115,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           </Typography>
         </Alert>
       )}
-
       <Box
         sx={{
           display: 'flex',
@@ -1148,7 +1159,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           )}
         </Box>
       </Box>
-
       {/* Gallery Section */}
       <Box sx={{ mb: 4 }}>
         <Card>
@@ -1337,7 +1347,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           </CardContent>
         </Card>
       </Box>
-
       {/* Video Section */}
       <Box sx={{ mb: 4 }}>
         <Card>
@@ -1407,7 +1416,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                 <Box sx={{ position: 'relative' }}>
                   {brandingData?.videoImage?.externalVideoUrl ? (
                     // External video (YouTube/Vimeo)
-                    <Box
+                    (<Box
                       sx={{
                         width: '100%',
                         maxHeight: 300,
@@ -1424,10 +1433,10 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                         External Video:{' '}
                         {brandingData?.videoImage?.externalVideoUrl}
                       </Typography>
-                    </Box>
+                    </Box>)
                   ) : (
                     // Uploaded video file
-                    <video
+                    (<video
                       controls
                       style={{
                         width: '100%',
@@ -1436,7 +1445,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                         objectFit: 'cover',
                       }}
                       src={brandingData?.videoUrl}
-                    />
+                    />)
                   )}
                   <Box
                     sx={{
@@ -1532,7 +1541,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           </CardContent>
         </Card>
       </Box>
-
       {/* Preview Dialog */}
       <Dialog
         open={previewDialog.open}
@@ -1570,7 +1578,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           )}
         </DialogContent>
       </Dialog>
-
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}
@@ -1604,7 +1611,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Tips Section */}
       <Paper
         sx={{

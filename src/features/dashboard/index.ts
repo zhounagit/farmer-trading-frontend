@@ -1,7 +1,7 @@
 // Dashboard feature barrel exports
-export { UserDashboard } from './components/UserDashboard';
-export { AdminDashboard } from './components/AdminDashboard';
-export { DashboardFeatureWrapper } from './components/DashboardFeatureWrapper';
+export { default as UserDashboard } from './components/UserDashboard';
+export { default as AdminDashboard } from './components/AdminDashboard';
+export { default as DashboardFeatureWrapper } from './components/DashboardFeatureWrapper';
 
 // Export dashboard sections
 export {

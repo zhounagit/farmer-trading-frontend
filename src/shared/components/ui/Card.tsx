@@ -27,50 +27,11 @@ export interface CardProps extends Omit<MuiCardProps, 'variant'> {
 const StyledCard = styled(MuiCard, {
   shouldForwardProp: (prop) =>
     !['padding', 'loading', 'error'].includes(prop as string),
-})<CardProps>(({ theme, variant, padding, loading, error }) => {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'elevated':
-        return {
-          elevation: 2,
-          boxShadow: theme.shadows[2],
-          '&:hover': {
-            boxShadow: theme.shadows[4],
-          },
-        };
-      case 'outlined':
-        return {
-          elevation: 0,
-          border: `1px solid ${theme.palette.divider}`,
-          boxShadow: 'none',
-        };
-      case 'filled':
-        return {
-          elevation: 0,
-          backgroundColor: theme.palette.grey[50],
-          boxShadow: 'none',
-        };
-      default:
-        return {
-          elevation: 1,
-          boxShadow: theme.shadows[1],
-        };
-    }
-  };
-
-  const getPaddingStyles = () => {
-    switch (padding) {
-      case 'none':
-        return { padding: 0 };
-      case 'small':
-        return { padding: theme.spacing(1) };
-      case 'large':
-        return { padding: theme.spacing(3) };
-      default: // medium
-        return { padding: theme.spacing(2) };
-    }
-  };
-
+})<Omit<CardProps, 'variant'> & { variant?: string }>(({
+  theme,
+  loading,
+  error,
+}) => {
   return {
     borderRadius: theme.spacing(1.5),
     transition: theme.transitions.create(['box-shadow', 'border-color'], {
@@ -84,7 +45,6 @@ const StyledCard = styled(MuiCard, {
       opacity: 0.7,
       pointerEvents: 'none',
     }),
-    ...getVariantStyles(),
   };
 });
 
@@ -204,7 +164,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <StyledCard
-      variant={variant}
+      variant='outlined'
       padding={padding}
       loading={loading}
       error={error}

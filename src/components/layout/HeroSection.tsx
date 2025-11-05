@@ -6,7 +6,6 @@ import {
   InputAdornment,
   IconButton,
   Stack,
-  Grid,
   useTheme,
   Paper,
   Chip,
@@ -388,25 +387,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
           )}
 
           {/* Platform Features - 6 Pillars Grid */}
-          <Grid
-            container
-            spacing={{ xs: 3, md: 4 }}
-            sx={{
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '16px',
               width: '100%',
-              mx: 0,
-              px: 0,
-              '& .MuiGrid-item:nth-of-type(4)': {
-                mt: { xs: 2, md: 4 },
-              },
-              '& .MuiGrid-item:nth-of-type(5)': {
-                mt: { xs: 2, md: 4 },
-              },
-              '& .MuiGrid-item:nth-of-type(6)': {
-                mt: { xs: 2, md: 4 },
-              },
+              margin: '0',
+              padding: '0',
             }}
           >
-            <Grid item xs={12} sm={6} md={4}>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -430,8 +421,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Diverse Sellers
                 </Typography>
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            </div>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -452,8 +443,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Make Offers & Save
                 </Typography>
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            </div>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -474,8 +465,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Real-Time Tracking
                 </Typography>
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            </div>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -496,8 +487,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Earn Up to 5%
                 </Typography>
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            </div>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -518,8 +509,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Multiple Methods
                 </Typography>
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            </div>
+            <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
               <Box sx={{ textAlign: 'center', py: { xs: 2, md: 3 } }}>
                 <Typography
                   variant='h5'
@@ -540,8 +531,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   Delivery & Pickup
                 </Typography>
               </Box>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </MotionBox>
       </Box>
     </Box>

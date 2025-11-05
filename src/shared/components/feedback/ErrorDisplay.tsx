@@ -2,8 +2,6 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Alert,
-  AlertTitle,
   Paper,
   Collapse,
   IconButton,
@@ -38,71 +36,70 @@ export interface ErrorDisplayProps {
 }
 
 const StyledErrorContainer = styled(Paper, {
-  shouldForwardProp: (prop) => !['variant', 'severity', 'compact'].includes(prop as string),
-})<{ variant?: string; severity?: string; compact?: boolean }>(
-  ({ theme, variant, severity, compact }) => {
-    const getVariantStyles = () => {
-      switch (variant) {
-        case 'error':
-          return {
-            backgroundColor: theme.palette.error.light + '10',
-            borderColor: theme.palette.error.main,
-            color: theme.palette.error.dark,
-          };
-        case 'warning':
-          return {
-            backgroundColor: theme.palette.warning.light + '10',
-            borderColor: theme.palette.warning.main,
-            color: theme.palette.warning.dark,
-          };
-        case 'info':
-          return {
-            backgroundColor: theme.palette.info.light + '10',
-            borderColor: theme.palette.info.main,
-            color: theme.palette.info.dark,
-          };
-        case 'success':
-          return {
-            backgroundColor: theme.palette.success.light + '10',
-            borderColor: theme.palette.success.main,
-            color: theme.palette.success.dark,
-          };
-        default:
-          return {
-            backgroundColor: theme.palette.grey[50],
-            borderColor: theme.palette.divider,
-            color: theme.palette.text.primary,
-          };
-      }
-    };
+  shouldForwardProp: (prop) =>
+    !['severity', 'compact'].includes(prop as string),
+})<{ severity?: string; compact?: boolean }>(({ theme, severity, compact }) => {
+  const getSeverityStyles = () => {
+    switch (severity) {
+      case 'error':
+        return {
+          backgroundColor: theme.palette.error.light + '10',
+          borderColor: theme.palette.error.main,
+          color: theme.palette.error.dark,
+        };
+      case 'warning':
+        return {
+          backgroundColor: theme.palette.warning.light + '10',
+          borderColor: theme.palette.warning.main,
+          color: theme.palette.warning.dark,
+        };
+      case 'info':
+        return {
+          backgroundColor: theme.palette.info.light + '10',
+          borderColor: theme.palette.info.main,
+          color: theme.palette.info.dark,
+        };
+      case 'success':
+        return {
+          backgroundColor: theme.palette.success.light + '10',
+          borderColor: theme.palette.success.main,
+          color: theme.palette.success.dark,
+        };
+      default:
+        return {
+          backgroundColor: theme.palette.background.paper,
+          borderColor: theme.palette.divider,
+          color: theme.palette.text.primary,
+        };
+    }
+  };
 
-    const getSeverityStyles = () => {
-      switch (severity) {
-        case 'high':
-          return {
-            border: `2px solid`,
-            boxShadow: theme.shadows[3],
-          };
-        case 'medium':
-          return {
-            border: `1px solid`,
-            boxShadow: theme.shadows[1],
-          };
-        default: // low
-          return {
-            border: `1px solid`,
-          };
-      }
-    };
+  const getSeverityLevelStyles = () => {
+    switch (severity) {
+      case 'high':
+        return {
+          border: `2px solid`,
+          boxShadow: theme.shadows[3],
+        };
+      case 'medium':
+        return {
+          border: `1px solid`,
+          boxShadow: theme.shadows[1],
+        };
+      default: // low
+        return {
+          border: `1px solid`,
+        };
+    }
+  };
 
-    return {
-      padding: compact ? theme.spacing(1.5) : theme.spacing(2),
-      borderRadius: theme.spacing(1),
-      ...getVariantStyles(),
-      ...getSeverityStyles(),
-    };
-  }
-);
+  return {
+    padding: compact ? theme.spacing(1.5) : theme.spacing(2),
+    borderRadius: theme.spacing(1),
+    ...getSeverityStyles(),
+    ...getSeverityLevelStyles(),
+  };
+});
 
 const IconContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -154,13 +151,13 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   const getIcon = () => {
     switch (variant) {
       case 'error':
-        return <ErrorOutline color="error" />;
+        return <ErrorOutline color='error' />;
       case 'warning':
-        return <Warning color="warning" />;
+        return <Warning color='warning' />;
       case 'info':
-        return <Info color="info" />;
+        return <Info color='info' />;
       case 'success':
-        return <CheckCircle color="success" />;
+        return <CheckCircle color='success' />;
       default:
         return <Info />;
     }
@@ -201,21 +198,19 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
   return (
     <StyledErrorContainer
-      variant={variant}
+      variant='outlined'
       severity={severity}
       compact={compact}
       elevation={0}
       sx={{ width: fullWidth ? '100%' : 'auto' }}
     >
-      <Box display="flex" alignItems="flex-start">
-        <IconContainer>
-          {getIcon()}
-        </IconContainer>
+      <Box display='flex' alignItems='flex-start'>
+        <IconContainer>{getIcon()}</IconContainer>
 
         <ContentContainer>
           <Typography
             variant={compact ? 'subtitle2' : 'h6'}
-            component="div"
+            component='div'
             fontWeight={600}
             gutterBottom={!compact}
           >
@@ -224,19 +219,15 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
           {displayMessage && (
             <Typography
-              variant="body2"
-              color="textSecondary"
+              variant='body2'
+              color='textSecondary'
               sx={{ mt: compact ? 0.5 : 1 }}
             >
               {displayMessage}
             </Typography>
           )}
 
-          {children && (
-            <Box sx={{ mt: 1 }}>
-              {children}
-            </Box>
-          )}
+          {children && <Box sx={{ mt: 1 }}>{children}</Box>}
 
           {hasDetails && (
             <>
@@ -249,14 +240,14 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                 }}
                 onClick={() => setShowDetailedInfo(!showDetailedInfo)}
               >
-                <Typography variant="caption" color="textSecondary">
+                <Typography variant='caption' color='textSecondary'>
                   {showDetailedInfo ? 'Hide' : 'Show'} details
                 </Typography>
-                <IconButton size="small" sx={{ ml: 0.5 }}>
+                <IconButton size='small' sx={{ ml: 0.5 }}>
                   {showDetailedInfo ? (
-                    <ExpandLess fontSize="small" />
+                    <ExpandLess fontSize='small' />
                   ) : (
-                    <ExpandMore fontSize="small" />
+                    <ExpandMore fontSize='small' />
                   )}
                 </IconButton>
               </Box>
@@ -277,8 +268,8 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
               <ActionsContainer>
                 {showRetry && onRetry && (
                   <Button
-                    variant="outline"
-                    size="small"
+                    variant='outline'
+                    size='small'
                     startIcon={<Refresh />}
                     onClick={onRetry}
                   >
@@ -286,11 +277,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                   </Button>
                 )}
                 {onDismiss && (
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    onClick={onDismiss}
-                  >
+                  <Button variant='ghost' size='small' onClick={onDismiss}>
                     Dismiss
                   </Button>
                 )}
@@ -304,20 +291,20 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 };
 
 // Convenience components for specific error types
-export const ErrorAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (props) => (
-  <ErrorDisplay variant="error" {...props} />
-);
+export const ErrorAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (
+  props
+) => <ErrorDisplay variant='error' {...props} />;
 
-export const WarningAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (props) => (
-  <ErrorDisplay variant="warning" {...props} />
-);
+export const WarningAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (
+  props
+) => <ErrorDisplay variant='warning' {...props} />;
 
-export const InfoAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (props) => (
-  <ErrorDisplay variant="info" {...props} />
-);
+export const InfoAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (
+  props
+) => <ErrorDisplay variant='info' {...props} />;
 
-export const SuccessAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (props) => (
-  <ErrorDisplay variant="success" {...props} />
-);
+export const SuccessAlert: React.FC<Omit<ErrorDisplayProps, 'variant'>> = (
+  props
+) => <ErrorDisplay variant='success' {...props} />;
 
 export default ErrorDisplay;

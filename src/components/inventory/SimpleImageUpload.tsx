@@ -16,7 +16,6 @@ import {
   Alert,
   LinearProgress,
   Snackbar,
-  Grid,
   Chip,
 } from '@mui/material';
 import {
@@ -76,7 +75,10 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+  const showSnackbar = (
+    message: string,
+    severity: 'success' | 'error' | 'warning' | 'info' = 'info'
+  ) => {
     setSnackbar({ open: true, message, severity });
   };
 
@@ -92,7 +94,13 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
     }
 
     // Check supported formats
-    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const supportedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ];
     if (!supportedTypes.includes(file.type)) {
       return 'Supported formats: JPEG, PNG, WebP, GIF';
     }
@@ -100,98 +108,106 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
     return null;
   };
 
-  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileSelect = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
 
-    // Check if we can upload more images
-    if (images.length + files.length > maxImages) {
-      showSnackbar(`Maximum ${maxImages} images allowed`, 'error');
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress(0);
-
-    const newImages: InventoryImage[] = [];
-    let successful = 0;
-    let failed = 0;
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const validationError = validateFile(file);
-
-      if (validationError) {
-        showSnackbar(`${file.name}: ${validationError}`, 'error');
-        failed++;
-        continue;
+      // Check if we can upload more images
+      if (images.length + files.length > maxImages) {
+        showSnackbar(`Maximum ${maxImages} images allowed`, 'error');
+        return;
       }
 
-      try {
-        // Create a mock image object (in real app, this would upload to server)
-        const mockImage: InventoryImage = {
-          imageId: Date.now() + Math.random(), // Mock ID
-          itemId,
-          fileName: file.name,
-          fileSizeBytes: file.size,
-          mimeType: file.type,
-          isPrimary: images.length === 0 && newImages.length === 0, // First image is primary
-          displayOrder: images.length + newImages.length,
-          altText: '',
-          caption: '',
-          uploadedAt: new Date().toISOString(),
-          originalUrl: URL.createObjectURL(file), // Create blob URL for preview
-          thumbnailUrl: URL.createObjectURL(file),
-          mediumUrl: URL.createObjectURL(file),
-          largeUrl: URL.createObjectURL(file),
-        };
+      setUploading(true);
+      setUploadProgress(0);
 
-        // Get image dimensions
-        const img = new Image();
-        img.onload = () => {
-          mockImage.widthPixels = img.width;
-          mockImage.heightPixels = img.height;
-        };
-        img.src = mockImage.originalUrl!;
+      const newImages: InventoryImage[] = [];
+      let successful = 0;
+      let failed = 0;
 
-        newImages.push(mockImage);
-        successful++;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const validationError = validateFile(file);
 
-        // Update progress
-        setUploadProgress(((i + 1) / files.length) * 100);
+        if (validationError) {
+          showSnackbar(`${file.name}: ${validationError}`, 'error');
+          failed++;
+          continue;
+        }
 
-        // Simulate upload delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+          // Create a mock image object (in real app, this would upload to server)
+          const mockImage: InventoryImage = {
+            imageId: Date.now() + Math.random(), // Mock ID
+            itemId,
+            fileName: file.name,
+            fileSizeBytes: file.size,
+            mimeType: file.type,
+            isPrimary: images.length === 0 && newImages.length === 0, // First image is primary
+            displayOrder: images.length + newImages.length,
+            altText: '',
+            caption: '',
+            uploadedAt: new Date().toISOString(),
+            originalUrl: URL.createObjectURL(file), // Create blob URL for preview
+            thumbnailUrl: URL.createObjectURL(file),
+            mediumUrl: URL.createObjectURL(file),
+            largeUrl: URL.createObjectURL(file),
+          };
 
-      } catch (error) {
-        console.error('Error processing file:', file.name, error);
-        failed++;
+          // Get image dimensions
+          const img = new Image();
+          img.onload = () => {
+            mockImage.widthPixels = img.width;
+            mockImage.heightPixels = img.height;
+          };
+          img.src = mockImage.originalUrl!;
+
+          newImages.push(mockImage);
+          successful++;
+
+          // Update progress
+          setUploadProgress(((i + 1) / files.length) * 100);
+
+          // Simulate upload delay
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error('Error processing file:', file.name, error);
+          failed++;
+        }
       }
-    }
 
-    const updatedImages = [...images, ...newImages];
-    setImages(updatedImages);
-    onImagesChange(updatedImages);
+      const updatedImages = [...images, ...newImages];
+      setImages(updatedImages);
+      onImagesChange(updatedImages);
 
-    setUploading(false);
-    setUploadProgress(0);
+      setUploading(false);
+      setUploadProgress(0);
 
-    if (successful > 0 && failed === 0) {
-      showSnackbar(`${successful} image${successful > 1 ? 's' : ''} uploaded successfully`, 'success');
-    } else if (successful > 0 && failed > 0) {
-      showSnackbar(`${successful} uploaded, ${failed} failed`, 'warning');
-    } else if (failed > 0) {
-      showSnackbar(`Failed to upload ${failed} image${failed > 1 ? 's' : ''}`, 'error');
-    }
+      if (successful > 0 && failed === 0) {
+        showSnackbar(
+          `${successful} image${successful > 1 ? 's' : ''} uploaded successfully`,
+          'success'
+        );
+      } else if (successful > 0 && failed > 0) {
+        showSnackbar(`${successful} uploaded, ${failed} failed`, 'warning');
+      } else if (failed > 0) {
+        showSnackbar(
+          `Failed to upload ${failed} image${failed > 1 ? 's' : ''}`,
+          'error'
+        );
+      }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [images, itemId, maxImages, maxFileSize, onImagesChange]);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [images, itemId, maxImages, maxFileSize, onImagesChange]
+  );
 
   const handleDeleteImage = (imageId: number) => {
-    const updatedImages = images.filter(img => img.imageId !== imageId);
+    const updatedImages = images.filter((img) => img.imageId !== imageId);
 
     // Reassign display orders
     const reorderedImages = updatedImages.map((img, index) => ({
@@ -200,7 +216,10 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
     }));
 
     // If we deleted the primary image, make the first one primary
-    if (reorderedImages.length > 0 && !reorderedImages.some(img => img.isPrimary)) {
+    if (
+      reorderedImages.length > 0 &&
+      !reorderedImages.some((img) => img.isPrimary)
+    ) {
       reorderedImages[0].isPrimary = true;
     }
 
@@ -210,7 +229,7 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
   };
 
   const handleSetPrimary = (imageId: number) => {
-    const updatedImages = images.map(img => ({
+    const updatedImages = images.map((img) => ({
       ...img,
       isPrimary: img.imageId === imageId,
     }));
@@ -228,7 +247,7 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
   const handleSaveEdit = () => {
     if (!editingImage) return;
 
-    const updatedImages = images.map(img =>
+    const updatedImages = images.map((img) =>
       img.imageId === editingImage.imageId ? editingImage : img
     );
 
@@ -255,17 +274,25 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <Box>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant='h6' gutterBottom>
             Product Images
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Upload up to {maxImages} images. First image will be the primary product photo.
+          <Typography variant='body2' color='text.secondary'>
+            Upload up to {maxImages} images. First image will be the primary
+            product photo.
           </Typography>
         </Box>
         <Button
-          variant="contained"
+          variant='contained'
           startIcon={<CloudUpload />}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || images.length >= maxImages}
@@ -277,9 +304,9 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
-        type="file"
+        type='file'
         multiple
-        accept="image/*"
+        accept='image/*'
         style={{ display: 'none' }}
         onChange={handleFileSelect}
       />
@@ -287,10 +314,10 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
       {/* Upload progress */}
       {uploading && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" gutterBottom>
+          <Typography variant='body2' gutterBottom>
             Uploading images...
           </Typography>
-          <LinearProgress variant="determinate" value={uploadProgress} />
+          <LinearProgress variant='determinate' value={uploadProgress} />
         </Box>
       )}
 
@@ -307,25 +334,28 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
         >
           <CardContent sx={{ textAlign: 'center', py: 8 }}>
             <PhotoCamera sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Typography variant='h6' color='text.secondary' gutterBottom>
               No images uploaded yet
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Click here or use the "Upload Images" button to add product photos
             </Typography>
           </CardContent>
         </Card>
       ) : (
-        <Grid container spacing={2}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
           {images.map((image) => (
-            <Grid item xs={12} sm={6} md={4} key={image.imageId}>
+            <div
+              style={{ flex: '1 1 300px', maxWidth: '400px' }}
+              key={image.imageId}
+            >
               <Card sx={{ position: 'relative' }}>
                 {/* Primary badge */}
                 {image.isPrimary && (
                   <Chip
-                    label="Primary"
-                    color="primary"
-                    size="small"
+                    label='Primary'
+                    color='primary'
+                    size='small'
                     sx={{
                       position: 'absolute',
                       top: 8,
@@ -349,90 +379,102 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
 
                 {/* Actions */}
                 <CardContent sx={{ pb: 1 }}>
-                  <Typography variant="body2" noWrap title={image.fileName}>
+                  <Typography variant='body2' noWrap title={image.fileName}>
                     {image.fileName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant='caption' color='text.secondary'>
                     {formatFileSize(image.fileSizeBytes)}
-                    {image.widthPixels && image.heightPixels &&
-                      ` • ${image.widthPixels}x${image.heightPixels}`
-                    }
+                    {image.widthPixels &&
+                      image.heightPixels &&
+                      ` • ${image.widthPixels}x${image.heightPixels}`}
                   </Typography>
 
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mt: 1,
+                    }}
+                  >
                     <Box>
                       <IconButton
-                        size="small"
+                        size='small'
                         onClick={() => handlePreviewImage(image)}
-                        title="Preview"
+                        title='Preview'
                       >
                         <Visibility />
                       </IconButton>
                       <IconButton
-                        size="small"
+                        size='small'
                         onClick={() => handleEditImage(image)}
-                        title="Edit details"
+                        title='Edit details'
                       >
                         <Edit />
                       </IconButton>
                       {!image.isPrimary && (
                         <IconButton
-                          size="small"
+                          size='small'
                           onClick={() => handleSetPrimary(image.imageId!)}
-                          title="Set as primary"
+                          title='Set as primary'
                         >
                           <Star />
                         </IconButton>
                       )}
                     </Box>
                     <IconButton
-                      size="small"
+                      size='small'
                       onClick={() => handleDeleteImage(image.imageId!)}
-                      color="error"
-                      title="Delete"
+                      color='error'
+                      title='Delete'
                     >
                       <Delete />
                     </IconButton>
                   </Box>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
       )}
 
       {/* Usage info */}
       {images.length > 0 && (
-        <Alert severity="info" sx={{ mt: 2 }}>
+        <Alert severity='info' sx={{ mt: 2 }}>
           {images.length} of {maxImages} images uploaded.
-          {images.length < maxImages && ' You can upload ' + (maxImages - images.length) + ' more.'}
+          {images.length < maxImages &&
+            ' You can upload ' + (maxImages - images.length) + ' more.'}
         </Alert>
       )}
 
       {/* Edit Image Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth='sm'
+        fullWidth
+      >
         <DialogTitle>Edit Image Details</DialogTitle>
         <DialogContent>
           {editingImage && (
             <Box sx={{ pt: 1 }}>
               <TextField
                 fullWidth
-                label="Alt Text"
+                label='Alt Text'
                 value={editingImage.altText || ''}
                 onChange={(e) =>
                   setEditingImage({ ...editingImage, altText: e.target.value })
                 }
-                placeholder="Describe the image for accessibility"
+                placeholder='Describe the image for accessibility'
                 sx={{ mb: 2 }}
               />
               <TextField
                 fullWidth
-                label="Caption"
+                label='Caption'
                 value={editingImage.caption || ''}
                 onChange={(e) =>
                   setEditingImage({ ...editingImage, caption: e.target.value })
                 }
-                placeholder="Optional caption for the image"
+                placeholder='Optional caption for the image'
                 multiline
                 rows={2}
                 sx={{ mb: 2 }}
@@ -444,24 +486,27 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
                     onChange={(e) => {
                       if (e.target.checked) {
                         // If setting as primary, update all other images
-                        const updatedImages = images.map(img => ({
+                        const updatedImages = images.map((img) => ({
                           ...img,
                           isPrimary: img.imageId === editingImage.imageId,
                         }));
                         setImages(updatedImages);
                       }
-                      setEditingImage({ ...editingImage, isPrimary: e.target.checked });
+                      setEditingImage({
+                        ...editingImage,
+                        isPrimary: e.target.checked,
+                      });
                     }}
                   />
                 }
-                label="Set as primary image"
+                label='Set as primary image'
               />
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained">
+          <Button onClick={handleSaveEdit} variant='contained'>
             Save Changes
           </Button>
         </DialogActions>
@@ -471,13 +516,17 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
       <Dialog
         open={previewDialogOpen}
         onClose={() => setPreviewDialogOpen(false)}
-        maxWidth="md"
+        maxWidth='md'
         fullWidth
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">
-            {previewImage?.fileName}
-          </Typography>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant='h6'>{previewImage?.fileName}</Typography>
           <IconButton onClick={() => setPreviewDialogOpen(false)}>
             <Close />
           </IconButton>
@@ -486,7 +535,7 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
           {previewImage && (
             <Box>
               <Box
-                component="img"
+                component='img'
                 src={previewImage.originalUrl}
                 alt={previewImage.altText || previewImage.fileName}
                 sx={{
@@ -498,20 +547,23 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
                 }}
               />
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Chip label={formatFileSize(previewImage.fileSizeBytes)} size="small" />
+                <Chip
+                  label={formatFileSize(previewImage.fileSizeBytes)}
+                  size='small'
+                />
                 {previewImage.widthPixels && previewImage.heightPixels && (
                   <Chip
                     label={`${previewImage.widthPixels}x${previewImage.heightPixels}`}
-                    size="small"
+                    size='small'
                   />
                 )}
-                <Chip label={previewImage.mimeType} size="small" />
+                <Chip label={previewImage.mimeType} size='small' />
                 {previewImage.isPrimary && (
-                  <Chip label="Primary Image" color="primary" size="small" />
+                  <Chip label='Primary Image' color='primary' size='small' />
                 )}
               </Box>
               {previewImage.caption && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant='body2' color='text.secondary'>
                   {previewImage.caption}
                 </Typography>
               )}
@@ -530,7 +582,7 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          variant="filled"
+          variant='filled'
         >
           {snackbar.message}
         </Alert>

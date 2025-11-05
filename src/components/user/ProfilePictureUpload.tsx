@@ -271,9 +271,9 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
 
       // Update user profile to remove picture URL - this will trigger re-render of all components
       // Force immediate UI update by updating user state
-      // Use null instead of undefined for consistent state handling
+      // Use undefined instead of null for consistent state handling
       updateProfile({
-        profilePictureUrl: null,
+        profilePictureUrl: undefined,
       });
 
       // Clear any cached image data
@@ -315,7 +315,6 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
           status: (error as any)?.response?.status,
           statusText: (error as any)?.response?.statusText,
           headers: (error as any)?.response?.headers,
-          requestData: updateData,
           userId: user.userId,
         }
       );
@@ -395,17 +394,14 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
             borderColor: isLoading ? 'primary.main' : 'transparent',
             filter: isLoading ? 'brightness(0.7)' : 'none',
           }}
-          onError={() => {
-            // If image fails to load, force refresh by updating the key
-            setPreviewUrl(null);
-          }}
           onLoad={() => {
             // Image loaded successfully
           }}
           onError={(e) => {
-            // Only handle blob URL errors silently, log others
+            // If image fails to load, force refresh by updating the key
             if (currentImageUrl?.startsWith('blob:')) {
               // Blob URL expired (expected)
+              setPreviewUrl(null);
             } else {
               console.error('🔄 ProfilePictureUpload: Image load error', {
                 src: currentImageUrl,

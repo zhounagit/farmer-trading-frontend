@@ -7,31 +7,18 @@ import {
   CardMedia,
   Button,
   Grid,
-  Paper,
   Rating,
   Chip,
   IconButton,
   Container,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   Badge,
 } from '@mui/material';
 import {
   ShoppingCart,
   Favorite,
-  LocationOn,
-  Phone,
-  Email,
-  Facebook,
-  Instagram,
-  Twitter,
   Search,
-  Category,
   Store,
   FavoriteBorder,
-  YouTube,
 } from '@mui/icons-material';
 import { generateThemeCSS } from '../../../types/themes';
 import type { StorefrontTheme } from '../../../types/themes';
@@ -801,194 +788,6 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
     </Box>
   );
 
-  const renderHeroBanner = () => (
-    <Box
-      sx={{
-        height: theme.category === 'minimalist' ? 300 : 400,
-        background: `linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.accent}20)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <Box
-        sx={{
-          textAlign: 'center',
-          zIndex: 1,
-          px: 3,
-        }}
-      >
-        <Typography
-          variant={theme.category === 'bold' ? 'h2' : 'h3'}
-          sx={{
-            fontFamily: 'var(--theme-font-primary)',
-            fontWeight: theme.category === 'bold' ? 900 : 'bold',
-            color: 'var(--theme-text-primary)',
-            mb: 2,
-          }}
-        >
-          {theme.category === 'minimalist'
-            ? 'Welcome'
-            : `Welcome to ${mockData.storeName}`}
-        </Typography>
-        <Typography
-          variant='h6'
-          sx={{
-            fontFamily: 'var(--theme-font-secondary)',
-            color: 'var(--theme-text-secondary)',
-            mb: 3,
-          }}
-        >
-          {mockData.tagline}
-        </Typography>
-        <Button
-          variant='contained'
-          size='large'
-          sx={{
-            backgroundColor: 'var(--theme-primary)',
-            borderRadius: 'var(--theme-radius-lg)',
-            px: 4,
-            py: 1.5,
-            '&:hover': {
-              backgroundColor: 'var(--theme-accent)',
-            },
-          }}
-        >
-          Shop Now
-        </Button>
-      </Box>
-    </Box>
-  );
-
-  const renderCategories = () => (
-    <Box sx={{ py: 4 }}>
-      <Typography
-        variant='h5'
-        sx={{
-          fontFamily: 'var(--theme-font-primary)',
-          fontWeight: 'bold',
-          mb: 3,
-          textAlign: theme.category === 'minimalist' ? 'left' : 'center',
-        }}
-      >
-        {theme.category === 'bold' ? 'CATEGORIES' : 'Shop by Category'}
-      </Typography>
-      <Grid container spacing={2}>
-        {mockData.categories.map((category: string) => (
-          <Grid item xs={6} sm={4} md={2.4} key={category}>
-            <Paper
-              sx={{
-                p: 2,
-                textAlign: 'center',
-                backgroundColor: 'var(--theme-surface)',
-                border: `1px solid var(--theme-border)`,
-                borderRadius: 'var(--theme-radius-md)',
-                cursor: 'pointer',
-                transition: 'var(--theme-transition-fast)',
-                '&:hover': {
-                  backgroundColor: 'var(--theme-primary)',
-                  color: 'white',
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              <Category sx={{ fontSize: 30, mb: 1 }} />
-              <Typography
-                variant='body2'
-                sx={{ fontFamily: 'var(--theme-font-primary)' }}
-              >
-                {category}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
-
-  const renderFooter = () => (
-    <Box
-      sx={{
-        backgroundColor: 'var(--theme-surface)',
-        borderTop: '1px solid var(--theme-border)',
-        mt: 4,
-        py: 3,
-      }}
-    >
-      <Container maxWidth='lg'>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={4}>
-            <Typography
-              variant='h6'
-              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
-            >
-              Contact Us
-            </Typography>
-            <List dense>
-              <ListItem>
-                <ListItemIcon>
-                  <Phone fontSize='small' />
-                </ListItemIcon>
-                <ListItemText primary='(555) 123-4567' />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <Email fontSize='small' />
-                </ListItemIcon>
-                <ListItemText primary='hello@farm.com' />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <LocationOn fontSize='small' />
-                </ListItemIcon>
-                <ListItemText primary='123 Farm Road, Rural Town' />
-              </ListItem>
-            </List>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography
-              variant='h6'
-              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
-            >
-              Store Hours
-            </Typography>
-            <Typography variant='body2' sx={{ mb: 1 }}>
-              Monday - Friday: 9:00 AM - 6:00 PM
-            </Typography>
-            <Typography variant='body2' sx={{ mb: 1 }}>
-              Saturday: 9:00 AM - 4:00 PM
-            </Typography>
-            <Typography variant='body2'>Sunday: Closed</Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography
-              variant='h6'
-              sx={{ fontFamily: 'var(--theme-font-primary)', mb: 2 }}
-            >
-              Follow Us
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
-                <Facebook />
-              </IconButton>
-              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
-                <Instagram />
-              </IconButton>
-              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
-                <Twitter />
-              </IconButton>
-              <IconButton size='small' sx={{ color: 'var(--theme-primary)' }}>
-                <YouTube />
-              </IconButton>
-            </Box>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
-  );
-
   if (previewMode === 'compact') {
     return (
       <Box className={className}>
@@ -1007,7 +806,7 @@ const EnhancedThemePreview: React.FC<EnhancedThemePreviewProps> = ({
           <Container maxWidth='lg' sx={{ py: 3 }}>
             <Grid container spacing={3}>
               {mockData.products.slice(0, 3).map((product: any) => (
-                <Grid item xs={12} sm={4} key={product.id}>
+                <Grid size={{ xs: 12, sm: 4 }} key={product.id}>
                   {renderProductCard(product)}
                 </Grid>
               ))}

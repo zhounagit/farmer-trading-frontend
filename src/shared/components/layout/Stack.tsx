@@ -83,8 +83,7 @@ const StackWithDivider: React.FC<StackProps> = ({
               }}
             >
               {React.cloneElement(divider, {
-                orientation: isRow ? 'vertical' : 'horizontal',
-                ...divider.props,
+                ...(divider.props || {}),
               })}
             </Box>
           )}

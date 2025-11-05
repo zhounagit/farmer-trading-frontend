@@ -408,7 +408,6 @@ const StoreBasicsStep: React.FC<StepProps> = ({
           // Set the needsPartnerships at the top level to ensure partnership step is shown
           needsPartnerships:
             backendNeedsPartnerships || config.needsPartnerships,
-          needPartnership: config.needPartnership, // 'yes', 'no', 'hybrid'
           setupFlow: {
             selectedCategoryIds: categories
               .filter((cat) =>
@@ -424,7 +423,6 @@ const StoreBasicsStep: React.FC<StepProps> = ({
             derivedCanRetail: config.canRetail,
             needsPartnerships:
               backendNeedsPartnerships || config.needsPartnerships,
-            needPartnership: config.needPartnership, // 'yes', 'no', 'hybrid'
             partnershipType: backendPartnershipType,
           },
         },

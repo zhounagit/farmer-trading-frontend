@@ -1,12 +1,5 @@
 import React, { forwardRef } from 'react';
-import {
-  TextField,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  InputAdornment,
-  IconButton,
-} from '@mui/material';
+import { TextField, InputAdornment, IconButton } from '@mui/material';
 import type { TextFieldProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Visibility, VisibilityOff, ErrorOutline } from '@mui/icons-material';
@@ -28,42 +21,7 @@ export interface InputProps extends Omit<TextFieldProps, 'variant' | 'size'> {
 
 const StyledTextField = styled(TextField, {
   shouldForwardProp: (prop) => !['loading'].includes(prop as string),
-})<InputProps>(({ theme, size, error }) => {
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return {
-          '& .MuiInputBase-root': {
-            minHeight: '36px',
-            fontSize: '0.875rem',
-          },
-          '& .MuiInputBase-input': {
-            padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
-          },
-        };
-      case 'large':
-        return {
-          '& .MuiInputBase-root': {
-            minHeight: '52px',
-            fontSize: '1.125rem',
-          },
-          '& .MuiInputBase-input': {
-            padding: `${theme.spacing(2)} ${theme.spacing(2.5)}`,
-          },
-        };
-      default: // medium
-        return {
-          '& .MuiInputBase-root': {
-            minHeight: '44px',
-            fontSize: '1rem',
-          },
-          '& .MuiInputBase-input': {
-            padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
-          },
-        };
-    }
-  };
-
+})<Omit<InputProps, 'size'> & { size?: string }>(({ theme }) => {
   return {
     '& .MuiOutlinedInput-root': {
       borderRadius: theme.spacing(1),
@@ -111,7 +69,6 @@ const StyledTextField = styled(TextField, {
         color: theme.palette.error.main,
       },
     },
-    ...getSizeStyles(),
   };
 });
 

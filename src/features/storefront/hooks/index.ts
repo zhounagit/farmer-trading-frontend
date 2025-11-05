@@ -1,5 +1,5 @@
 // Storefront Hooks
-export { default as useStorefrontEditor, useStorefrontEditor } from './useStorefrontEditor';
+export { default as useStorefrontEditor } from './useStorefrontEditor';
 export type { UseStorefrontEditorReturn } from './useStorefrontEditor';
 
 // Additional storefront-specific hooks can be added here

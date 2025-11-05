@@ -1,18 +1,13 @@
 import React from 'react';
 import { Box, Container, Typography } from '@mui/material';
-import type {
-  StorefrontModule,
-  PublicStorefront,
-} from '@/features/search/services/storefront.api';
+import type { StorefrontModule } from '@/features/storefront/types/public-storefront';
 
 interface NewsletterSignupModuleProps {
   module: StorefrontModule;
-  storefront: PublicStorefront;
 }
 
 const NewsletterSignupModule: React.FC<NewsletterSignupModuleProps> = ({
   module,
-  storefront,
 }) => {
   const settings = module.settings || {};
   const title = (settings.title as string) || 'Stay Updated';

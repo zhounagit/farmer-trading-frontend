@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { StoreOpenHours, StorePaymentMethod } from '@/shared/types/store';
 import {
   Box,
   Container,
@@ -71,12 +72,11 @@ const StoreManagementPage: React.FC = () => {
     Map<
       number,
       {
-        status: string;
         isPublished: boolean;
-        publicUrl?: string;
-        slug?: string;
         publishedAt?: string;
-        lastModified?: string;
+        isActive: boolean;
+        canPublish: boolean;
+        validationErrors?: string[];
       }
     >
   >(new Map());
@@ -92,7 +92,10 @@ const StoreManagementPage: React.FC = () => {
     error,
   } = useQuery({
     queryKey: ['myStores'],
-    queryFn: () => StoresApiService.getUserStores(user?.userId),
+    queryFn: () =>
+      StoresApiService.getUserStores(
+        user?.userId ? parseInt(user.userId) : undefined
+      ),
     enabled: !!user,
   });
 
@@ -216,15 +219,26 @@ const StoreManagementPage: React.FC = () => {
     }
   };
 
-  const formatOpenHours = (openHours: Record<string, any>) => {
-    if (!openHours) return 'Not specified';
+  const formatOpenHours = (openHours: StoreOpenHours[] | undefined) => {
+    if (!openHours || !Array.isArray(openHours)) return 'Not specified';
 
-    const openDays = Object.entries(openHours)
-      .filter(([, hours]: [string, any]) => hours?.isOpen)
-      .map(([day, hours]: [string, any]) => {
-        const dayName = day.charAt(0).toUpperCase() + day.slice(1, 3);
-        if (hours?.isAllDay) return `${dayName}: 24/7`;
-        return `${dayName}: ${hours?.openTime}-${hours?.closeTime}`;
+    const openDays = openHours
+      .filter(
+        (hours: StoreOpenHours) =>
+          !hours.isClosed && hours.openTime && hours.closeTime
+      )
+      .map((hours: StoreOpenHours) => {
+        const dayNames = [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ];
+        const dayName = dayNames[hours.dayOfWeek] || `Day ${hours.dayOfWeek}`;
+        return `${dayName}: ${hours.openTime}-${hours.closeTime}`;
       });
 
     return openDays.length > 0 ? openDays.join(', ') : 'Closed';
@@ -249,7 +263,11 @@ const StoreManagementPage: React.FC = () => {
             );
             return {
               storeId: store.storeId!,
-              status: { status: 'draft', isPublished: false },
+              status: {
+                isPublished: false,
+                isActive: false,
+                canPublish: false,
+              },
             };
           }
         }
@@ -275,7 +293,7 @@ const StoreManagementPage: React.FC = () => {
   const renderStorefrontStatus = (store: StoreType) => {
     const status = getStorefrontStatus(store.storeId!);
 
-    if (status.isPublished && status.publicUrl) {
+    if (status.isPublished) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Chip
@@ -291,7 +309,7 @@ const StoreManagementPage: React.FC = () => {
               color='primary'
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(status.publicUrl, '_blank');
+                window.open(`/store/${store.slug}`, '_blank');
               }}
             >
               <Launch fontSize='small' />
@@ -452,7 +470,7 @@ const StoreManagementPage: React.FC = () => {
                 <LocalShipping fontSize='small' color='action' />
               </ListItemIcon>
               <ListItemText
-                primary={`Delivers within ${store.deliveryRadiusKm} km`}
+                primary={`Delivers within ${store.deliveryRadiusMi || 0} miles`}
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
@@ -463,14 +481,16 @@ const StoreManagementPage: React.FC = () => {
               </ListItemIcon>
               <ListItemText
                 primary={
-                  store.acceptedPaymentMethods?.join(', ') || 'Not specified'
+                  store.paymentMethods
+                    ?.map((pm: StorePaymentMethod) => pm.paymentMethod)
+                    .join(', ') || 'Not specified'
                 }
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
 
             {/* Public URL if available */}
-            {getStorefrontStatus(store.storeId!).publicUrl && (
+            {getStorefrontStatus(store.storeId!).isPublished && (
               <ListItem sx={{ px: 0, py: 0.5 }}>
                 <ListItemIcon sx={{ minWidth: 32 }}>
                   <Public fontSize='small' color='action' />
@@ -478,7 +498,7 @@ const StoreManagementPage: React.FC = () => {
                 <ListItemText
                   primary={
                     <Link
-                      href={getStorefrontStatus(store.storeId!).publicUrl}
+                      href={`/store/${store.slug}`}
                       target='_blank'
                       rel='noopener noreferrer'
                       color='primary'
@@ -605,7 +625,7 @@ const StoreManagementPage: React.FC = () => {
         )}
 
         {/* Floating Action Button */}
-        {stores.length > 0 && (
+        {stores && Array.isArray(stores) && stores.length > 0 && (
           <Fab
             color='primary'
             sx={{ position: 'fixed', bottom: 24, right: 24 }}

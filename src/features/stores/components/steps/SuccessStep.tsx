@@ -43,7 +43,7 @@ const SuccessStep: React.FC<SuccessStepProps> = ({
   submittedAt,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {} = useAuth();
   const [tabValue, setTabValue] = useState(0);
 
   const handleGoToDashboard = () => {
@@ -54,7 +54,7 @@ const SuccessStep: React.FC<SuccessStepProps> = ({
     navigate('/');
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

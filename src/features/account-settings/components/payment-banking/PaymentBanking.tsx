@@ -221,7 +221,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
 
       {/* Balance Summary */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid component='div' item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Paper
             sx={{
               p: 3,
@@ -238,7 +238,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
             <Typography variant='body2'>Ready for payout</Typography>
           </Paper>
         </Grid>
-        <Grid component='div' item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Paper
             sx={{ p: 3, bgcolor: 'info.light', color: 'info.contrastText' }}
           >
@@ -271,7 +271,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
           </Box>
 
           <Grid container spacing={2}>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Account Holder Name'
@@ -286,7 +286,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 required
               />
             </Grid>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Bank Name'
@@ -296,7 +296,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Account Number'
@@ -324,7 +324,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 }}
               />
             </Grid>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Routing Number'
@@ -339,7 +339,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 required
               />
             </Grid>
-            <Grid component='div' item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -355,7 +355,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                     }
                   />
                 }
-                label='This is a savings account'
+                label='Savings Account'
               />
             </Grid>
           </Grid>
@@ -378,7 +378,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
           </Box>
 
           <Grid container spacing={2}>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Tax ID (SSN/EIN)'
@@ -400,7 +400,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 }}
               />
             </Grid>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Business Name (if applicable)'
@@ -429,13 +429,13 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
           </Box>
 
           <Grid container spacing={2}>
-            <Grid component='div' item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                 Payout preferences are managed by platform policy to ensure
                 consistent processing for all users.
               </Typography>
             </Grid>
-            <Grid component='div' item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Payout Method'
@@ -450,7 +450,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label='Payout Frequency'
@@ -465,7 +465,7 @@ const PaymentBanking: React.FC<PaymentBankingProps> = ({
                 }}
               />
             </Grid>
-            <Grid component='div' item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant='body2' color='text.secondary'>
                 • Store owners receive payouts when customer orders are
                 completed and funds are released from escrow

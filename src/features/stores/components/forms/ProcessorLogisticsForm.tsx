@@ -44,14 +44,12 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
         Configure how you handle processor logistics for live animals and other
         products that require processing.
       </Typography>
-
       <Alert severity='info' sx={{ mb: 3 }}>
         This section is required for stores selling live animals or products
         that need processing.
       </Alert>
-
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <FormControlLabel
             control={
               <Checkbox
@@ -75,7 +73,7 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <FormControlLabel
             control={
               <Checkbox
@@ -99,7 +97,7 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Processor Instructions'
             placeholder='Enter processor instructions'
@@ -119,7 +117,7 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Preferred Processors'
             placeholder='e.g., Local Meat Processing, Fresh Poultry Co.'
@@ -139,7 +137,11 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             label='Processor Pickup Lead Time'
             placeholder='e.g., 48 hours, 1 week'
@@ -157,7 +159,11 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             type='number'
             label='Processing Capacity'
@@ -177,7 +183,7 @@ export const ProcessorLogisticsForm: React.FC<ProcessorLogisticsFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Special Processing Requirements'
             placeholder='e.g., USDA certified, organic processing, halal/kosher'

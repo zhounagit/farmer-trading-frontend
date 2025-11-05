@@ -33,7 +33,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface SearchFilterModuleProps {
   module: StorefrontModule;
@@ -54,7 +54,6 @@ const SearchFilterModule: React.FC<SearchFilterModuleProps> = ({
   module,
   storefront,
   onSearchChange,
-  onFilterChange,
 }) => {
   const settings = module.settings || {};
 

@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   IconButton,
   Tooltip,
-  Divider,
   Switch,
-  TextField,
   FormControlLabel,
   Slider,
   Accordion,
@@ -21,11 +18,11 @@ import {
   Save,
   RestartAlt,
   ExpandMore,
+  ViewQuilt,
   Palette,
-  Visibility,
   Code,
 } from '@mui/icons-material';
-import { Card, Button, Stack, Input } from '../../../../shared/components';
+import { Button, Stack, Input } from '../../../../shared/components';
 import Select from '../../../../shared/components/ui/Select';
 import type {
   StorefrontModuleConfig,
@@ -400,7 +397,7 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   onReset,
 }) => {
   const [config, setConfig] = useState<Record<string, any>>(
-    module?.config || {}
+    module?.settings || {}
   );
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -425,8 +422,8 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   const handleSave = () => {
     const updatedModule: StorefrontModuleConfig = {
       ...module,
-      config: {
-        ...module.config,
+      settings: {
+        ...module.settings,
         ...config,
       },
     };
@@ -435,7 +432,7 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   };
 
   const handleReset = () => {
-    setConfig(module.config || {});
+    setConfig(module.settings || {});
     setHasChanges(false);
     onReset?.();
   };
@@ -539,7 +536,7 @@ const ModuleConfiguration: React.FC<ModuleConfigurationProps> = ({
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'layout':
-        return <Layout fontSize='small' />;
+        return <ViewQuilt fontSize='small' />;
       case 'content':
         return <Code fontSize='small' />;
       case 'style':

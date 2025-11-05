@@ -55,6 +55,9 @@ export interface LocationLogisticsStepData {
   deliveryRadiusMi?: number;
   pickupPointAddress?: StoreAddressFormData;
   pickupPointNickname?: string;
+  billingAddress?: StoreAddressFormData;
+  billingSameAsBusinessAddress?: boolean;
+  pickupPointSameAsBusinessAddress?: boolean;
 }
 
 export interface PartnershipsStepData {
@@ -72,6 +75,7 @@ export interface StoreHoursStepData {
   thursday: DayHours;
   friday: DayHours;
   saturday: DayHours;
+  [key: string]: DayHours;
 }
 
 // Payment methods are now platform-controlled and managed centrally
@@ -90,16 +94,16 @@ export interface BrandingStepData {
 
 // Supporting types
 export interface StoreAddressFormData {
-  locationName: string;
-  contactPhone: string;
-  contactEmail: string;
-  streetAddress: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  pickupInstructions: string;
-  sameAsBusinessAddress: boolean;
+  locationName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  pickupInstructions?: string;
+  sameAsBusinessAddress?: boolean;
 }
 
 export interface DayHours {
@@ -147,7 +151,7 @@ export interface SavedDraftData {
   version: string;
 }
 
-import type { Store, StoreType } from '../../../shared/types/store';
+import type { ImageType } from '../../../shared/types/store';
 
 // Video Upload Types
 export interface StoreVideoUploadRequest {
@@ -464,7 +468,7 @@ export interface StoreCategory {
 export interface StoreImage {
   imageId: number;
   storeId: number;
-  imageType: string;
+  imageType: ImageType;
   filePath: string;
   fileName: string;
   originalFileName: string;

@@ -300,7 +300,7 @@ export interface BulkInventoryResult {
 
 // Image Management
 export interface InventoryImageUploadRequest {
-  itemId: number;
+  itemId?: number;
   sortOrder?: number;
   isPrimary?: boolean;
   altText?: string;

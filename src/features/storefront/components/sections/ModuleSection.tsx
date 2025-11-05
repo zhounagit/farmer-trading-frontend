@@ -10,12 +10,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemButton,
-  Divider,
 } from '@mui/material';
 import {
   Add,
@@ -70,9 +64,11 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({
       id: `module-${Date.now()}`,
       type: template.type,
       title: template.name,
+      description: template.description,
+      icon: template.icon,
       enabled: true,
       order: modules.length,
-      config: template.defaultConfig || {},
+      settings: template.defaultSettings || {},
     };
 
     onModulesChange([...modules, newModule]);
@@ -359,7 +355,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({
 
           <Grid container spacing={2}>
             {availableTemplates.map((template) => (
-              <Grid item xs={12} sm={6} md={4} key={template.type}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={template.type}>
                 <Paper
                   sx={{
                     p: 2,

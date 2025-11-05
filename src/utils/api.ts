@@ -1,4 +1,5 @@
 // API Configuration and utilities
+import { ApiMapper } from '../services/api-mapper';
 
 // API Configuration
 export const API_CONFIG = {
@@ -158,10 +159,18 @@ export const apiRequest = async <T = unknown>(
         headers: Object.fromEntries(response.headers.entries()),
         errorData: errorData,
         requestHeaders: config.headers,
-        hasAuthHeader: !!config.headers?.Authorization,
-        authHeaderPrefix: config.headers?.Authorization
-          ? String(config.headers.Authorization).substring(0, 20) + '...'
-          : 'None',
+        hasAuthHeader:
+          !!config.headers &&
+          typeof config.headers === 'object' &&
+          'Authorization' in (config.headers as Record<string, unknown>),
+        authHeaderPrefix:
+          config.headers &&
+          typeof config.headers === 'object' &&
+          'Authorization' in (config.headers as Record<string, unknown>)
+            ? String(
+                (config.headers as Record<string, string>).Authorization
+              ).substring(0, 20) + '...'
+            : 'None',
       });
 
       // Special handling for 403 Forbidden
@@ -172,7 +181,12 @@ export const apiRequest = async <T = unknown>(
           tokenLength: token?.length || 0,
           tokenPrefix: token ? token.substring(0, 20) + '...' : 'No token',
           endpoint: endpoint,
-          authHeader: config.headers?.Authorization || 'Missing',
+          authHeader:
+            config.headers &&
+            typeof config.headers === 'object' &&
+            'Authorization' in (config.headers as Record<string, unknown>)
+              ? (config.headers as Record<string, string>).Authorization
+              : 'Missing',
           requestMethod: options.method || 'GET',
           fullUrl: url,
           responseHeaders: Object.fromEntries(response.headers.entries()),
@@ -482,18 +496,21 @@ export const storeApi = {
 
   // Create new store
   create: async (storeData: {
-    StoreName: string;
-    Description?: string;
-    OpenHours: string; // JSON string for JSONB column
-    AcceptedPaymentMethods: string[];
-    DeliveryRadiusKm: number;
+    storeName: string;
+    description?: string;
+    openHours: string; // JSON string for JSONB column
+    acceptedPaymentMethods: string[];
+    deliveryRadiusKm: number;
   }) => {
     console.log('🔍 DEBUG: Store creation API call starting...');
     console.log('📤 Store creation URL:', `${API_CONFIG.BASE_URL}/api/stores`);
-    console.log('📤 Store Data:', JSON.stringify(storeData, null, 2));
+
+    // Convert camelCase frontend data to PascalCase backend format
+    const backendData = ApiMapper.toPascalCase(storeData);
+    console.log('📤 Store Data:', JSON.stringify(backendData, null, 2));
 
     try {
-      const response = await api.post('/api/stores', storeData);
+      const response = await api.post('/api/stores', backendData);
       console.log('✅ Store creation success:', response);
       return response;
     } catch (error) {

@@ -7,7 +7,6 @@ import {
   Tooltip,
   FormControlLabel,
   Switch,
-  Divider,
 } from '@mui/material';
 import {
   Visibility,
@@ -18,8 +17,7 @@ import {
   Tablet,
   Computer,
 } from '@mui/icons-material';
-import { Button, Stack } from '../../../../shared/components';
-import { Card } from '@mui/material';
+import { Button, Stack, Card } from '../../../../shared/components';
 import type {
   StorefrontPreviewMode,
   StorefrontModuleConfig,
@@ -74,7 +72,7 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
 
   const handleOpenInNewTab = () => {
     if (storeData) {
-      const previewUrl = `/storefront/preview/${storeData.id}`;
+      const previewUrl = `/storefront/preview/${storeData.storeId}`;
       window.open(previewUrl, '_blank');
     }
   };

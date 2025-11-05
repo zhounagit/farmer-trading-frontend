@@ -8,6 +8,8 @@ export interface StorefrontModule {
   settings: Record<string, unknown>;
   order: number;
   isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PublicStorefront {
@@ -26,7 +28,7 @@ export interface PublicStorefront {
     customCss?: string;
     isPublished: boolean;
     publishedAt?: string;
-    publishVersion?: number;
+    publishVersion: number;
     viewCount?: number;
     createdAt?: string;
     updatedAt?: string;

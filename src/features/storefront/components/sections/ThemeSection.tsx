@@ -10,8 +10,7 @@ import {
   Switch,
 } from '@mui/material';
 import { Palette, Visibility, Settings } from '@mui/icons-material';
-import { Button, Stack } from '../../../../shared/components';
-import { Card } from '@mui/material';
+import { Button, Stack, Card } from '../../../../shared/components';
 import ThemeSelector from '../../../../components/storefront/ThemeSelector';
 import type { StorefrontTheme } from '../../../../types/themes';
 
@@ -26,7 +25,7 @@ export interface ThemeSectionProps {
 
 const ThemeSection: React.FC<ThemeSectionProps> = ({
   selectedTheme,
-  availableThemes,
+
   onThemeChange,
   isLivePreview,
   onLivePreviewToggle,
@@ -115,10 +114,8 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
         {/* Theme Selector */}
         <Card title='Available Themes' variant='outlined'>
           <ThemeSelector
-            themes={availableThemes}
-            selectedTheme={selectedTheme}
+            selectedThemeId={selectedTheme.id}
             onThemeSelect={onThemeChange}
-            loading={loading}
           />
         </Card>
 
@@ -131,7 +128,12 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
             </Typography>
 
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  sm: 6,
+                }}
+              >
                 <Paper
                   sx={{
                     p: 2,
@@ -150,7 +152,12 @@ const ThemeSection: React.FC<ThemeSectionProps> = ({
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  sm: 6,
+                }}
+              >
                 <Paper
                   sx={{
                     p: 2,

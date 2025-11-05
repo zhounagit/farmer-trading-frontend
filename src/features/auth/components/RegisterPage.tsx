@@ -46,7 +46,7 @@ const RegisterPage: React.FC = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    userType: 'Customer',
+    userType: 'customer',
     phone: '',
     referralCode: '',
   });

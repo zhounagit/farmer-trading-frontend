@@ -12,7 +12,12 @@ export type StorefrontModuleType =
   | 'newsletter-signup'
   | 'social-media'
   | 'search-filter'
-  | 'business-address';
+  | 'business-address'
+  | 'contact-info'
+  | 'business-hours'
+  | 'location-map'
+  | 'inventory-showcase'
+  | 'product-grid';
 
 export interface StorefrontModuleConfig {
   id: string;
@@ -218,6 +223,7 @@ export interface ModuleTemplate {
   requiredSettings: string[];
   previewComponent: string;
   configComponent: string;
+  premium?: boolean;
 }
 
 export interface StorefrontPreviewMode {

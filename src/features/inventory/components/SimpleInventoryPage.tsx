@@ -49,7 +49,6 @@ import { InventoryApiService } from '../services/inventoryApi';
 import type {
   InventoryImage as ApiInventoryImage,
   InventoryItem,
-  UnitType,
 } from '../../../shared/types/inventory';
 
 const SimpleInventoryPage: React.FC = () => {
@@ -476,14 +475,14 @@ const SimpleInventoryPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          ${item.price.toFixed(2)}
+                          ${(item.price ?? 0).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={item.quantity}
+                          label={item.quantity ?? 0}
                           size='small'
-                          color={item.quantity > 0 ? 'success' : 'error'}
+                          color={(item.quantity ?? 0) > 0 ? 'success' : 'error'}
                         />
                       </TableCell>
                       <TableCell>

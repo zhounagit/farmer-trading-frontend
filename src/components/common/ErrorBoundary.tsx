@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import {
   Box,
   Typography,
@@ -201,7 +202,7 @@ export const withErrorBoundary = <P extends object>(
   Component: React.ComponentType<P>,
   fallback?: ReactNode
 ) => {
-  return React.forwardRef<any, P>((props, ref) => (
+  return React.forwardRef<any, any>((props: any, ref: any) => (
     <ErrorBoundary fallback={fallback}>
       <Component {...props} ref={ref} />
     </ErrorBoundary>

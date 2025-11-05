@@ -43,11 +43,7 @@ import AdminKPICards from '../../../components/admin/AdminKPICards';
 import AdminAlertHub from '../../../components/admin/AdminAlertHub';
 import AdminActivityLog from '../../../components/admin/AdminActivityLog';
 import AdminQuickActions from '../../../components/admin/AdminQuickActions';
-import type {
-  AlertItem,
-  ActivityLogItem,
-  QuickAction,
-} from '../../../components/admin';
+import type { AlertItem, QuickAction } from '../../../components/admin';
 import { isAdminUser } from '../../../utils/userTypeUtils';
 
 // Register Chart.js components
@@ -95,43 +91,38 @@ function a11yProps(index: number) {
 const mockRecentActivity = [
   {
     id: 1,
-    type: 'order',
-    title: 'New Order',
-    description: 'Order #12345 - $89.50',
-    timestamp: '2 minutes ago',
-    severity: 'success',
+    type: 'payout_processed' as const,
+    action: 'New Order',
+    timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+    severity: 'low' as const,
   },
   {
     id: 2,
-    type: 'store',
-    title: 'Store Application',
-    description: 'Fresh Farm Produce submitted for review',
-    timestamp: '15 minutes ago',
-    severity: 'info',
+    type: 'store_approval' as const,
+    action: 'Store Application',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    severity: 'medium' as const,
   },
   {
     id: 3,
-    type: 'alert',
-    title: 'Low Stock Alert',
-    description: 'Organic Tomatoes - Only 5 items left',
-    timestamp: '1 hour ago',
-    severity: 'warning',
+    type: 'system_alert' as const,
+    action: 'Low Stock Alert',
+    timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    severity: 'high' as const,
   },
   {
     id: 4,
-    type: 'user',
-    title: 'New User Registration',
-    description: 'John Smith joined as customer',
-    timestamp: '2 hours ago',
-    severity: 'info',
+    type: 'user_registration' as const,
+    action: 'New User Registration',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    severity: 'low' as const,
   },
   {
     id: 5,
-    type: 'payout',
-    title: 'Payout Processed',
-    description: '$450.00 to Green Valley Farm',
-    timestamp: '3 hours ago',
-    severity: 'success',
+    type: 'payout_processed' as const,
+    action: 'Payout Processed',
+    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    severity: 'low' as const,
   },
 ];
 
@@ -662,7 +653,7 @@ const AdminDashboard: React.FC = () => {
               </Box>
 
               <AdminActivityLog
-                activities={mockRecentActivity as ActivityLogItem[]}
+                activities={mockRecentActivity}
                 loading={loading}
                 onRefresh={handleRefresh}
                 maxItems={8}

@@ -26,10 +26,8 @@ import {
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
-  Security as SecurityIcon,
   Palette as PaletteIcon,
   Person as PersonIcon,
-  AttachMoney as AttachMoneyIcon,
   AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import ProfilePictureUpload from '@/components/user/ProfilePictureUpload';
@@ -64,7 +62,6 @@ const AccountSettingsPage: React.FC = () => {
     refreshUserProfile,
     userPreferences,
     isLoadingPreferences,
-    preferencesError,
     loadUserPreferences,
     updateUserPreferences,
   } = useAuth();
@@ -334,32 +331,20 @@ const AccountSettingsPage: React.FC = () => {
               <Tab
                 icon={<NotificationsIcon />}
                 iconPosition='start'
-                label='Notifications'
+                label='Notifications & Privacy'
                 id='account-settings-tab-1'
-              />
-              <Tab
-                icon={<SecurityIcon />}
-                iconPosition='start'
-                label='Privacy'
-                id='account-settings-tab-2'
-              />
-              <Tab
-                icon={<AttachMoneyIcon />}
-                iconPosition='start'
-                label='Referral Credits'
-                id='account-settings-tab-3'
               />
               <Tab
                 icon={<PaletteIcon />}
                 iconPosition='start'
                 label='Display'
-                id='account-settings-tab-4'
+                id='account-settings-tab-2'
               />
               <Tab
                 icon={<AccountBalanceIcon />}
                 iconPosition='start'
                 label='Store Payouts & Banking'
-                id='account-settings-tab-5'
+                id='account-settings-tab-3'
               />
             </Tabs>
           </Box>
@@ -416,138 +401,127 @@ const AccountSettingsPage: React.FC = () => {
 
           <TabPanel value={tabValue} index={1}>
             <Typography variant='h6' gutterBottom>
-              Notification Preferences
+              Notification & Privacy Preferences
             </Typography>
-            <Box sx={{ mb: 3 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings?.notifications.emailUpdates ?? false}
-                    onChange={(e) =>
-                      handleNotificationChange('emailUpdates', e.target.checked)
-                    }
-                    disabled={isLoadingPreferences}
-                  />
-                }
-                label='Email notifications'
-              />
+
+            {/* Notifications Section */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                variant='subtitle1'
+                gutterBottom
+                sx={{ mt: 2, mb: 2 }}
+              >
+                Notifications
+              </Typography>
+              <Box sx={{ mb: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings?.notifications.emailUpdates ?? false}
+                      onChange={(e) =>
+                        handleNotificationChange(
+                          'emailUpdates',
+                          e.target.checked
+                        )
+                      }
+                      disabled={isLoadingPreferences}
+                    />
+                  }
+                  label='Email notifications'
+                />
+              </Box>
+              <Box sx={{ mb: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={
+                        settings?.notifications.pushNotifications ?? false
+                      }
+                      onChange={(e) =>
+                        handleNotificationChange(
+                          'pushNotifications',
+                          e.target.checked
+                        )
+                      }
+                      disabled={isLoadingPreferences}
+                    />
+                  }
+                  label='Push notifications'
+                />
+              </Box>
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings?.notifications.marketingEmails ?? false}
+                      onChange={(e) =>
+                        handleNotificationChange(
+                          'marketingEmails',
+                          e.target.checked
+                        )
+                      }
+                      disabled={isLoadingPreferences}
+                    />
+                  }
+                  label='Marketing emails'
+                />
+              </Box>
             </Box>
-            <Box sx={{ mb: 3 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings?.notifications.pushNotifications ?? false}
-                    onChange={(e) =>
-                      handleNotificationChange(
-                        'pushNotifications',
-                        e.target.checked
-                      )
-                    }
-                    disabled={isLoadingPreferences}
-                  />
-                }
-                label='Push notifications'
-              />
-            </Box>
-            <Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings?.notifications.marketingEmails ?? false}
-                    onChange={(e) =>
-                      handleNotificationChange(
-                        'marketingEmails',
-                        e.target.checked
-                      )
-                    }
-                    disabled={isLoadingPreferences}
-                  />
-                }
-                label='Marketing emails'
-              />
+
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 4 }}>
+              {/* Privacy Section */}
+              <Typography variant='subtitle1' gutterBottom sx={{ mb: 2 }}>
+                Privacy Settings
+              </Typography>
+
+              <Box sx={{ mb: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings?.privacy.showEmail ?? false}
+                      onChange={(e) => {
+                        handlePrivacyChange('showEmail', e.target.checked);
+                      }}
+                      disabled={isLoadingPreferences}
+                    />
+                  }
+                  label='Show email in profile'
+                />
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mt: 1 }}
+                >
+                  Controls whether your email is visible in your profile menu
+                </Typography>
+              </Box>
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings?.privacy.allowMessages ?? false}
+                      onChange={(e) => {
+                        handlePrivacyChange('allowMessages', e.target.checked);
+                      }}
+                      disabled={isLoadingPreferences}
+                    />
+                  }
+                  label='Allow direct messages'
+                />
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mt: 1 }}
+                >
+                  {user?.userType === 'store_owner'
+                    ? 'Allow customers to message you about orders and products'
+                    : 'Allow store owners to message you about orders and products'}
+                </Typography>
+              </Box>
             </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
-            <Typography variant='h6' gutterBottom>
-              Privacy Settings
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings?.privacy.showEmail ?? false}
-                    onChange={(e) => {
-                      handlePrivacyChange('showEmail', e.target.checked);
-                    }}
-                    disabled={isLoadingPreferences}
-                  />
-                }
-                label='Show email in profile'
-              />
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                Controls whether your email is visible in your profile menu
-              </Typography>
-            </Box>
-            <Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings?.privacy.allowMessages ?? false}
-                    onChange={(e) => {
-                      handlePrivacyChange('allowMessages', e.target.checked);
-                    }}
-                    disabled={isLoadingPreferences}
-                  />
-                }
-                label='Allow direct messages'
-              />
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                {user?.userType === 'store_owner'
-                  ? 'Allow customers to message you about orders and products'
-                  : 'Allow store owners to message you about orders and products'}
-              </Typography>
-            </Box>
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={3}>
-            <Typography variant='h6' gutterBottom>
-              Referral Credits Handling
-            </Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-              Choose how you want to use your referral credits earnings.
-            </Typography>
-
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Referral Credits Handling</InputLabel>
-              <Select
-                value={settings?.referralCredits.handling ?? 'bank_transfer'}
-                label='Referral Credits Handling'
-                onChange={(e) =>
-                  handleReferralCreditsChange('handling', e.target.value)
-                }
-                disabled={isLoadingPreferences}
-              >
-                <MenuItem value='bank_transfer'>Bank Transfer Monthly</MenuItem>
-                <MenuItem value='platform_purchases'>
-                  Platform Purchases
-                </MenuItem>
-              </Select>
-            </FormControl>
-
-            <Card>
-              <CardContent>
-                <Typography variant='body2' color='text.secondary'>
-                  {settings?.referralCredits.handling === 'bank_transfer'
-                    ? 'Your referral credits will be automatically transferred to your bank account at the end of each month.'
-                    : 'Your referral credits will be automatically applied to your future platform purchases during checkout.'}
-                </Typography>
-              </CardContent>
-            </Card>
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={4}>
             <Typography variant='h6' gutterBottom>
               Display Settings
             </Typography>
@@ -625,16 +599,58 @@ const AccountSettingsPage: React.FC = () => {
             </Card>
           </TabPanel>
 
-          <TabPanel value={tabValue} index={5}>
-            <PaymentBanking
-              userId={user?.userId || ''}
-              onSave={(data) => {
-                console.log('Payment settings saved:', data);
-              }}
-              onError={(error) => {
-                console.error('Payment settings error:', error);
-              }}
-            />
+          <TabPanel value={tabValue} index={3}>
+            <Box sx={{ mb: 4 }}>
+              {/* Referral Credits Section */}
+              <Typography variant='h6' gutterBottom>
+                Referral Credits Handling
+              </Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                Choose how you want to use your referral credits earnings.
+              </Typography>
+
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Referral Credits Handling</InputLabel>
+                <Select
+                  value={settings?.referralCredits.handling ?? 'bank_transfer'}
+                  label='Referral Credits Handling'
+                  onChange={(e) =>
+                    handleReferralCreditsChange('handling', e.target.value)
+                  }
+                  disabled={isLoadingPreferences}
+                >
+                  <MenuItem value='bank_transfer'>
+                    Bank Transfer Monthly
+                  </MenuItem>
+                  <MenuItem value='platform_purchases'>
+                    Platform Purchases
+                  </MenuItem>
+                </Select>
+              </FormControl>
+
+              <Card sx={{ mb: 4 }}>
+                <CardContent>
+                  <Typography variant='body2' color='text.secondary'>
+                    {settings?.referralCredits.handling === 'bank_transfer'
+                      ? 'Your referral credits will be automatically transferred to your bank account at the end of each month.'
+                      : 'Your referral credits will be automatically applied to your future platform purchases during checkout.'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 4 }}>
+              {/* Banking & Payment Section */}
+              <PaymentBanking
+                userId={user?.userId || ''}
+                onSave={(data) => {
+                  console.log('Payment settings saved:', data);
+                }}
+                onError={(error) => {
+                  console.error('Payment settings error:', error);
+                }}
+              />
+            </Box>
           </TabPanel>
         </Paper>
 

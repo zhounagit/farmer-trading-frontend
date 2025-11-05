@@ -19,7 +19,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface BusinessAddressModuleProps {
   module: StorefrontModule;
@@ -68,10 +68,7 @@ const BusinessAddressModule: React.FC<BusinessAddressModuleProps> = ({
     businessAddress;
 
   // Use store-level contact email as fallback (like Store Overview does)
-  const contactEmail =
-    businessAddress.contactEmail ||
-    storefront.store?.contactEmail ||
-    storefront.contactEmail;
+  const contactEmail = businessAddress.contactEmail;
 
   // Format full address
   const fullAddress = [streetAddress, city, state, zipCode]

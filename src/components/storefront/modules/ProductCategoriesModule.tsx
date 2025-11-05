@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Avatar,
-  Button,
-  Paper,
-} from '@mui/material';
+import { Box, Container, Typography, Grid, Button, Paper } from '@mui/material';
 import {
   Category,
   Build,
@@ -21,7 +11,7 @@ import {
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface ProductCategoriesModuleProps {
   module: StorefrontModule;
@@ -74,13 +64,13 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
   const displayCategories =
     categories.length > 0 ? categories : defaultCategories;
 
-  const getIconForCategory = (category: any, index: number) => {
+  const getIconForCategory = (_category: any, index: number) => {
     const icons = [Build, Engineering, Inventory, LocalShipping, Category];
     const IconComponent = icons[index % icons.length];
     return IconComponent;
   };
 
-  const handleCategoryClick = (category: any) => {
+  const handleCategoryClick = (_category: any) => {
     // Scroll to products section
     const productsSection =
       document.getElementById('products') ||
@@ -133,23 +123,15 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
         {/* Category Grid */}
         <Grid container spacing={3}>
           {displayCategories.map((category, index) => {
-            const productCount =
-              storefront.products?.filter(
-                (product: any) =>
-                  product.categoryId === category.categoryId ||
-                  product.categoryId === category.id
-              ).length || 0;
-
             const IconComponent =
               category.icon || getIconForCategory(category, index);
 
             return (
               <Grid
-                item
-                xs={12}
-                sm={6}
-                lg={3}
-                key={category.categoryId || category.id || index}
+                size={{ xs: 12, sm: 6, lg: 3 }}
+                key={
+                  (category as any).categoryId || (category as any).id || index
+                }
               >
                 <Paper
                   elevation={0}
@@ -208,7 +190,7 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
                         'var(--theme-font-primary, Inter, sans-serif)',
                     }}
                   >
-                    {category.categoryName || category.name}
+                    {(category as any).categoryName || (category as any).name}
                   </Typography>
 
                   {/* Description */}
@@ -228,39 +210,23 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
 
                   {/* Product Count & CTA */}
                   <Box sx={{ width: '100%' }}>
-                    {productCount > 0 ? (
-                      <Typography
-                        variant='caption'
-                        sx={{
-                          color: 'var(--theme-accent, #F59E0B)',
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontFamily:
-                            'var(--theme-font-primary, Inter, sans-serif)',
-                        }}
-                      >
-                        {productCount} Products Available
-                      </Typography>
-                    ) : (
-                      <Button
-                        variant='text'
-                        endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-                        sx={{
-                          color: '#1E3A8A',
-                          fontWeight: 500,
-                          fontSize: '0.875rem',
-                          textTransform: 'none',
-                          p: 0,
-                          '&:hover': {
-                            backgroundColor: 'transparent',
-                            color: '#F59E0B',
-                          },
-                        }}
-                      >
-                        View All
-                      </Button>
-                    )}
+                    <Button
+                      variant='text'
+                      endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+                      sx={{
+                        color: '#1E3A8A',
+                        fontWeight: 500,
+                        fontSize: '0.875rem',
+                        textTransform: 'none',
+                        p: 0,
+                        '&:hover': {
+                          backgroundColor: 'transparent',
+                          textDecoration: 'underline',
+                        },
+                      }}
+                    >
+                      Browse Category
+                    </Button>
                   </Box>
                 </Paper>
               </Grid>

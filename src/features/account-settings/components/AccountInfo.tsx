@@ -128,7 +128,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ onDataChange }) => {
     try {
       await apiService.delete(API_ENDPOINTS.USERS.BY_ID(parseInt(user.userId)));
       // Log out user and redirect to home page after deletion
-      await logout('Your account has been successfully deleted');
+      await logout();
       window.location.href = '/';
     } catch (err) {
       console.error('Failed to delete account:', err);

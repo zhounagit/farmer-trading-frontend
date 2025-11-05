@@ -2,29 +2,6 @@ import axios from 'axios';
 import { profilePictureCache } from './profilePictureCache';
 import { STORAGE_KEYS } from '../utils/api';
 
-// Define Axios types explicitly
-type AxiosResponse<T = any> = {
-  data: T;
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-  config: any;
-};
-
-type AxiosError<T = any> = Error & {
-  config: any;
-  code?: string;
-  request?: any;
-  response?: {
-    data: T;
-    status: number;
-    statusText: string;
-    headers: Record<string, string>;
-    config: any;
-  };
-  isAxiosError: boolean;
-};
-
 // AGGRESSIVE LOCALSTORAGE CLEARING
 console.log('🧹 CLEARING ALL POTENTIAL API URL OVERRIDES...');
 console.log(
@@ -124,15 +101,16 @@ api.interceptors.request.use(
           exp: new Date(payload.exp * 1000),
           expired: payload.exp * 1000 < Date.now(),
         });
-      } catch (e) {
-        console.log('🔐 Could not decode token payload:', e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.log('🔐 Could not decode token payload:', errorMessage);
       }
     } else {
       console.log('⚠️ No auth token found in localStorage');
     }
     return config;
   },
-  (error) => {
+  (error: unknown) => {
     console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
@@ -143,11 +121,12 @@ api.interceptors.response.use(
   (response: any) => {
     return response;
   },
-  async (error: any) => {
-    const originalRequest = error.config as any;
+  async (error: unknown) => {
+    const errorObj = error as any;
+    const originalRequest = errorObj.config as any;
 
     // Handle 401 Unauthorized errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (errorObj.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
@@ -198,28 +177,30 @@ api.interceptors.response.use(
     }
 
     // Handle network errors
-    if (!error.response) {
-      console.error('Network error:', error.message);
+    if (!errorObj.response) {
+      const netErrorMsg =
+        errorObj instanceof Error ? errorObj.message : 'Unknown network error';
+      console.error('Network error:', netErrorMsg);
       return Promise.reject({
         message: 'Network error. Please check your internet connection.',
         code: 'NETWORK_ERROR',
-        originalError: error,
+        originalError: errorObj,
       });
     }
 
     // Handle other HTTP errors
     const errorMessage =
-      error.response.data?.error?.message ||
-      error.response.data?.message ||
-      error.message ||
+      errorObj.response.data?.error?.message ||
+      errorObj.response.data?.message ||
+      (errorObj instanceof Error ? errorObj.message : 'Unknown error') ||
       'An unexpected error occurred';
 
     return Promise.reject({
       message: errorMessage,
-      status: error.response.status,
-      code: error.response.data?.error?.code || 'HTTP_ERROR',
-      details: error.response.data?.error?.details,
-      originalError: error,
+      status: errorObj.response.status,
+      code: errorObj.response.data?.error?.code || 'HTTP_ERROR',
+      details: errorObj.response.data?.error?.details,
+      originalError: errorObj,
     });
   }
 );
@@ -364,16 +345,17 @@ export const apiService = {
         data: response.data,
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorObj = error as any;
       console.error('❌ Upload request failed in apiService:', error);
       console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response
+        message: errorObj.message,
+        code: errorObj.code,
+        response: errorObj.response
           ? {
-              status: error.response.status,
-              statusText: error.response.statusText,
-              data: error.response.data,
+              status: errorObj.response.status,
+              statusText: errorObj.response.statusText,
+              data: errorObj.response.data,
             }
           : 'No response',
       });
@@ -544,9 +526,9 @@ export const apiService = {
 
 // Test API connection
 export const testApiConnection = async (): Promise<boolean> => {
+  // Always log the actual URL we're connecting to
+  const testUrl = 'https://localhost:7008/health';
   try {
-    // Always log the actual URL we're connecting to
-    const testUrl = 'https://localhost:7008/health';
     console.log(`🔍 Testing health endpoint: ${testUrl}`);
     console.log(`🔧 Environment var: ${import.meta.env.VITE_API_BASE_URL}`);
 

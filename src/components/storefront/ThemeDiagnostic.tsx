@@ -10,12 +10,7 @@ import {
   Alert,
   Container,
 } from '@mui/material';
-import {
-  Palette,
-  FontDownload,
-  BorderRadius,
-  Shadow,
-} from '@mui/icons-material';
+import { Palette, FontDownload } from '@mui/icons-material';
 
 interface ThemeDiagnosticProps {
   themeName: string;
@@ -74,7 +69,7 @@ const ThemeDiagnostic: React.FC<ThemeDiagnosticProps> = ({
             Theme Colors
           </Typography>
           <Grid container spacing={2}>
-            <Grid item>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Box
                   sx={{
@@ -89,7 +84,7 @@ const ThemeDiagnostic: React.FC<ThemeDiagnosticProps> = ({
                 <Typography variant='caption'>Primary</Typography>
               </Box>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Box
                   sx={{
@@ -104,7 +99,7 @@ const ThemeDiagnostic: React.FC<ThemeDiagnosticProps> = ({
                 <Typography variant='caption'>Secondary</Typography>
               </Box>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Box
                   sx={{
@@ -119,7 +114,7 @@ const ThemeDiagnostic: React.FC<ThemeDiagnosticProps> = ({
                 <Typography variant='caption'>Accent</Typography>
               </Box>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Box
                   sx={{

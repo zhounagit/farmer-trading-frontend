@@ -37,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import Header from '../../../components/layout/Header';
 import StorefrontApiService from '../services/storefront.api';
-import { imageUtils } from '../../utils/api';
+import { imageUtils } from '../../../utils/api';
 
 // Sort options constant moved outside component
 const SORT_OPTIONS = [
@@ -381,7 +381,6 @@ const ProductSearchPage: React.FC = () => {
   return (
     <Box>
       <Header onLoginClick={() => navigate('/login')} />
-
       <Container maxWidth='xl' sx={{ py: 4 }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
@@ -544,7 +543,14 @@ const ProductSearchPage: React.FC = () => {
         ) : loading ? (
           <Grid container spacing={3}>
             {[...Array(12)].map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+              <Grid
+                key={index}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4,
+                  lg: 3
+                }}>
                 <Card>
                   <Skeleton variant='rectangular' height={200} />
                   <CardContent>
@@ -576,13 +582,13 @@ const ProductSearchPage: React.FC = () => {
             <Grid container spacing={3}>
               {products.map((product) => (
                 <Grid
-                  item
-                  xs={12}
-                  sm={viewMode === 'list' ? 12 : 6}
-                  md={viewMode === 'list' ? 12 : 4}
-                  lg={viewMode === 'list' ? 12 : 3}
                   key={product.itemId}
-                >
+                  size={{
+                    xs: 12,
+                    sm: viewMode === 'list' ? 12 : 6,
+                    md: viewMode === 'list' ? 12 : 4,
+                    lg: viewMode === 'list' ? 12 : 3
+                  }}>
                   <Card
                     sx={{
                       height: '100%',

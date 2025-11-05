@@ -8,7 +8,6 @@ import {
   CardMedia,
   Grid,
   Button,
-  Chip,
   IconButton,
   TextField,
   InputAdornment,
@@ -18,16 +17,12 @@ import {
   MenuItem,
   Pagination,
 } from '@mui/material';
-import {
-  ShoppingCart,
-  FavoriteBorder,
-  Star,
-  Search,
-} from '@mui/icons-material';
+import { ShoppingCart, FavoriteBorder, Search } from '@mui/icons-material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
+import type { StorefrontProduct } from '@/shared/types/storefront';
 
 interface AllProductsModuleProps {
   module: StorefrontModule;
@@ -53,8 +48,9 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
   const [sortBy, setSortBy] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Get all products from storefront
-  const allProducts = storefront.products || [];
+  // Get products from storefront and safely cast to StorefrontProduct[]
+  const allProducts =
+    (storefront.products as unknown as StorefrontProduct[]) || [];
 
   // Debug logging
   console.log('🔍 DEBUG - AllProductsModule:', {
@@ -65,45 +61,32 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
   });
 
   // Filter products based on search query
-  const filteredProducts = allProducts.filter(
-    (product: Record<string, unknown>) => {
-      if (!searchQuery) return true;
-      const query = searchQuery.toLowerCase();
-      const matches =
-        (product.productName as string)?.toLowerCase().includes(query) ||
-        (product.itemName as string)?.toLowerCase().includes(query) ||
-        (product.description as string)?.toLowerCase().includes(query);
+  const filteredProducts = allProducts.filter((product) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const matches =
+      (product.name as string)?.toLowerCase().includes(query) ||
+      (product.description as string)?.toLowerCase().includes(query);
 
-      return matches;
-    }
-  );
+    return matches;
+  });
 
   // Sort products
-  const sortedProducts = [...filteredProducts].sort(
-    (a: Record<string, unknown>, b: Record<string, unknown>) => {
-      switch (sortBy) {
-        case 'name': {
-          const nameA =
-            (a.productName as string) || (a.itemName as string) || '';
-          const nameB =
-            (b.productName as string) || (b.itemName as string) || '';
-          return nameA.localeCompare(nameB);
-        }
-        case 'price-low':
-          return (
-            ((a.price as number) || (a.unitPrice as number) || 0) -
-            ((b.price as number) || (b.unitPrice as number) || 0)
-          );
-        case 'price-high':
-          return (
-            ((b.price as number) || (b.unitPrice as number) || 0) -
-            ((a.price as number) || (a.unitPrice as number) || 0)
-          );
-        default:
-          return 0;
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case 'name': {
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        return nameA.localeCompare(nameB);
       }
+      case 'price-low':
+        return (a.price || 0) - (b.price || 0);
+      case 'price-high':
+        return (b.price || 0) - (a.price || 0);
+      default:
+        return 0;
     }
-  );
+  });
 
   // Pagination
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
@@ -113,7 +96,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
     startIndex + productsPerPage
   );
 
-  const handleAddToCart = (product: Record<string, unknown>) => {
+  const handleAddToCart = () => {
     // Add to cart functionality would be implemented here
   };
 
@@ -124,25 +107,14 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
     }).format(price);
   };
 
-  const renderProduct = (product: Record<string, unknown>, index: number) => {
-    const price =
-      (product.price as number) || (product.unitPrice as number) || 0;
-    const imageUrl =
-      (product.imageUrl as string) ||
-      (product.images as Array<{ imageUrl: string }>)?.[0]?.imageUrl;
-    const isOrganic =
-      (product.tags as string[])?.includes('organic') ||
-      (product.isOrganic as boolean);
-    const productName =
-      (product.productName as string) ||
-      (product.itemName as string) ||
-      'Product Name';
+  const renderProduct = (product: StorefrontProduct, index: number) => {
+    const price = product.price || 0;
+    const imageUrl = product.imageUrl || '/api/placeholder/300/200';
+    const productName = product.name || 'Product Name';
 
     return (
       <Grid
-        key={
-          (product.productId as string) || (product.itemId as string) || index
-        }
+        key={product.productId || product.itemId || index}
         sx={{
           width: '100%',
           '@media (min-width: 600px)': { width: '50%' },
@@ -166,7 +138,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
             <CardMedia
               component='img'
               height='200'
-              image={imageUrl || '/api/placeholder/300/200'}
+              image={imageUrl}
               alt={productName}
               sx={{ objectFit: 'cover' }}
             />
@@ -185,20 +157,6 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
             >
               <FavoriteBorder fontSize='small' />
             </IconButton>
-            {/* Organic Badge */}
-            {isOrganic && (
-              <Chip
-                label='Organic'
-                size='small'
-                color='success'
-                sx={{
-                  position: 'absolute',
-                  top: 8,
-                  left: 8,
-                  fontSize: '0.75rem',
-                }}
-              />
-            )}
           </Box>
 
           <CardContent
@@ -210,7 +168,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
             </Typography>
 
             {/* Product Description */}
-            {(product.description as string) && (
+            {product.description && (
               <Typography
                 variant='body2'
                 color='text.secondary'
@@ -223,40 +181,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
                   overflow: 'hidden',
                 }}
               >
-                {product.description as string}
-              </Typography>
-            )}
-
-            {/* Product Rating */}
-            {(product.rating as number) && (
-              <Box display='flex' alignItems='center' sx={{ mb: 1 }}>
-                <Box display='flex' alignItems='center' mr={1}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      fontSize='small'
-                      color={
-                        star <= (product.rating as number)
-                          ? 'primary'
-                          : 'disabled'
-                      }
-                    />
-                  ))}
-                </Box>
-                <Typography variant='caption' color='text.secondary'>
-                  ({(product.reviewCount as number) || 0})
-                </Typography>
-              </Box>
-            )}
-
-            {/* Product Unit */}
-            {(product.unit as string) && (
-              <Typography
-                variant='caption'
-                color='text.secondary'
-                sx={{ mb: 1 }}
-              >
-                Sold by {product.unit as string}
+                {product.description}
               </Typography>
             )}
 
@@ -270,26 +195,16 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
               {showPrices && (
                 <Typography variant='h6' color='primary' fontWeight='bold'>
                   {formatPrice(price)}
-                  {(product.unit as string) && (
-                    <Typography
-                      component='span'
-                      variant='caption'
-                      color='text.secondary'
-                    >
-                      /{product.unit as string}
-                    </Typography>
-                  )}
                 </Typography>
               )}
 
               <Button
-                variant='contained'
+                variant='outlined'
                 size='small'
                 startIcon={<ShoppingCart />}
-                onClick={() => handleAddToCart(product)}
-                sx={{ ml: 1 }}
+                onClick={() => handleAddToCart()}
               >
-                Add
+                Add to Cart
               </Button>
             </Box>
           </CardContent>

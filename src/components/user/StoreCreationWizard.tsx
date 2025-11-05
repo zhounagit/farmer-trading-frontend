@@ -20,7 +20,6 @@ import {
   StepLabel,
   StepContent,
   Chip,
-  Grid,
   Switch,
   FormControlLabel,
   Divider,
@@ -298,16 +297,9 @@ export const StoreCreationWizard: React.FC<StoreCreationWizardProps> = ({
       const storeData = {
         storeName: formData.storeName.trim(),
         description: formData.description?.trim() || undefined,
-        openHours: formData.openHours,
+        openHours: JSON.stringify(formData.openHours),
         acceptedPaymentMethods: formData.acceptedPaymentMethods,
         deliveryRadiusKm: formData.deliveryRadiusKm,
-        businessAddress: formData.businessAddress,
-        pickupAddress: formData.pickupAddress.sameAsBusinessAddress
-          ? undefined
-          : formData.pickupAddress,
-        farmgateAddress: formData.farmgateAddress.sameAsBusinessAddress
-          ? undefined
-          : formData.farmgateAddress,
       };
 
       await storeApi.create(storeData);

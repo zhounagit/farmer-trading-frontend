@@ -1,6 +1,32 @@
 import { apiClient } from '@/shared/services/apiClient';
 import { apiService } from '@/shared/services/api-service';
 
+// Type guard to check if response is wrapped in ApiResponse
+function isApiResponse<T extends { status?: string }>(
+  response: T | ApiResponse<T>
+): response is ApiResponse<T> {
+  return (
+    response &&
+    typeof response === 'object' &&
+    'data' in response &&
+    'success' in response
+  );
+}
+
+// Helper to extract Partnership from either direct or wrapped response
+function extractPartnership(
+  response: Partnership | ApiResponse<Partnership>
+): Partnership {
+  if (isApiResponse<Partnership>(response)) {
+    const partnership = response.data;
+    if (!partnership) {
+      throw new Error('Partnership data is null or undefined');
+    }
+    return partnership;
+  }
+  return response;
+}
+
 // Enhanced Partnership interfaces with comprehensive types
 export interface Partnership {
   partnershipId: number;
@@ -197,7 +223,7 @@ class PartnershipsApiService {
   // Enhanced partnerships retrieval with comprehensive filtering
   async getPartnershipsByStoreId(
     storeId: number,
-    request: GetPartnershipsRequest = {}
+    request: Omit<GetPartnershipsRequest, 'storeId'> = {}
   ): Promise<PartnershipsResponse | null> {
     try {
       this.logOperation('Fetching partnerships by store ID', {
@@ -216,12 +242,20 @@ class PartnershipsApiService {
       const url = `/api/partnerships/store/${storeId}?${params.toString()}`;
       console.log(`🔍 PartnershipsAPI: Making request to ${url}`);
 
-      const response = await apiClient.get<PartnershipsResponse>(url);
+      const response =
+        await apiClient.get<ApiResponse<PartnershipsResponse>>(url);
 
       console.log(`📡 PartnershipsAPI: Raw response received:`, response);
 
-      // The response itself is the PartnershipsResponse directly (not nested under .data)
-      const partnershipsData = response;
+      // Handle wrapped response structure: { data: { partnerships: [...] }, success: true, message: "..." }
+      const partnershipsData: PartnershipsResponse | undefined =
+        (response as unknown as { data?: PartnershipsResponse })?.data ||
+        (response as unknown as PartnershipsResponse);
+
+      console.log(
+        `📡 PartnershipsAPI: Extracted partnerships data:`,
+        partnershipsData
+      );
 
       this.logOperation('Partnerships fetched successfully', {
         storeId,
@@ -290,12 +324,17 @@ class PartnershipsApiService {
         request
       );
 
+      const partnership = response.data;
+      if (!partnership) {
+        throw new Error('Partnership update failed - no data returned');
+      }
+
       this.logOperation('Partnership updated successfully', {
         partnershipId: request.partnershipId,
-        newStatus: response.status,
+        newStatus: partnership.status,
       });
 
-      return response || null;
+      return partnership;
     } catch (error: unknown) {
       this.logError('updatePartnership', error);
       throw error;
@@ -314,7 +353,7 @@ class PartnershipsApiService {
       });
 
       // Try primary API first, fallback to secondary if needed
-      let response;
+      let response: Partnership | ApiResponse<Partnership>;
       try {
         response = await apiClient.post<Partnership>(
           `/api/partnerships/${partnershipId}/approve`,
@@ -337,12 +376,14 @@ class PartnershipsApiService {
         );
       }
 
+      const partnership = extractPartnership(response);
+
       this.logOperation('Partnership approved successfully', {
         partnershipId,
-        newStatus: response.status,
+        newStatus: partnership.status,
       });
 
-      return response || null;
+      return partnership;
     } catch (error: unknown) {
       this.logError('approvePartnership', error);
       throw error;
@@ -422,7 +463,7 @@ class PartnershipsApiService {
       });
 
       // Try primary API first, fallback to secondary if needed
-      let response;
+      let response: Partnership | ApiResponse<Partnership>;
       try {
         response = await apiClient.post<Partnership>(
           `/api/partnerships/${partnershipId}/reactivate`,
@@ -437,12 +478,14 @@ class PartnershipsApiService {
         );
       }
 
+      const partnership = extractPartnership(response);
+
       this.logOperation('Partnership reactivated successfully', {
         partnershipId,
-        newStatus: response.status,
+        newStatus: partnership.status,
       });
 
-      return response || null;
+      return partnership;
     } catch (error: unknown) {
       this.logError('reactivatePartnership', error);
       throw error;
@@ -476,33 +519,33 @@ class PartnershipsApiService {
       if (request.sortOrder) params.append('sortOrder', request.sortOrder);
 
       // Enhanced search with dual API support
-      let response;
+      let partnersList: EnhancedPotentialPartner[] = [];
       try {
         // Try primary API first
-        response = await apiClient.get<EnhancedPotentialPartner[]>(
+        const response = await apiClient.get<EnhancedPotentialPartner[]>(
           `/api/partnerships/store/${request.storeId}/potential-partners?${params.toString()}`
         );
+        partnersList = response;
       } catch (primaryError) {
         this.logError('Primary search API failed', primaryError);
         // Fallback to alternative API service
-        response = await apiService.get<
+        const response = await apiService.get<
           ApiResponse<EnhancedPotentialPartner[]>
         >(
           `/api/partnerships/store/${request.storeId}/potential-partners?${params.toString()}`
         );
+        partnersList = response.data || [];
       }
 
-      console.log('🔍 Raw API response:', response);
-      console.log('🔍 Response data:', response);
-
-      const partnersList = Array.isArray(response) ? response : response;
+      console.log('🔍 Raw API response:', partnersList);
+      console.log('🔍 Response data:', partnersList);
 
       this.logOperation('Partner search completed successfully', {
-        resultCount: (partnersList || []).length,
+        resultCount: partnersList.length,
         storeId: request.storeId,
       });
 
-      return partnersList || [];
+      return partnersList;
     } catch (error: unknown) {
       this.logError('searchPotentialPartners', error);
       // Enhanced fallback with empty array

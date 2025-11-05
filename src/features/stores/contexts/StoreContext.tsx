@@ -3,9 +3,20 @@
  * Follows established patterns from AuthContext and other features
  */
 
-import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+} from 'react';
+import type { ReactNode } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import type { Store, StoreAddress, StoreCategory, StoreImage } from '../../../shared/types/store';
+import type {
+  Store,
+  StoreAddress,
+  StoreCategory,
+  StoreImage,
+} from '../../../shared/types/store';
 import type { StoreError } from '../hooks/useStoreErrorHandler';
 
 // Store state types
@@ -43,13 +54,28 @@ export type StoreAction =
   | { type: 'ADD_STORE'; payload: Store }
   | { type: 'UPDATE_STORE'; payload: Store }
   | { type: 'DELETE_STORE'; payload: number }
-  | { type: 'SET_STORE_ADDRESSES'; payload: { storeId: number; addresses: StoreAddress[] } }
-  | { type: 'SET_STORE_CATEGORIES'; payload: { storeId: number; categories: StoreCategory[] } }
-  | { type: 'SET_STORE_IMAGES'; payload: { storeId: number; images: StoreImage[] } }
+  | {
+      type: 'SET_STORE_ADDRESSES';
+      payload: { storeId: number; addresses: StoreAddress[] };
+    }
+  | {
+      type: 'SET_STORE_CATEGORIES';
+      payload: { storeId: number; categories: StoreCategory[] };
+    }
+  | {
+      type: 'SET_STORE_IMAGES';
+      payload: { storeId: number; images: StoreImage[] };
+    }
   | { type: 'SET_LOADING_STORES'; payload: boolean }
-  | { type: 'SET_LOADING_STORE_DETAILS'; payload: { storeId: number; loading: boolean } }
+  | {
+      type: 'SET_LOADING_STORE_DETAILS';
+      payload: { storeId: number; loading: boolean };
+    }
   | { type: 'SET_STORES_ERROR'; payload: StoreError | null }
-  | { type: 'SET_STORE_DETAILS_ERROR'; payload: { storeId: number; error: StoreError | null } }
+  | {
+      type: 'SET_STORE_DETAILS_ERROR';
+      payload: { storeId: number; error: StoreError | null };
+    }
   | { type: 'SET_CREATING_STORE'; payload: boolean }
   | { type: 'SET_STORE_CREATION_ERROR'; payload: StoreError | null }
   | { type: 'SET_UPDATING_STORE'; payload: boolean }
@@ -107,7 +133,7 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
     case 'UPDATE_STORE':
       return {
         ...state,
-        stores: state.stores.map(store =>
+        stores: state.stores.map((store) =>
           store.storeId === action.payload.storeId ? action.payload : store
         ),
         selectedStore:
@@ -120,12 +146,28 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
     case 'DELETE_STORE':
       return {
         ...state,
-        stores: state.stores.filter(store => store.storeId !== action.payload),
+        stores: state.stores.filter(
+          (store) => store.storeId !== action.payload
+        ),
         selectedStore:
-          state.selectedStore?.storeId === action.payload ? null : state.selectedStore,
-        storeAddresses: new Map([...state.storeAddresses].filter(([storeId]) => storeId !== action.payload)),
-        storeCategories: new Map([...state.storeCategories].filter(([storeId]) => storeId !== action.payload)),
-        storeImages: new Map([...state.storeImages].filter(([storeId]) => storeId !== action.payload)),
+          state.selectedStore?.storeId === action.payload
+            ? null
+            : state.selectedStore,
+        storeAddresses: new Map(
+          [...state.storeAddresses].filter(
+            ([storeId]) => storeId !== action.payload
+          )
+        ),
+        storeCategories: new Map(
+          [...state.storeCategories].filter(
+            ([storeId]) => storeId !== action.payload
+          )
+        ),
+        storeImages: new Map(
+          [...state.storeImages].filter(
+            ([storeId]) => storeId !== action.payload
+          )
+        ),
       };
 
     case 'SET_STORE_ADDRESSES':
@@ -292,13 +334,25 @@ export function StoreProvider({ children }: StoreProviderProps) {
       dispatch({ type: 'DELETE_STORE', payload: storeId });
     }, []),
 
-    setStoreAddresses: useCallback((storeId: number, addresses: StoreAddress[]) => {
-      dispatch({ type: 'SET_STORE_ADDRESSES', payload: { storeId, addresses } });
-    }, []),
+    setStoreAddresses: useCallback(
+      (storeId: number, addresses: StoreAddress[]) => {
+        dispatch({
+          type: 'SET_STORE_ADDRESSES',
+          payload: { storeId, addresses },
+        });
+      },
+      []
+    ),
 
-    setStoreCategories: useCallback((storeId: number, categories: StoreCategory[]) => {
-      dispatch({ type: 'SET_STORE_CATEGORIES', payload: { storeId, categories } });
-    }, []),
+    setStoreCategories: useCallback(
+      (storeId: number, categories: StoreCategory[]) => {
+        dispatch({
+          type: 'SET_STORE_CATEGORIES',
+          payload: { storeId, categories },
+        });
+      },
+      []
+    ),
 
     setStoreImages: useCallback((storeId: number, images: StoreImage[]) => {
       dispatch({ type: 'SET_STORE_IMAGES', payload: { storeId, images } });
@@ -309,16 +363,25 @@ export function StoreProvider({ children }: StoreProviderProps) {
     }, []),
 
     setLoadingStoreDetails: useCallback((storeId: number, loading: boolean) => {
-      dispatch({ type: 'SET_LOADING_STORE_DETAILS', payload: { storeId, loading } });
+      dispatch({
+        type: 'SET_LOADING_STORE_DETAILS',
+        payload: { storeId, loading },
+      });
     }, []),
 
     setStoresError: useCallback((error: StoreError | null) => {
       dispatch({ type: 'SET_STORES_ERROR', payload: error });
     }, []),
 
-    setStoreDetailsError: useCallback((storeId: number, error: StoreError | null) => {
-      dispatch({ type: 'SET_STORE_DETAILS_ERROR', payload: { storeId, error } });
-    }, []),
+    setStoreDetailsError: useCallback(
+      (storeId: number, error: StoreError | null) => {
+        dispatch({
+          type: 'SET_STORE_DETAILS_ERROR',
+          payload: { storeId, error },
+        });
+      },
+      []
+    ),
 
     setCreatingStore: useCallback((creating: boolean) => {
       dispatch({ type: 'SET_CREATING_STORE', payload: creating });
@@ -352,11 +415,14 @@ export function StoreProvider({ children }: StoreProviderProps) {
     }
   }, [user?.userId, actions]);
 
-  const contextValue = React.useMemo(() => ({
-    state,
-    dispatch,
-    actions,
-  }), [state, actions]);
+  const contextValue = React.useMemo(
+    () => ({
+      state,
+      dispatch,
+      actions,
+    }),
+    [state, actions]
+  );
 
   return (
     <StoreContext.Provider value={contextValue}>
@@ -378,7 +444,7 @@ export function useStore() {
 export function useStoreById(storeId: number) {
   const { state } = useStore();
 
-  const store = state.stores.find(s => s.storeId === storeId) || null;
+  const store = state.stores.find((s) => s.storeId === storeId) || null;
   const addresses = state.storeAddresses.get(storeId) || [];
   const categories = state.storeCategories.get(storeId) || [];
   const images = state.storeImages.get(storeId) || [];

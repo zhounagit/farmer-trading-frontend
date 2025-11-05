@@ -271,7 +271,6 @@ const UserDashboard: React.FC = () => {
     <Box>
       {/* Header */}
       <Header onLoginClick={handleLoginClick} />
-
       <Container maxWidth='lg' sx={{ py: 4 }}>
         {/* Dashboard Content */}
         <Box sx={{ mb: 3 }}>
@@ -285,7 +284,7 @@ const UserDashboard: React.FC = () => {
         {/* Quick Stats */}
         {user.hasStore ? (
           // Store owner stats
-          <Box
+          (<Box
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -367,10 +366,10 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
-          </Box>
+          </Box>)
         ) : (
           // Regular customer stats
-          <Box
+          (<Box
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -472,7 +471,7 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
-          </Box>
+          </Box>)
         )}
 
         {/* Main Dashboard Content */}

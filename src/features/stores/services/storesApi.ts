@@ -17,7 +17,6 @@ import type {
   StoreListResponse,
   StoreAccessResponse,
   StoreStatsResponse,
-  StoreSearchParams,
   StoreFilters,
 } from '../../../shared/types/store';
 
@@ -562,7 +561,7 @@ export class StoresApiService {
   }
 
   // Store Status Management
-  static async submitForApproval(storeId: number): Promise<ApiResponse> {
+  static async submitForApproval(): Promise<ApiResponse> {
     // Note: Submit for approval endpoint not implemented in backend
     throw new Error(
       'Submit for approval functionality not implemented in backend'
@@ -608,8 +607,8 @@ export class StoresApiService {
   }
 
   static async duplicateStore(
-    storeId: number,
-    newStoreName: string
+    _storeId: number,
+    _newStoreName: string
   ): Promise<Store> {
     // Note: Duplicate store endpoint not implemented in backend
     throw new Error('Duplicate store functionality not implemented in backend');
@@ -635,10 +634,10 @@ export class StoresApiService {
 
   // Analytics and Insights
   static async getStoreAnalytics(
-    storeId: number,
+    _storeId: number,
     startDate: string,
     endDate: string,
-    metrics: string[] = ['views', 'orders', 'revenue']
+    _metrics: string[] = ['views', 'orders', 'revenue']
   ): Promise<Record<string, unknown>> {
     // Note: Store analytics endpoint not implemented in backend
     // Return mock analytics data
@@ -650,7 +649,7 @@ export class StoresApiService {
     };
   }
 
-  static async getStoreInsights(storeId: number): Promise<{
+  static async getStoreInsights(_storeId: number): Promise<{
     recommendations: string[];
     optimization: Record<string, unknown>;
     performance: Record<string, unknown>;

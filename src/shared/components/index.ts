@@ -1,7 +1,11 @@
 // Main export for shared components
 export * from './ui';
-export * from './layout';
-export * from './forms';
+// Layout components (excluding Grid to avoid conflict with MUI Grid)
+export { default as Container } from './layout/Container';
+export type { ContainerProps } from './layout/Container';
+export { default as Stack } from './layout/Stack';
+export type { StackProps } from './layout/Stack';
+export { FormField, type FormFieldProps } from './forms';
 export * from './feedback';
 
 // Component composition utilities
@@ -24,7 +28,12 @@ export interface BaseComponentProps {
 export type ComponentSize = 'small' | 'medium' | 'large';
 
 // Color variants used across components
-export type ComponentVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ComponentVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger';
 
 // Loading states
 export type LoadingState = 'idle' | 'loading' | 'success' | 'error';

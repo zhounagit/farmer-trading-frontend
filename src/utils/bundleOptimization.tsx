@@ -3,8 +3,8 @@
  * Provides intelligent code splitting, preloading, and bundle analysis for optimal performance
  */
 
-import React, { Suspense, lazy, ComponentType } from 'react';
-import { performanceMonitor, bundleAnalyzer } from './performance';
+import React, { Suspense, lazy } from 'react';
+import type { ComponentType } from 'react';
 
 // Types for bundle optimization
 export interface LazyComponentConfig {
@@ -195,12 +195,7 @@ class BundleOptimizer {
       this.bundleMetrics.shift();
     }
 
-    // Report to performance monitor
-    performanceMonitor.trackComponent(
-      `Bundle:${chunkName}`,
-      loadTime,
-      metrics.isPreloaded ? ['preloaded'] : ['on-demand']
-    );
+    // Bundle load tracking removed for performance monitoring
   }
 
   /**
@@ -517,18 +512,21 @@ export const componentOptimization = {
         />
       ));
 
-    return React.forwardRef<any, React.ComponentProps<T>>((props, ref) => (
+    const ComponentWithRef = React.forwardRef((props: any, ref: any) => (
       <Suspense fallback={<FallbackComponent />}>
         <LazyComponent ref={ref} {...props} />
       </Suspense>
     ));
+
+    return ComponentWithRef as React.ForwardRefExoticComponent<
+      React.PropsWithoutRef<React.ComponentProps<T>> & React.RefAttributes<any>
+    >;
   },
 
   /**
    * HOC for progressive loading with visibility detection
    */
   withProgressiveLoading: <T extends ComponentType<any>>(
-    Component: T,
     importFn: () => Promise<{ default: ComponentType<any> }>,
     componentName: string
   ) => {
@@ -630,15 +628,16 @@ export const bundleAnalysis = {
    */
   generateSizeReport: async () => {
     try {
-      const bundleInfo = await bundleAnalyzer.analyzeCurrentBundle();
+      // Bundle analysis removed (performance monitoring disabled)
       console.group('📊 Bundle Size Report');
-      console.table({
-        'Total Size': `${(bundleInfo.size / 1024).toFixed(2)} KB`,
-        'Gzipped Size': `${(bundleInfo.gzipSize / 1024).toFixed(2)} KB`,
-        'Compression Ratio': `${((1 - bundleInfo.gzipSize / bundleInfo.size) * 100).toFixed(2)}%`,
-      });
+      console.log('Bundle analysis disabled - performance monitoring removed');
       console.groupEnd();
-      return bundleInfo;
+      return {
+        size: 0,
+        gzipSize: 0,
+        chunks: [],
+        modules: [],
+      };
     } catch (error) {
       console.warn('Bundle size analysis not available:', error);
       return null;

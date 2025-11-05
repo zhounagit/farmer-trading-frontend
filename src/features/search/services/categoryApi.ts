@@ -272,57 +272,6 @@ class CategoryApiService {
     }
   }
 
-  // Enhanced helper method to map backend category data to frontend interface
-  // Note: This method is currently unused but kept for future compatibility
-  private mapCategoryData(backendData: unknown): ProductCategory {
-    try {
-      this.logOperation('Mapping category data from backend');
-
-      const data = backendData as Record<string, unknown>;
-      const mappedCategory = {
-        categoryId: (data.categoryId || data.CategoryId) as number,
-        name: (data.name || data.Name || '') as string,
-        description: (data.description || data.Description) as
-          | string
-          | undefined,
-        slug: (data.slug || data.Slug || '') as string,
-        sortOrder: (data.sortOrder || data.SortOrder || 0) as number,
-        isActive:
-          data.isActive !== undefined
-            ? (data.isActive as boolean)
-            : data.IsActive !== undefined
-              ? (data.IsActive as boolean)
-              : true,
-        createdAt: (data.createdAt ||
-          data.CreatedAt ||
-          new Date().toISOString()) as string,
-        updatedAt: (data.updatedAt ||
-          data.UpdatedAt ||
-          new Date().toISOString()) as string,
-      };
-
-      this.logOperation('Category data mapped successfully', {
-        categoryId: mappedCategory.categoryId,
-        name: mappedCategory.name,
-      });
-
-      return mappedCategory;
-    } catch (error: unknown) {
-      this.logError('mapCategoryData', error);
-      // Enhanced fallback for mapping errors
-      return {
-        categoryId: 0,
-        name: 'Unknown Category',
-        description: 'Failed to load category data',
-        slug: 'unknown',
-        sortOrder: 0,
-        isActive: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-  }
-
   // Enhanced helper method to get categories formatted for select dropdown
   async getCategoriesForSelect(): Promise<
     Array<{ value: number; label: string; description?: string }>

@@ -56,9 +56,8 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
         Provide the address and details for your farmers market or other pickup
         locations.
       </Typography>
-
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Location Name'
             placeholder='e.g., Downtown Farmers Market, Community Center'
@@ -75,7 +74,7 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Address'
             placeholder='Enter street address'
@@ -89,7 +88,11 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             label='City'
             placeholder='Enter city'
@@ -103,7 +106,11 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             label='State/Province'
             placeholder='Enter state or province'
@@ -117,7 +124,11 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             label='Postal Code'
             placeholder='Enter postal code'
@@ -131,7 +142,11 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6
+          }}>
           <TextField
             label='Country'
             placeholder='Enter country'
@@ -145,7 +160,7 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Operating Hours'
             placeholder='e.g., Saturdays 8am-1pm, Wednesdays 3pm-7pm'
@@ -164,7 +179,7 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Pickup Instructions'
             placeholder='Enter pickup instructions for customers'
@@ -184,7 +199,7 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <FormControlLabel
             control={
               <Checkbox
@@ -202,7 +217,7 @@ export const PickupPointAddressForm: React.FC<PickupPointAddressFormProps> = ({
         </Grid>
 
         {isSeasonal && (
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label='Seasonal Dates'
               placeholder='e.g., May 1 - October 31'

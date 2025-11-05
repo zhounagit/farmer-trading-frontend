@@ -54,7 +54,7 @@ const StoreOverviewSection: React.FC = () => {
 
   const [comprehensiveStoreData, setComprehensiveStoreData] =
     useState<EnhancedStoreDto | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch comprehensive store data when primary store is available

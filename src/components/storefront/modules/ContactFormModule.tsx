@@ -21,7 +21,7 @@ import { LoadingButton } from '@mui/lab';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface ContactFormModuleProps {
   module: StorefrontModule;
@@ -38,10 +38,7 @@ interface ContactFormData {
   inquiryType?: string;
 }
 
-const ContactFormModule: React.FC<ContactFormModuleProps> = ({
-  module,
-  storefront,
-}) => {
+const ContactFormModule: React.FC<ContactFormModuleProps> = ({ module }) => {
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -451,9 +448,7 @@ const ContactFormModule: React.FC<ContactFormModuleProps> = ({
                       variant='h6'
                       sx={{ fontWeight: 700, color: '#F59E0B', mb: 1 }}
                     >
-                      {storeContactInfo.storePhone ||
-                        storefront.store.contactPhone ||
-                        '1-800-BUSINESS'}
+                      {storeContactInfo.storePhone || '1-800-BUSINESS'}
                     </Typography>
                     <Typography
                       variant='body2'
@@ -480,9 +475,7 @@ const ContactFormModule: React.FC<ContactFormModuleProps> = ({
                       variant='body1'
                       sx={{ fontWeight: 600, color: '#F59E0B', mb: 1 }}
                     >
-                      {storeContactInfo.storeEmail ||
-                        storefront.store.contactEmail ||
-                        'sales@company.com'}
+                      {storeContactInfo.storeEmail || 'sales@company.com'}
                     </Typography>
                     <Typography
                       variant='body2'

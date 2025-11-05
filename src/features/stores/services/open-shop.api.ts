@@ -94,17 +94,11 @@ export class OpenShopApiService {
   /**
    * Get store video
    */
-  static async getStoreVideo(
-    storeId: number
-  ): Promise<ApiResponse<StoreImage | null>> {
+  static async getStoreVideo(storeId: number): Promise<StoreImage | null> {
     try {
-      const response = await apiService.get<ApiResponse<StoreImage | null>>(
+      const response = await apiService.get<StoreImage | null>(
         `${this.BASE_PATH}/${storeId}/video`
       );
-
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to get store video');
-      }
 
       return response;
     } catch (error) {
@@ -525,8 +519,7 @@ export class OpenShopApiService {
    */
   static async uploadLogo(
     storeId: number,
-    logoFile: File,
-    onProgress?: (progress: number) => void
+    logoFile: File
   ): Promise<StoreImage> {
     console.log('🎨 === OpenShopApiService.uploadLogo CALLED ===');
     console.log('Store ID:', storeId);
@@ -547,11 +540,7 @@ export class OpenShopApiService {
     console.log('🚀 About to call apiService.upload...');
 
     try {
-      const result = await apiService.upload<StoreImage>(
-        endpoint,
-        formData,
-        onProgress
-      );
+      const result = await apiService.upload<StoreImage>(endpoint, formData);
       console.log('✅ Upload successful:', result);
       return result;
     } catch (error) {
@@ -565,8 +554,7 @@ export class OpenShopApiService {
    */
   static async uploadBanner(
     storeId: number,
-    bannerFile: File,
-    onProgress?: (progress: number) => void
+    bannerFile: File
   ): Promise<StoreImage> {
     console.log('🖼️ === OpenShopApiService.uploadBanner CALLED ===');
     console.log('Store ID:', storeId);
@@ -583,11 +571,7 @@ export class OpenShopApiService {
     console.log('🌐 API endpoint:', endpoint);
 
     try {
-      const result = await apiService.upload<StoreImage>(
-        endpoint,
-        formData,
-        onProgress
-      );
+      const result = await apiService.upload<StoreImage>(endpoint, formData);
       console.log('✅ Banner upload successful:', result);
       return result;
     } catch (error) {
@@ -601,8 +585,7 @@ export class OpenShopApiService {
    */
   static async uploadGalleryImages(
     storeId: number,
-    imageFiles: File[],
-    onProgress?: (progress: number) => void
+    imageFiles: File[]
   ): Promise<StoreImage[]> {
     console.log('🖼️ === OpenShopApiService.uploadGalleryImages CALLED ===');
     console.log('Store ID:', storeId);
@@ -624,11 +607,7 @@ export class OpenShopApiService {
     console.log('🌐 API endpoint:', endpoint);
 
     try {
-      const result = await apiService.upload<StoreImage[]>(
-        endpoint,
-        formData,
-        onProgress
-      );
+      const result = await apiService.upload<StoreImage[]>(endpoint, formData);
       console.log('✅ Gallery upload successful:', result);
       return result;
     } catch (error) {

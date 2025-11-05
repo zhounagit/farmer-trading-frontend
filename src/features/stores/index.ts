@@ -8,7 +8,7 @@ export { default as StoreApplicationsList } from './components/StoreApplications
 // Export store creation wizard steps
 export { default as BrandingStep } from './components/steps/BrandingStep';
 export { default as LocationLogisticsStep } from './components/steps/LocationLogisticsStep';
-export { default as LocationLogisticsStepEnhanced } from './components/steps/LocationLogisticsStepEnhanced';
+
 export { default as ReviewSubmitStep } from './components/steps/ReviewSubmitStep';
 export { default as StoreBasicsStep } from './components/steps/StoreBasicsStep';
 export { default as StorePoliciesStep } from './components/steps/StorePoliciesStep';

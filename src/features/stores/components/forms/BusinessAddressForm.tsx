@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Grid, TextField, Paper } from '@mui/material';
+import { Typography, Grid, TextField, Paper } from '@mui/material';
 
 interface BusinessAddressFormProps {
   formState: any;
@@ -35,9 +35,8 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
         Provide your main business address. This will be used for official
         communications and business registration.
       </Typography>
-
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Street Address'
             placeholder='Enter street address'
@@ -51,7 +50,12 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+          }}
+        >
           <TextField
             label='City'
             placeholder='Enter city'
@@ -65,7 +69,12 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+          }}
+        >
           <TextField
             label='State/Province'
             placeholder='Enter state or province'
@@ -79,7 +88,12 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+          }}
+        >
           <TextField
             label='Postal Code'
             placeholder='Enter postal code'
@@ -93,7 +107,12 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+          }}
+        >
           <TextField
             label='Country'
             placeholder='Enter country'
@@ -107,7 +126,7 @@ export const BusinessAddressForm: React.FC<BusinessAddressFormProps> = ({
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label='Additional Address Information'
             placeholder='Optional additional information'

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Table,
@@ -12,7 +11,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Alert,
   CircularProgress,
   Stack,
@@ -26,14 +24,14 @@ import { apiService } from '../../../shared/services/api-service';
 import { useAuth } from '../../../contexts/AuthContext';
 
 // Define interfaces locally to avoid import issues
-enum SubmissionStatus {
-  PENDING = 'pending',
-  UNDER_REVIEW = 'under_review',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  REVISION_REQUESTED = 'revision_requested',
-  RESUBMITTED = 'resubmitted',
-}
+const SubmissionStatus = {
+  PENDING: 'pending',
+  UNDER_REVIEW: 'under_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  REVISION_REQUESTED: 'revision_requested',
+  RESUBMITTED: 'resubmitted',
+} as const;
 
 interface StoreSubmission {
   submissionId: string;
@@ -46,7 +44,7 @@ interface StoreSubmission {
   ownerName: string;
   ownerEmail: string;
   ownerPhone: string;
-  status: SubmissionStatus;
+  status: keyof typeof SubmissionStatus;
   submittedAt: string;
   reviewedAt?: string;
   reviewerName?: string;
@@ -98,13 +96,13 @@ const StoreApplicationsList: React.FC = () => {
 
   // Authentication guard - redirect to login if not authenticated as admin
   useEffect(() => {
-    if (!isAuthenticated || !user || user.userType !== 'Admin') {
+    if (!isAuthenticated || !user || user.userType !== 'admin') {
       navigate('/login');
     }
   }, [isAuthenticated, user, navigate]);
 
   // Don't render if not authenticated as admin
-  if (!isAuthenticated || !user || user.userType !== 'Admin') {
+  if (!isAuthenticated || !user || user.userType !== 'admin') {
     return null;
   }
 
@@ -120,7 +118,7 @@ const StoreApplicationsList: React.FC = () => {
   });
 
   const getStatusColor = (
-    status: SubmissionStatus
+    status: keyof typeof SubmissionStatus
   ):
     | 'default'
     | 'primary'
@@ -130,23 +128,27 @@ const StoreApplicationsList: React.FC = () => {
     | 'success'
     | 'warning' => {
     switch (status) {
-      case SubmissionStatus.PENDING:
+      case 'PENDING':
         return 'warning';
-      case SubmissionStatus.UNDER_REVIEW:
+      case 'UNDER_REVIEW':
         return 'info';
-      case SubmissionStatus.APPROVED:
+      case 'APPROVED':
         return 'success';
-      case SubmissionStatus.REJECTED:
+      case 'REJECTED':
         return 'error';
-      case SubmissionStatus.REVISION_REQUESTED:
+      case 'REVISION_REQUESTED':
         return 'secondary';
+      case 'RESUBMITTED':
+        return 'primary';
       default:
         return 'default';
     }
   };
 
-  const getStatusLabel = (status: SubmissionStatus): string => {
-    return status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const getStatusLabel = (status: keyof typeof SubmissionStatus): string => {
+    return status
+      .replace('_', ' ')
+      .replace(/\b\w/g, (l: string) => l.toUpperCase());
   };
 
   const handleViewApplication = (submissionId: string) => {

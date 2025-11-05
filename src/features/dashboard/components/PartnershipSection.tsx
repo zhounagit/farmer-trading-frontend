@@ -94,7 +94,6 @@ const PartnershipSection: React.FC<PartnershipSectionProps> = ({
       );
 
       const response = await partnershipsApi.getPartnershipsByStoreId(storeId, {
-        storeId,
         // Remove status filter to get both pending and active partnerships
         partnerType: isProducerStore ? 'processor' : 'producer',
       });

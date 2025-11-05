@@ -19,30 +19,6 @@ export { default as DashboardApiService } from '../../features/dashboard/service
 export { CategoryApiService } from '../../features/search/services/categoryApi';
 export { UserApiService } from '../../features/account-settings/services/userApiService';
 
-// GraphQL Services
-export {
-  graphqlClient,
-  hybridApiClient,
-  COMMON_QUERIES,
-  COMMON_FRAGMENTS,
-} from './graphqlClient';
-export {
-  GraphQLServices,
-  SmartApiClient,
-  shouldUseGraphQL,
-  GraphQLStoresService,
-  GraphQLInventoryService,
-  GraphQLPartnershipsService,
-  GraphQLDashboardService,
-} from './graphqlServices';
-export type {
-  GraphQLResponse,
-  GraphQLVariables,
-  UserWithStores,
-  GlobalSearchResults,
-  DashboardAnalytics,
-} from './graphqlClient';
-
 // Default exports for backwards compatibility
 export { AuthApiService as AuthApi } from '../../features/auth/services/authApi';
 export { StoresApiService as StoresApi } from '../../features/stores/services/storesApi';
@@ -63,10 +39,5 @@ export const createApiInstance = () => {
 export const getApiHealth = async () => {
   // Import the apiClient locally to avoid circular dependency issues
   const { apiClient: client } = require('./apiClient');
-  return await client.healthCheck();
-};
-
-export const getGraphQLHealth = async () => {
-  const { graphqlClient: client } = require('./graphqlClient');
   return await client.healthCheck();
 };

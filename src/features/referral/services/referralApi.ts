@@ -16,7 +16,9 @@ export class ReferralApiService {
   /**
    * Get referral history for a user (who registered using their code)
    */
-  static async getReferralHistory(userId: number): Promise<ReferralHistoryItem[]> {
+  static async getReferralHistory(
+    userId: number
+  ): Promise<ReferralHistoryItem[]> {
     try {
       const response = await apiService.get<ReferralHistoryItem[]>(
         API_ENDPOINTS.REFERRAL.HISTORY(userId)
@@ -32,7 +34,9 @@ export class ReferralApiService {
   /**
    * Get referral code usage info for current user (what code they used when registering)
    */
-  static async getReferralCodeUsage(userId: number): Promise<ReferralCodeUsageInfo | null> {
+  static async getReferralCodeUsage(
+    userId: number
+  ): Promise<ReferralCodeUsageInfo | null> {
     try {
       const response = await apiService.get<ReferralCodeUsageInfo>(
         API_ENDPOINTS.REFERRAL.USAGE_INFO(userId)
@@ -48,7 +52,9 @@ export class ReferralApiService {
   /**
    * Update referrer for a user (admin/user can assign referral code to someone who forgot)
    */
-  static async updateReferrer(request: UpdateReferrerRequest): Promise<boolean> {
+  static async updateReferrer(
+    request: UpdateReferrerRequest
+  ): Promise<boolean> {
     try {
       await apiService.post<void>(
         API_ENDPOINTS.REFERRAL.UPDATE_REFERRER,
@@ -83,7 +89,7 @@ export class ReferralApiService {
       ),
       whatsappText: encodeURIComponent(
         `Hey! Join Farmer Trading with my referral link and discover amazing fresh produce: ${referralUrl}`
-      )
+      ),
     };
   }
 
@@ -96,34 +102,38 @@ export class ReferralApiService {
     usageInfo: ReferralCodeUsageInfo | null;
   }> {
     try {
-      const [referralInfoResponse, historyResponse, usageInfoResponse] = await Promise.allSettled([
-        apiService.get<ReferralInfo>(API_ENDPOINTS.USERS.REFERRAL_INFO(userId)),
-        this.getReferralHistory(userId),
-        this.getReferralCodeUsage(userId)
-      ]);
+      const [referralInfoResponse, historyResponse, usageInfoResponse] =
+        await Promise.allSettled([
+          apiService.get<ReferralInfo>(
+            API_ENDPOINTS.USERS.REFERRAL_INFO(userId)
+          ),
+          this.getReferralHistory(userId),
+          this.getReferralCodeUsage(userId),
+        ]);
 
-      const referralInfo = referralInfoResponse.status === 'fulfilled'
-        ? referralInfoResponse.value
-        : {
-            referralCode: '',
-            totalReferrals: 0,
-            activeReferrals: 0,
-            referralCredits: 0,
-            referralLink: ''
-          };
+      const referralInfo =
+        referralInfoResponse.status === 'fulfilled'
+          ? referralInfoResponse.value
+          : {
+              myReferralCode: '',
+              totalReferrals: 0,
+              activeReferrals: 0,
+              referralCredits: 0,
+              referralLink: '',
+            };
 
-      const history = historyResponse.status === 'fulfilled'
-        ? historyResponse.value
-        : [];
+      const history =
+        historyResponse.status === 'fulfilled' ? historyResponse.value : [];
 
-      const usageInfo = usageInfoResponse.status === 'fulfilled'
-        ? usageInfoResponse.value
-        : null;
+      const usageInfo =
+        usageInfoResponse.status === 'fulfilled'
+          ? usageInfoResponse.value
+          : null;
 
       return {
         referralInfo,
         history,
-        usageInfo
+        usageInfo,
       };
     } catch (error) {
       console.error('Error fetching complete referral data:', error);

@@ -344,8 +344,8 @@ const OpenShopPage: React.FC = () => {
       try {
         const videoResponse =
           await OpenShopApiService.getStoreVideo(editStoreId);
-        if (videoResponse.success && videoResponse.data) {
-          videoData = videoResponse.data;
+        if (videoResponse) {
+          videoData = videoResponse;
         }
       } catch (error) {
         console.warn('Failed to fetch video data:', error);

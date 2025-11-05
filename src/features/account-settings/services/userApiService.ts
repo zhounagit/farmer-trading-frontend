@@ -27,7 +27,7 @@ export interface UserStats {
 }
 
 export interface ReferralInfo {
-  referralCode: string;
+  myReferralCode: string;
   totalReferrals: number;
   activeReferrals: number;
   referralCredits: number;

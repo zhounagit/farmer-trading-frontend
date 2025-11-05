@@ -17,7 +17,6 @@ import {
   Chip,
   Button,
   Pagination,
-  CircularProgress,
   Alert,
   Avatar,
   IconButton,
@@ -167,7 +166,7 @@ const BrowseStorefrontsPage: React.FC = () => {
   const renderFilters = () => (
     <Paper sx={{ p: 3, mb: 3 }}>
       <Grid container spacing={3} alignItems='center'>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <TextField
             fullWidth
             placeholder='Search stores...'
@@ -185,7 +184,7 @@ const BrowseStorefrontsPage: React.FC = () => {
           />
         </Grid>
 
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <FormControl fullWidth size='small'>
             <InputLabel>Category</InputLabel>
             <Select
@@ -204,7 +203,7 @@ const BrowseStorefrontsPage: React.FC = () => {
           </FormControl>
         </Grid>
 
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <TextField
             fullWidth
             placeholder='Location...'
@@ -222,7 +221,7 @@ const BrowseStorefrontsPage: React.FC = () => {
           />
         </Grid>
 
-        <Grid item xs={12} md={2}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <Button
             fullWidth
             variant='outlined'
@@ -240,7 +239,7 @@ const BrowseStorefrontsPage: React.FC = () => {
     const isFavorited = favorites.has(storefront.storeId);
 
     return (
-      <Grid item xs={12} sm={6} md={4} key={storefront.storeId}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={storefront.storeId}>
         <Card
           sx={{
             height: '100%',
@@ -338,10 +337,10 @@ const BrowseStorefrontsPage: React.FC = () => {
                         (category: Record<string, unknown>, index: number) => (
                           <Chip
                             key={index}
-                            label={
+                            label={String(
                               (category.category as Record<string, unknown>)
                                 ?.name || category.name
-                            }
+                            )}
                             size='small'
                             variant='outlined'
                             sx={{ fontSize: '0.7rem' }}
@@ -368,15 +367,15 @@ const BrowseStorefrontsPage: React.FC = () => {
                     sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }}
                   />
                   <Typography variant='body2' color='text.secondary'>
-                    {
+                    {String(
                       (storefront.store.addresses[0] as Record<string, unknown>)
                         .city
-                    }
+                    )}
                     ,{' '}
-                    {
+                    {String(
                       (storefront.store.addresses[0] as Record<string, unknown>)
                         .state
-                    }
+                    )}
                   </Typography>
                 </Box>
               )}
@@ -420,7 +419,7 @@ const BrowseStorefrontsPage: React.FC = () => {
   const renderLoadingSkeletons = () => (
     <Grid container spacing={3}>
       {Array.from({ length: 9 }).map((_, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
           <Card>
             <Skeleton variant='rectangular' height={200} />
             <CardContent>

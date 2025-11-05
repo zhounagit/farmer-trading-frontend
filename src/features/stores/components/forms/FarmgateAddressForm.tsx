@@ -56,7 +56,6 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
         Provide the address where customers can pick up orders directly from
         your farm.
       </Typography>
-
       <FormControlLabel
         control={
           <Checkbox
@@ -72,10 +71,9 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
         label='Same as business address'
         sx={{ mb: 3 }}
       />
-
       {!sameAsBusiness && (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label='Farm Address'
               placeholder='Enter farm street address'
@@ -89,7 +87,11 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6
+            }}>
             <TextField
               label='City'
               placeholder='Enter city'
@@ -103,7 +105,11 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6
+            }}>
             <TextField
               label='State/Province'
               placeholder='Enter state or province'
@@ -117,7 +123,11 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6
+            }}>
             <TextField
               label='Postal Code'
               placeholder='Enter postal code'
@@ -131,7 +141,11 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6
+            }}>
             <TextField
               label='Country'
               placeholder='Enter country'
@@ -145,7 +159,7 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label='Pickup Instructions'
               placeholder='Enter pickup instructions for customers'
@@ -165,7 +179,7 @@ export const FarmgateAddressForm: React.FC<FarmgateAddressFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label='Farmgate Business Hours'
               placeholder='e.g., Mon-Fri 9am-5pm, Sat 10am-2pm'

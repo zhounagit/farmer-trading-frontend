@@ -121,7 +121,7 @@ export const HowItWorksPage: React.FC = () => {
                   'Complete orders, earn referral commissions, and build your network for passive income',
               },
             ].map((item, index) => (
-              <Grid item xs={12} md={4} key={item.step}>
+              <Grid size={{ xs: 12, md: 4 }} key={item.step}>
                 <MotionCard
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -209,7 +209,7 @@ export const HowItWorksPage: React.FC = () => {
                 'Secure payment processing',
                 'Real-time inventory tracking',
               ].map((benefit, index) => (
-                <Grid item xs={12} sm={6} key={index}>
+                <Grid size={{ xs: 12, sm: 6 }} key={index}>
                   <Stack direction='row' spacing={2} alignItems='center'>
                     <CheckCircle color='success' />
                     <Typography variant='body1'>{benefit}</Typography>
@@ -236,7 +236,7 @@ export const HowItWorksPage: React.FC = () => {
       <Box sx={{ bgcolor: 'grey.900', color: 'white', py: { xs: 4, md: 6 } }}>
         <Box sx={{ width: '100%', px: { xs: 3, md: 4 } }}>
           <Grid container spacing={{ xs: 3, md: 4 }}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 HelloNeighbors
               </Typography>
@@ -246,7 +246,7 @@ export const HowItWorksPage: React.FC = () => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Features
               </Typography>
@@ -266,7 +266,7 @@ export const HowItWorksPage: React.FC = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Business Model
               </Typography>
@@ -283,7 +283,7 @@ export const HowItWorksPage: React.FC = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant='h6' fontWeight={600} sx={{ mb: 2 }}>
                 Join Our Ecosystem
               </Typography>

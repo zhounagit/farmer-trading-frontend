@@ -9,16 +9,12 @@ import {
   Paper,
   Avatar,
   Rating,
-  Chip,
   IconButton,
 } from '@mui/material';
 import {
   ShoppingCart,
-  Favorite,
-  Star,
   LocationOn,
   Phone,
-  Email,
   Facebook,
   Instagram,
   Twitter,
@@ -182,7 +178,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
         {/* About Section */}
         <Box sx={{ p: 3, backgroundColor: 'var(--theme-surface)' }}>
           <Grid container spacing={3} alignItems='center'>
-            <Grid item xs={8}>
+            <Grid size={{ xs: 8 }}>
               <Typography
                 variant='h5'
                 sx={{
@@ -209,7 +205,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
                     : 'We specialize in sustainable farming practices to bring you the highest quality organic produce, grown with care for both you and the environment.'}
               </Typography>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Avatar
                 sx={{
                   width: 80,
@@ -286,7 +282,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
           </Typography>
           <Grid container spacing={2}>
             {mockProducts.map((product) => (
-              <Grid item xs={4} key={product.id}>
+              <Grid size={{ xs: 4 }} key={product.id}>
                 <Card
                   sx={{
                     borderRadius: 'var(--theme-radius-md)',
@@ -459,7 +455,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
           }}
         >
           <Grid container spacing={2} alignItems='center'>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Box
                 sx={{
                   display: 'flex',
@@ -474,7 +470,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                 <IconButton size='small' sx={{ color: 'white' }}>
                   <Facebook sx={{ fontSize: 16 }} />
@@ -487,7 +483,7 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({ theme, className }) => {
                 </IconButton>
               </Box>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Box
                 sx={{
                   display: 'flex',

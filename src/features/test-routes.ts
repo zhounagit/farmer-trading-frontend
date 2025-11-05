@@ -36,15 +36,6 @@ export const validateRoutes = () => {
   }
 
   // Feature breakdown - return data instead of logging
-  const featureBreakdown = {
-    auth: authRoutes.length,
-    dashboard: dashboardRoutes.length,
-    stores: storesRoutes.length,
-    storefront: storefrontRoutes.length,
-    inventory: inventoryRoutes.length,
-    search: searchRoutes.length,
-    core: coreRoutes.length,
-  };
 
   return {
     totalRoutes: allFeatureRoutes.length,

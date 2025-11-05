@@ -15,7 +15,6 @@ import {
   bundleOptimizer,
   routeOptimization,
 } from '../utils/bundleOptimization';
-import { performanceMonitor, bundleAnalyzer } from '../utils/performance';
 
 // Use compatible loader function typing
 type LoaderArgs = {
@@ -52,12 +51,7 @@ const RoutePerformanceTracker = ({
       const loadTime = performance.now() - startTime;
       setRouteLoadTime(loadTime);
 
-      // Track in performance monitor
-      performanceMonitor.trackComponent(
-        `Route:${location.pathname}`,
-        loadTime,
-        ['route-navigation']
-      );
+      // Performance monitoring disabled
 
       // Preload related routes
       routeOptimization.preloadRelatedRoutes(location.pathname);
@@ -207,7 +201,7 @@ const NotFoundPage = () => {
 
   // Track 404 occurrences
   useEffect(() => {
-    performanceMonitor.trackComponent('Route:404', 0, ['page-not-found']);
+    // Performance monitoring disabled
   }, []);
 
   return (
@@ -325,11 +319,7 @@ class RouteErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Route Error:', error, errorInfo);
 
-    // Track error in performance monitor
-    performanceMonitor.trackComponent('Route:Error', 0, [
-      'route-error',
-      error.message,
-    ]);
+    // Performance monitoring disabled
   }
 
   render() {
@@ -387,12 +377,12 @@ const createOptimizedRoutes = () => {
     ...coreRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/');
+        // Bundle analysis disabled
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -401,20 +391,18 @@ const createOptimizedRoutes = () => {
     ...authRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/auth');
+        // Bundle analysis disabled
 
         // Preload dashboard for successful login
         if (route.path === '/login') {
-          setTimeout(() => {
-            routeOptimization.preloadRelatedRoutes('/dashboard');
-          }, 1000);
+          // Bundle preloading disabled
         }
 
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -423,21 +411,19 @@ const createOptimizedRoutes = () => {
     ...dashboardRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(
-          route.path || '/dashboard'
-        );
+        // Bundle analysis disabled
 
         // Preload commonly accessed routes from dashboard
         setTimeout(() => {
-          routeOptimization.preloadRelatedRoutes('/stores');
-          routeOptimization.preloadRelatedRoutes('/inventory');
-        }, 2000);
+          // Bundle preloading disabled
+          // Bundle preloading disabled
+        }, 1000);
 
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -446,7 +432,7 @@ const createOptimizedRoutes = () => {
     ...storesRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/stores');
+        // Bundle analysis disabled
 
         // Preload storefront customization for store pages
         if (params?.storeId) {
@@ -461,7 +447,7 @@ const createOptimizedRoutes = () => {
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+        // Bundle analysis disabled
         return result;
       },
     })),
@@ -470,9 +456,7 @@ const createOptimizedRoutes = () => {
     ...storefrontRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(
-          route.path || '/storefront'
-        );
+        // Bundle analysis disabled
 
         // Preload themes and modules data
         if (route.path?.includes('customize')) {
@@ -487,7 +471,7 @@ const createOptimizedRoutes = () => {
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+        // Bundle analysis disabled
         return result;
       },
     })),
@@ -496,21 +480,19 @@ const createOptimizedRoutes = () => {
     ...inventoryRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(
-          route.path || '/inventory'
-        );
+        // Bundle analysis disabled
 
         // Preload product-related routes
         setTimeout(() => {
-          routeOptimization.preloadRelatedRoutes('/products');
-          routeOptimization.preloadRelatedRoutes('/categories');
-        }, 1500);
+          // Bundle preloading disabled
+          // Bundle preloading disabled
+        }, 500);
 
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -519,14 +501,12 @@ const createOptimizedRoutes = () => {
     ...accountSettingsRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(
-          route.path || '/account-settings'
-        );
+        // Bundle analysis disabled
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -535,12 +515,12 @@ const createOptimizedRoutes = () => {
     ...searchRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(route.path || '/search');
+        // Bundle analysis disabled
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -549,14 +529,12 @@ const createOptimizedRoutes = () => {
     ...referralRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
-        const trackEnd = bundleAnalyzer.trackRouteLoad(
-          route.path || '/referral'
-        );
+        // Bundle analysis disabled
         const result =
           route.loader && typeof route.loader === 'function'
             ? await route.loader({ request, params: params ?? {}, context })
             : null;
-        trackEnd();
+
         return result;
       },
     })),
@@ -598,10 +576,7 @@ const RouterAnalytics = () => {
     existingMetrics.push(routeMetrics);
     sessionStorage.setItem('route-metrics', JSON.stringify(existingMetrics));
 
-    // Track in performance monitor
-    performanceMonitor.trackComponent(`Route:${window.location.pathname}`, 0, [
-      'navigation',
-    ]);
+    // Performance monitoring disabled
 
     // Track page views
     if (typeof (window as any).gtag !== 'undefined') {

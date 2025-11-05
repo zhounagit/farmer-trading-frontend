@@ -3,17 +3,14 @@ import { Box, Container, Typography } from '@mui/material';
 import type {
   StorefrontModule,
   PublicStorefront,
-} from '@/features/search/services/storefront.api';
+} from '@/features/storefront/types/public-storefront';
 
 interface TestimonialsModuleProps {
   module: StorefrontModule;
   storefront: PublicStorefront;
 }
 
-const TestimonialsModule: React.FC<TestimonialsModuleProps> = ({
-  module,
-  storefront,
-}) => {
+const TestimonialsModule: React.FC<TestimonialsModuleProps> = ({ module }) => {
   const settings = module.settings || {};
   const title = (settings.title as string) || 'Customer Testimonials';
 

@@ -40,7 +40,6 @@ import {
   Close,
   Store,
   Category,
-  LocationOn,
   TrendingUp,
   LocalOffer,
 } from '@mui/icons-material';
@@ -300,11 +299,12 @@ const UnifiedSearchPage: React.FC = () => {
 
     return (
       <Grid
-        item
-        xs={12}
-        sm={viewMode === 'grid' ? 6 : 12}
-        md={viewMode === 'grid' ? 4 : 12}
         key={`${result.type}-${result.id}-${index}`}
+        size={{
+          xs: 12,
+          sm: viewMode === 'grid' ? 6 : 12,
+          md: viewMode === 'grid' ? 4 : 12,
+        }}
       >
         <Card
           sx={{
@@ -603,13 +603,17 @@ const UnifiedSearchPage: React.FC = () => {
   return (
     <Box>
       <Header onLoginClick={() => navigate('/login')} />
-
       <Container maxWidth='xl' sx={{ py: 3 }}>
         {/* Search Header */}
         <Paper sx={{ p: 3, mb: 3 }}>
           <Grid container spacing={2} alignItems='center'>
             <div>
-              <Grid item xs={12} md={6}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6,
+                }}
+              >
                 <Box sx={{ position: 'relative' }}>
                   <TextField
                     fullWidth
@@ -687,7 +691,12 @@ const UnifiedSearchPage: React.FC = () => {
               </Grid>
             </div>
 
-            <Grid item xs={12} md={6}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 6,
+              }}
+            >
               <Stack direction='row' spacing={1} justifyContent='flex-end'>
                 <Button
                   variant='outlined'
@@ -905,10 +914,11 @@ const UnifiedSearchPage: React.FC = () => {
             {Array.from({ length: 12 }).map((_, index) => (
               <div key={index}>
                 <Grid
-                  item
-                  xs={12}
-                  sm={viewMode === 'grid' ? 6 : 12}
-                  md={viewMode === 'grid' ? 4 : 12}
+                  size={{
+                    xs: 12,
+                    sm: viewMode === 'grid' ? 6 : 12,
+                    md: viewMode === 'grid' ? 4 : 12,
+                  }}
                 >
                   <Card>
                     <Skeleton variant='rectangular' height={200} />

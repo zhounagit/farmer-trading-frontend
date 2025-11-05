@@ -187,29 +187,29 @@ export const SimpleStoreCreationModal: React.FC<
     console.log('🔑 Has token:', !!token);
 
     try {
-      // The backend expects PascalCase properties based on the error message
+      // Use camelCase properties - ApiMapper will convert to PascalCase for backend
       const storeFields: {
-        StoreName: string;
-        DeliveryRadiusKm: number;
-        AcceptedPaymentMethods: string[];
-        OpenHours: string;
-        Description?: string;
+        storeName: string;
+        deliveryRadiusKm: number;
+        acceptedPaymentMethods: string[];
+        openHours: string;
+        description?: string;
       } = {
-        StoreName: formData.storeName.trim(),
-        DeliveryRadiusKm: formData.deliveryRadiusKm,
-        AcceptedPaymentMethods: formData.acceptedPaymentMethods,
-        OpenHours: JSON.stringify(defaultOpenHours), // Send as JSON string for JSONB
+        storeName: formData.storeName.trim(),
+        deliveryRadiusKm: formData.deliveryRadiusKm,
+        acceptedPaymentMethods: formData.acceptedPaymentMethods,
+        openHours: JSON.stringify(defaultOpenHours), // Send as JSON string for JSONB
       };
 
       if (formData.description.trim()) {
-        storeFields.Description = formData.description.trim();
+        storeFields.description = formData.description.trim();
       }
 
       // The error shows it expects the Store object directly, not wrapped in 'store'
       const storeData = storeFields;
 
       console.log('📤 Sending store data:', JSON.stringify(storeData, null, 2));
-      console.log('📤 StoreName being sent:', storeData.StoreName);
+      console.log('📤 StoreName being sent:', storeData.storeName);
       const result = await storeApi.create(storeData);
       console.log('✅ Store creation result:', result);
 

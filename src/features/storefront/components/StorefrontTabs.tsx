@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Tabs, Tab, Paper } from '@mui/material';
-import { Palette, ViewModule, Visibility, Settings } from '@mui/icons-material';
+import { Palette, ViewModule, Visibility } from '@mui/icons-material';
 import ThemeSection from './sections/ThemeSection';
 import ModuleSection from './sections/ModuleSection';
 import PreviewSection from './sections/PreviewSection';
@@ -182,10 +182,5 @@ const StorefrontTabs: React.FC<StorefrontTabsProps> = ({
     </Box>
   );
 };
-
-// Compound component pattern exports
-StorefrontTabs.ThemeSection = ThemeSection;
-StorefrontTabs.ModuleSection = ModuleSection;
-StorefrontTabs.PreviewSection = PreviewSection;
 
 export default StorefrontTabs;

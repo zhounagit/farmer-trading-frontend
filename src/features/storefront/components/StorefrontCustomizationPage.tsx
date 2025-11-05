@@ -339,12 +339,9 @@ const StorefrontCustomizationPage: React.FC = () => {
   });
 
   // Inventory state
+
   // Inventory state for products display
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [inventoryLoading, setInventoryLoading] = useState(false);
-  const [productImages, setProductImages] = useState<Record<number, string>>(
-    {}
-  );
 
   // Featured products state
   const [storefrontData, setStorefrontData] = useState<any>(null);
@@ -734,7 +731,7 @@ const StorefrontCustomizationPage: React.FC = () => {
         })
       );
     },
-     
+
     [] // Intentionally empty to prevent infinite loop - function uses setModules with prevModules callback
   );
 
@@ -830,7 +827,7 @@ const StorefrontCustomizationPage: React.FC = () => {
     });
 
     try {
-      setInventoryLoading(true);
+      // Loading inventory items...
       const response = await InventoryApiService.getInventoryItems(
         Number(storeId),
         {
@@ -855,24 +852,16 @@ const StorefrontCustomizationPage: React.FC = () => {
         }
       });
 
-      const imageResults = await Promise.all(imagePromises);
-      const imageMap = imageResults.reduce(
-        (acc: any, result: any) => {
-          if (result.imageUrl) {
-            acc[result.itemId] = result.imageUrl;
-          }
-          return acc;
-        },
-        {} as Record<number, string>
-      );
+      await Promise.all(imagePromises);
+      // Product images processed
 
-      setProductImages(imageMap);
+      // Product images loaded
     } catch {
       // Failed to load inventory items
       setInventoryItems([]);
-      setProductImages({});
+      // Clear product images
     } finally {
-      setInventoryLoading(false);
+      // Inventory loading complete
     }
   }, [storeId]);
 
@@ -940,7 +929,7 @@ const StorefrontCustomizationPage: React.FC = () => {
         count: inventoryItems.length,
         items: inventoryItems.slice(0, 3).map((item) => ({
           id: item.itemId,
-          name: item.itemName,
+          name: item.name,
           price: item.pricePerUnit,
           isActive: item.status === 'active',
         })),
@@ -1669,7 +1658,7 @@ const StorefrontCustomizationPage: React.FC = () => {
                                     count: inventoryItems.length,
                                     items: inventoryItems.map((item) => ({
                                       id: item.itemId,
-                                      name: item.itemName,
+                                      name: item.name,
                                       price: item.pricePerUnit,
                                       isActive: item.status === 'active',
                                       quantity: item.quantityAvailable,

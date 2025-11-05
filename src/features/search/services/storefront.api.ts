@@ -46,21 +46,8 @@ export interface PopularSearchTermsResponse {
   terms: string[];
 }
 
-// Define PublicStorefront interface that matches backend PublicStorefrontDto
-export interface PublicStorefront {
-  storeId: number;
-  storeName: string;
-  slug: string;
-  description?: string;
-  logoUrl?: string;
-  bannerUrl?: string;
-  customization: StorefrontCustomizationDto;
-  store: PublicStoreInfo;
-  products: PublicProduct[];
-  isActive: boolean;
-  lastUpdated: string;
-  contactEmail?: string;
-}
+// Use shared PublicStorefront interface from storefront types
+export type { PublicStorefront } from '../../storefront/types/public-storefront';
 
 export interface StorefrontCustomizationDto {
   storeId: number;
@@ -81,14 +68,13 @@ export interface PublicStoreInfo {
   storeName: string;
   description?: string;
   logoUrl?: string;
+  bannerUrl?: string;
   categories?: Array<{
     categoryId: string | number;
     categoryName: string;
     id?: string;
     name?: string;
-    icon?: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> & {
-      muiName: string;
-    };
+    icon?: any;
     description?: string;
   }>;
   contactEmail?: string;

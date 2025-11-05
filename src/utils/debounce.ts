@@ -8,10 +8,10 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout>;
 
-  return function debounced(...args: Parameters<T>) {
-    if (timeoutId !== null) {
+  return function debounced(this: any, ...args: Parameters<T>) {
+    if (timeoutId) {
       clearTimeout(timeoutId);
     }
 
@@ -33,7 +33,7 @@ export function throttle<T extends (...args: any[]) => any>(
 ): (...args: Parameters<T>) => void {
   let inThrottle = false;
 
-  return function throttled(...args: Parameters<T>) {
+  return function throttled(this: any, ...args: Parameters<T>) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;

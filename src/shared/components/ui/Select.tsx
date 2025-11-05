@@ -2,10 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   FormControl,
   InputLabel,
-  Select as MuiSelect,
-  MenuItem,
   Checkbox,
-  ListItemText,
   Chip,
   Box,
   TextField,
@@ -19,12 +16,7 @@ import {
   Typography,
   Divider,
 } from '@mui/material';
-import {
-  Search,
-  KeyboardArrowDown,
-  Clear,
-  Check,
-} from '@mui/icons-material';
+import { Search, KeyboardArrowDown, Clear, Check } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
 export interface SelectOption {
@@ -51,7 +43,7 @@ export interface SelectProps {
   required?: boolean;
   fullWidth?: boolean;
   size?: 'small' | 'medium';
-  variant?: 'outlined' | 'filled' | 'standard';
+
   maxHeight?: number;
   loading?: boolean;
   renderOption?: (option: SelectOption) => React.ReactNode;
@@ -93,21 +85,23 @@ const SearchField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const OptionsList = styled(List)<{ maxHeight?: number }>(({ theme, maxHeight }) => ({
-  maxHeight: maxHeight || 250,
-  overflowY: 'auto',
-  padding: theme.spacing(0.5, 0),
-  '&::-webkit-scrollbar': {
-    width: '6px',
-  },
-  '&::-webkit-scrollbar-track': {
-    background: theme.palette.grey[100],
-  },
-  '&::-webkit-scrollbar-thumb': {
-    background: theme.palette.grey[400],
-    borderRadius: '3px',
-  },
-}));
+const OptionsList = styled(List)<{ maxHeight?: number }>(
+  ({ theme, maxHeight }) => ({
+    maxHeight: maxHeight || 250,
+    overflowY: 'auto',
+    padding: theme.spacing(0.5, 0),
+    '&::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: theme.palette.grey[100],
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: theme.palette.grey[400],
+      borderRadius: '3px',
+    },
+  })
+);
 
 const StyledChip = styled(Chip)(({ theme }) => ({
   margin: theme.spacing(0.25),
@@ -132,7 +126,7 @@ const Select: React.FC<SelectProps> = ({
   required = false,
   fullWidth = true,
   size = 'medium',
-  variant = 'outlined',
+
   maxHeight = 250,
   loading = false,
   renderOption,
@@ -156,9 +150,10 @@ const Select: React.FC<SelectProps> = ({
   // Filter options based on search
   const filteredOptions = React.useMemo(() => {
     if (!searchTerm) return options;
-    return options.filter(option =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      option.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        option.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [options, searchTerm]);
 
@@ -167,7 +162,7 @@ const Select: React.FC<SelectProps> = ({
     if (!groupBy) return { '': filteredOptions };
 
     const groups: Record<string, SelectOption[]> = {};
-    filteredOptions.forEach(option => {
+    filteredOptions.forEach((option) => {
       const group = groupBy(option);
       if (!groups[group]) groups[group] = [];
       groups[group].push(option);
@@ -179,7 +174,7 @@ const Select: React.FC<SelectProps> = ({
   const selectedOptions = React.useMemo(() => {
     if (!value) return [];
     const values = Array.isArray(value) ? value : [value];
-    return options.filter(option => values.includes(option.value));
+    return options.filter((option) => values.includes(option.value));
   }, [value, options]);
 
   // Handle option click
@@ -191,7 +186,7 @@ const Select: React.FC<SelectProps> = ({
       const isSelected = currentValues.includes(option.value);
 
       if (isSelected) {
-        const newValues = currentValues.filter(v => v !== option.value);
+        const newValues = currentValues.filter((v) => v !== option.value);
         onChange(newValues);
       } else {
         onChange([...currentValues, option.value]);
@@ -211,7 +206,7 @@ const Select: React.FC<SelectProps> = ({
   // Handle chip delete
   const handleChipDelete = (optionValue: string | number) => {
     if (!multiple || !Array.isArray(value)) return;
-    const newValues = value.filter(v => v !== optionValue);
+    const newValues = value.filter((v) => v !== optionValue);
     onChange(newValues);
   };
 
@@ -226,13 +221,13 @@ const Select: React.FC<SelectProps> = ({
 
       return (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-          {selectedOptions.map(option => (
+          {selectedOptions.map((option) => (
             <StyledChip
               key={option.value}
               label={option.label}
               onDelete={() => handleChipDelete(option.value)}
-              size="small"
-              variant="outlined"
+              size='small'
+              variant='outlined'
             />
           ))}
         </Box>
@@ -255,11 +250,7 @@ const Select: React.FC<SelectProps> = ({
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
         {multiple && (
-          <Checkbox
-            checked={isSelected}
-            size="small"
-            sx={{ mr: 1 }}
-          />
+          <Checkbox checked={isSelected} size='small' sx={{ mr: 1 }} />
         )}
         {option.icon && (
           <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
@@ -267,18 +258,19 @@ const Select: React.FC<SelectProps> = ({
           </Box>
         )}
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="body2" color={option.disabled ? 'text.disabled' : 'text.primary'}>
+          <Typography
+            variant='body2'
+            color={option.disabled ? 'text.disabled' : 'text.primary'}
+          >
             {option.label}
           </Typography>
           {option.description && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant='caption' color='text.secondary'>
               {option.description}
             </Typography>
           )}
         </Box>
-        {!multiple && isSelected && (
-          <Check fontSize="small" color="primary" />
-        )}
+        {!multiple && isSelected && <Check fontSize='small' color='primary' />}
       </Box>
     );
   };
@@ -316,23 +308,29 @@ const Select: React.FC<SelectProps> = ({
               px: 2,
               py: 1,
               border: 1,
-              borderColor: error ? 'error.main' : open ? 'primary.main' : 'grey.300',
+              borderColor: error
+                ? 'error.main'
+                : open
+                  ? 'primary.main'
+                  : 'grey.300',
               borderRadius: 1,
               backgroundColor: disabled ? 'grey.100' : 'background.paper',
               '&:hover': {
-                borderColor: disabled ? 'grey.300' : error ? 'error.main' : 'grey.400',
+                borderColor: disabled
+                  ? 'grey.300'
+                  : error
+                    ? 'error.main'
+                    : 'grey.400',
               },
               transition: 'border-color 0.2s',
             }}
           >
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              {renderSelectedValue()}
-            </Box>
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>{renderSelectedValue()}</Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
               {clearable && (selectedOptions.length > 0 || value) && (
                 <Clear
-                  fontSize="small"
+                  fontSize='small'
                   onClick={handleClear}
                   sx={{
                     cursor: 'pointer',
@@ -343,7 +341,7 @@ const Select: React.FC<SelectProps> = ({
                 />
               )}
               <KeyboardArrowDown
-                fontSize="small"
+                fontSize='small'
                 sx={{
                   color: 'grey.500',
                   transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -355,7 +353,7 @@ const Select: React.FC<SelectProps> = ({
 
           {helperText && (
             <Typography
-              variant="caption"
+              variant='caption'
               color={error ? 'error' : 'text.secondary'}
               sx={{ mt: 0.5, mx: 2 }}
             >
@@ -367,7 +365,7 @@ const Select: React.FC<SelectProps> = ({
         <StyledPopper
           open={open}
           anchorEl={anchorRef.current}
-          placement="bottom-start"
+          placement='bottom-start'
           style={{ width: anchorRef.current?.offsetWidth }}
         >
           <StyledPaper>
@@ -376,17 +374,17 @@ const Select: React.FC<SelectProps> = ({
                 <SearchField
                   ref={searchInputRef}
                   fullWidth
-                  placeholder="Search options..."
+                  placeholder='Search options...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
-                        <Search fontSize="small" />
+                      <InputAdornment position='start'>
+                        <Search fontSize='small' />
                       </InputAdornment>
                     ),
                   }}
-                  size="small"
+                  size='small'
                 />
                 <Divider />
               </>
@@ -395,52 +393,54 @@ const Select: React.FC<SelectProps> = ({
             <OptionsList maxHeight={maxHeight}>
               {loading ? (
                 <ListItem>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     Loading...
                   </Typography>
                 </ListItem>
               ) : filteredOptions.length === 0 ? (
                 <ListItem>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     {noOptionsText}
                   </Typography>
                 </ListItem>
               ) : (
-                Object.entries(groupedOptions).map(([groupName, groupOptions]) => (
-                  <React.Fragment key={groupName}>
-                    {groupName && (
-                      <>
-                        <ListItem>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            fontWeight={600}
-                            textTransform="uppercase"
-                          >
-                            {groupName}
-                          </Typography>
-                        </ListItem>
-                        <Divider />
-                      </>
-                    )}
-                    {groupOptions.map((option) => (
-                      <ListItemButton
-                        key={option.value}
-                        onClick={() => handleOptionClick(option)}
-                        disabled={option.disabled}
-                        sx={{
-                          py: 1,
-                          px: 2,
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
-                          },
-                        }}
-                      >
-                        {renderOptionItem(option)}
-                      </ListItemButton>
-                    ))}
-                  </React.Fragment>
-                ))
+                Object.entries(groupedOptions).map(
+                  ([groupName, groupOptions]) => (
+                    <React.Fragment key={groupName}>
+                      {groupName && (
+                        <>
+                          <ListItem>
+                            <Typography
+                              variant='caption'
+                              color='text.secondary'
+                              fontWeight={600}
+                              textTransform='uppercase'
+                            >
+                              {groupName}
+                            </Typography>
+                          </ListItem>
+                          <Divider />
+                        </>
+                      )}
+                      {groupOptions.map((option) => (
+                        <ListItemButton
+                          key={option.value}
+                          onClick={() => handleOptionClick(option)}
+                          disabled={option.disabled}
+                          sx={{
+                            py: 1,
+                            px: 2,
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            },
+                          }}
+                        >
+                          {renderOptionItem(option)}
+                        </ListItemButton>
+                      ))}
+                    </React.Fragment>
+                  )
+                )
               )}
             </OptionsList>
           </StyledPaper>

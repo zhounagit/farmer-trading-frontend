@@ -310,11 +310,7 @@ class ApiService {
   }
 
   // FormData upload with progress support
-  async upload<T>(
-    endpoint: string,
-    formData: FormData,
-    onProgress?: (progress: number) => void
-  ): Promise<T> {
+  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {};
 

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { ApiMapper } from '../services/api-mapper';
 import OpenShopApiService from '../features/stores/services/open-shop.api';
 import { StoresApiService } from '../shared/services';
 import type { EnhancedStoreDto } from '../features/stores/services/open-shop.types';
-import type { StoreAddress, StoreOpenHours } from '../shared/types/store';
+import type { StoreAddress, StoreAddressRequest } from '../shared/types/store';
 import toast from 'react-hot-toast';
 
 interface UseComprehensiveStoreOptions {
@@ -24,14 +25,14 @@ interface UseComprehensiveStoreReturn {
   refetchStoreData: () => Promise<void>;
 
   // Store updates
-  updateStore: (updateData: Partial<Store>) => Promise<void>;
+  updateStore: (updateData: Partial<EnhancedStoreDto>) => Promise<void>;
   updateStoreAddress: (
     addressId: number,
     addressData: Partial<StoreAddress>
   ) => Promise<void>;
   createStoreAddress: (addressData: StoreAddress) => Promise<void>;
-  updateOpenHours: (hoursData: StoreOpenHours[]) => Promise<void>;
-  updatePaymentMethods: (methodIds: number[]) => Promise<void>;
+  // updateStoreOpenHours: () => Promise<void>;
+  // updateStorePaymentMethods: () => Promise<void>;
 
   // Utility functions
   clearError: () => void;
@@ -39,16 +40,6 @@ interface UseComprehensiveStoreReturn {
   hasRequiredData: () => boolean;
   getFormattedBusinessHours: () => Record<string, string>;
 }
-
-const DAY_NAMES = [
-  'sunday',
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-];
 
 export const useComprehensiveStore = (
   options: UseComprehensiveStoreOptions = {}
@@ -200,9 +191,13 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
+        // Convert StoreAddress to backend format using ApiMapper
+        const backendRequest =
+          ApiMapper.toPascalCase<StoreAddressRequest>(addressData);
+
         await StoresApiService.createStoreAddress(
           storeData.storeId,
-          addressData
+          backendRequest
         );
         toast.success('Address added successfully!');
 
@@ -238,10 +233,15 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
+        // Convert StoreAddress to StoreAddressRequest
+        // Convert StoreAddress to backend format using ApiMapper
+        const backendRequest =
+          ApiMapper.toPascalCase<StoreAddressRequest>(addressData);
+
         await StoresApiService.updateStoreAddress(
           storeData.storeId,
           addressId,
-          addressData
+          backendRequest
         );
         toast.success('Address updated successfully!');
 
@@ -264,81 +264,69 @@ export const useComprehensiveStore = (
     [storeData, fetchStoreData]
   );
 
-  const updateOpenHours = useCallback(
-    async (hoursData: Partial<StoreOpenHours>[]) => {
-      if (!storeData) {
-        toast.error('No store data available');
-        return;
-      }
+  // const updateStoreOpenHours = useCallback(async () => {
+  //   if (!storeData) {
+  //     toast.error('No store data available');
+  //     return;
+  //   }
 
-      console.log('🕒 === useComprehensiveStore: Updating open hours ===');
+  //   console.log('🕒 === useComprehensiveStore: Updating open hours ===');
 
-      setIsUpdating(true);
-      setError(null);
+  //   setIsUpdating(true);
+  //   setError(null);
 
-      try {
-        await StoresApiService.updateStoreOpenHours(
-          storeData.storeId,
-          hoursData
-        );
-        toast.success('Business hours updated successfully!');
+  //   try {
+  //     await StoresApiService.updateStoreOpenHours(storeData.storeId);
+  //     toast.success('Business hours updated successfully!');
 
-        // Refetch to get updated hours data
-        await fetchStoreData();
-      } catch (error: unknown) {
-        console.error('❌ Failed to update hours:', error);
-        const errorMessage =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ||
-          (error as Error)?.message ||
-          'Failed to update business hours';
-        setError(errorMessage);
-        toast.error(errorMessage);
-        throw error;
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [storeData, fetchStoreData]
-  );
+  //     // Refetch to get updated hours data
+  //     await fetchStoreData();
+  //   } catch (error: unknown) {
+  //     console.error('❌ Failed to update hours:', error);
+  //     const errorMessage =
+  //       (error as { response?: { data?: { message?: string } } })?.response
+  //         ?.data?.message ||
+  //       (error as Error)?.message ||
+  //       'Failed to update business hours';
+  //     setError(errorMessage);
+  //     toast.error(errorMessage);
+  //     throw error;
+  //   } finally {
+  //     setIsUpdating(false);
+  //   }
+  // }, [storeData, fetchStoreData]);
 
-  const updatePaymentMethods = useCallback(
-    async (methodIds: number[]) => {
-      if (!storeData) {
-        toast.error('No store data available');
-        return;
-      }
+  // const updateStorePaymentMethods = useCallback(async () => {
+  //   if (!storeData) {
+  //     toast.error('No store data available');
+  //     return;
+  //   }
 
-      console.log('💳 === useComprehensiveStore: Updating payment methods ===');
+  //   console.log('💳 === useComprehensiveStore: Updating payment methods ===');
 
-      setIsUpdating(true);
-      setError(null);
+  //   setIsUpdating(true);
+  //   setError(null);
 
-      try {
-        await StoresApiService.updateStorePaymentMethods(
-          storeData.storeId,
-          methodIds
-        );
-        toast.success('Payment methods updated successfully!');
+  //   try {
+  //     await StoresApiService.updateStorePaymentMethods(storeData.storeId);
+  //     toast.success('Payment methods updated successfully!');
 
-        // Refetch to get updated payment method data
-        await fetchStoreData();
-      } catch (error: unknown) {
-        console.error('❌ Failed to update payment methods:', error);
-        const errorMessage =
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ||
-          (error as Error)?.message ||
-          'Failed to update payment methods';
-        setError(errorMessage);
-        toast.error(errorMessage);
-        throw error;
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [storeData, fetchStoreData]
-  );
+  //     // Refetch to get updated payment method data
+  //     await fetchStoreData();
+  //   } catch (error: unknown) {
+  //     console.error('❌ Failed to update payment methods:', error);
+  //     const errorMessage =
+  //       (error as { response?: { data?: { message?: string } } })?.response
+  //         ?.data?.message ||
+  //       (error as Error)?.message ||
+  //       'Failed to update payment methods';
+  //     setError(errorMessage);
+  //     toast.error(errorMessage);
+  //     throw error;
+  //   } finally {
+  //     setIsUpdating(false);
+  //   }
+  // }, [storeData, fetchStoreData]);
 
   const getCompletionPercentage = useCallback(() => {
     if (!storeData) return 0;
@@ -352,11 +340,11 @@ export const useComprehensiveStore = (
       contactEmail: storeData.contactEmail,
       logoUrl: storeData.logoUrl,
       bannerUrl: storeData.bannerUrl,
-      addresses: storeData.addresses?.length,
+      addresses: (storeData.addresses?.pickupLocations?.length || 0) > 0,
       categories: storeData.categories?.length,
-      openHours: storeData.openHours?.length,
-      paymentMethods: storeData.paymentMethods?.length,
-      imagesTotal: storeData.images?.length,
+      openHours: (storeData.operations?.openHours?.length || 0) > 0,
+      paymentMethods: false,
+      imagesTotal: (storeData.images?.gallery?.length || 0) > 0,
       imagesBreakdown:
         storeData.images?.gallery && Array.isArray(storeData.images.gallery)
           ? storeData.images.gallery.map(
@@ -430,26 +418,22 @@ export const useComprehensiveStore = (
     const primaryAddress =
       storeData.addresses?.pickupLocations &&
       Array.isArray(storeData.addresses.pickupLocations)
-        ? storeData.addresses.pickupLocations.find(
-            (addr: StoreAddress) => addr.isPrimary
-          ) || storeData.addresses.pickupLocations[0]
+        ? storeData.addresses.pickupLocations[0]
         : undefined;
     const hasContactPhone = !!(
       storeData.contactPhone || primaryAddress?.contactPhone
     );
-    const hasContactEmail = !!(
-      storeData.contactEmail || primaryAddress?.contactEmail
-    );
+    const hasContactEmail = !!(storeData.contactInfo?.email || '');
 
     const checks = {
       storeName: !!storeData.storeName,
       description: !!storeData.description,
       contactPhone: hasContactPhone,
       contactEmail: hasContactEmail,
-      addresses: (storeData.addresses?.length || 0) > 0,
+      addresses: (storeData.addresses?.pickupLocations?.length || 0) > 0,
       categories: (storeData.categories?.length || 0) > 0,
-      openHours: (storeData.openHours?.length || 0) > 0,
-      paymentMethods: (storeData.paymentMethods?.length || 0) > 0,
+      openHours: (storeData.operations?.openHours?.length || 0) > 0,
+      paymentMethods: false,
       logoUrl: !!storeData.logoUrl || logoImages.length > 0,
       galleryImages: galleryImages.length > 0 || allGalleryImages.length > 0,
     };
@@ -469,15 +453,15 @@ export const useComprehensiveStore = (
         storeContactPhone: storeData.contactPhone,
         storeContactEmail: storeData.contactEmail,
         primaryAddressPhone: primaryAddress?.contactPhone,
-        primaryAddressEmail: primaryAddress?.contactEmail,
+        primaryAddressEmail: storeData.contactInfo?.email || '',
         hasContactPhone,
         hasContactEmail,
       },
       missingItems: Object.entries(checks)
-        .filter(([key, value]) => !value)
+        .filter(([, value]) => !value)
         .map(([key]) => key),
       completedItems: Object.entries(checks)
-        .filter(([key, value]) => value)
+        .filter(([, value]) => value)
         .map(([key]) => key),
     });
 
@@ -490,13 +474,13 @@ export const useComprehensiveStore = (
     return !!(
       storeData.storeName &&
       storeData.description &&
-      storeData.addresses.length > 0 &&
+      storeData.addresses?.pickupLocations?.length > 0 &&
       storeData.categories.length > 0
     );
   }, [storeData]);
 
   const getFormattedBusinessHours = useCallback(() => {
-    if (!storeData || !storeData.openHours.length) {
+    if (!storeData || !storeData.operations?.openHours?.length) {
       return {};
     }
 
@@ -564,8 +548,8 @@ export const useComprehensiveStore = (
     updateStore,
     updateStoreAddress,
     createStoreAddress,
-    updateOpenHours,
-    updatePaymentMethods,
+    // updateStoreOpenHours,
+    // updateStorePaymentMethods,
     clearError,
     getCompletionPercentage,
     hasRequiredData,

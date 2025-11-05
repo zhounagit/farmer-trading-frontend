@@ -180,7 +180,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
       }
 
       // Mock API call - replace with actual API
-      const response = await mockUploadImage(file, itemId);
+      const response = await mockUploadImage(file);
 
       if (response.success) {
         const newImage: InventoryImage = {
@@ -232,8 +232,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
 
   // Mock API function - replace with actual API call
   const mockUploadImage = async (
-    file: File,
-    itemId?: number
+    file: File
   ): Promise<{
     success: boolean;
     image_id?: number;
@@ -268,7 +267,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     showSnackbar('Primary image updated');
   };
 
-  const handleDeleteImage = () => {
+  const handleDeleteImage = async (imageId: number) => {
     try {
       // Mock API call - replace with actual API
       await mockDeleteImage(imageId);
@@ -288,7 +287,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     }
   };
 
-  const mockDeleteImage = async (imageId: number): Promise<void> => {
+  const mockDeleteImage = async (_imageId: number): Promise<void> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
@@ -337,12 +336,12 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
     }
   };
 
-  const mockUpdateImage = async (image: InventoryImage): Promise<void> => {
+  const mockUpdateImage = async (_image: InventoryImage): Promise<void> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
-  const handlePreviewImage = (image: InventoryImage) => {
-    setPreviewImage(image);
+  const handlePreviewImage = (_image: InventoryImage) => {
+    setPreviewImage(_image);
     setPreviewDialogOpen(true);
   };
 
@@ -498,11 +497,12 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
                         isDragDisabled={disabled}
                       >
                         {(provided, snapshot) => (
-                          <Grid
-                            item
-                            xs={6}
-                            sm={4}
-                            md={3}
+                          <div
+                            style={{
+                              flex: '1 1 200px',
+                              maxWidth: '300px',
+                              margin: '8px',
+                            }}
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                           >
@@ -598,7 +598,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
                                 </Typography>
                               </CardContent>
                             </Card>
-                          </Grid>
+                          </div>
                         )}
                       </Draggable>
                     ))}
@@ -644,7 +644,9 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (selectedImageId) handleSetPrimary(selectedImageId);
+            if (selectedImageId) {
+              handleSetPrimary(selectedImageId);
+            }
             handleMenuClose();
           }}
           disabled={disabled}
@@ -748,8 +750,8 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
                   mb: 2,
                 }}
               />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='body2'>
                     <strong>File Name:</strong> {previewImage.file_name}
                   </Typography>
@@ -761,7 +763,7 @@ const ImageUploadManager: React.FC<ImageUploadManagerProps> = ({
                     <strong>Type:</strong> {previewImage.mime_type}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   {previewImage.width_pixels && previewImage.height_pixels && (
                     <Typography variant='body2'>
                       <strong>Dimensions:</strong> {previewImage.width_pixels}×

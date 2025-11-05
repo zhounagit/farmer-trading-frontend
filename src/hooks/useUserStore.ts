@@ -104,8 +104,6 @@ export const useUserStore = (): UseUserStoreReturn => {
         const tokenParts = authToken.split('.');
         if (tokenParts.length === 3) {
           // Decode payload (without verification)
-          const payload = JSON.parse(atob(tokenParts[1]));
-          const currentTime = Math.floor(Date.now() / 1000);
         }
       } catch (tokenParseError) {
         // Token parsing error - continue with request
@@ -136,8 +134,6 @@ export const useUserStore = (): UseUserStoreReturn => {
       if (token) {
         try {
           // Decode token to check claims
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const isExpired = payload.exp * 1000 < Date.now();
         } catch (e) {
           // Token decode error - continue with request
         }
@@ -199,19 +195,23 @@ export const useUserStore = (): UseUserStoreReturn => {
         if (userStores && Array.isArray(userStores)) {
           userStores = userStores.map((store) => {
             const normalizedStore = {
-              storeId: store.storeId || store.store_id,
-              storeName: store.storeName || store.store_name,
+              storeId: store.storeId || store.store_id || 0,
+              storeName: store.storeName || store.store_name || 'Unnamed Store',
               description: store.description,
-              storeCreatorId: store.storeCreatorId || store.store_creator_id,
-              approvalStatus: store.approvalStatus || store.approval_status,
-              createdAt: store.createdAt || store.created_at,
-              updatedAt: store.updatedAt || store.updated_at,
-              contactPhone: store.contactPhone || store.contact_phone,
-              contactEmail: store.contactEmail || store.contact_email,
-              storeType: store.storeType || store.store_type,
+              storeCreatorId:
+                store.storeCreatorId || store.store_creator_id || 0,
+              approvalStatus:
+                store.approvalStatus || store.approval_status || 'pending',
+              createdAt:
+                store.createdAt || store.created_at || new Date().toISOString(),
+              updatedAt:
+                store.updatedAt || store.updated_at || new Date().toISOString(),
+              contactPhone: store.contactPhone || store.contact_phone || '',
+              contactEmail: store.contactEmail || store.contact_email || '',
+              storeType: store.storeType || store.store_type || 'general',
               deliveryRadiusMi:
-                store.deliveryRadiusMi || store.delivery_radius_mi,
-              slug: store.slug,
+                store.deliveryRadiusMi || store.delivery_radius_mi || 0,
+              slug: store.slug || '',
               canProduce: store.canProduce || store.can_produce || false,
               canProcess: store.canProcess || store.can_process || false,
               canRetail: store.canRetail || store.can_retail || true,
@@ -277,19 +277,22 @@ export const useUserStore = (): UseUserStoreReturn => {
         // Normalize store data to handle both camelCase and snake_case fields
         userStores = userStores.map((store) => {
           const normalizedStore = {
-            storeId: store.storeId || store.store_id,
-            storeName: store.storeName || store.store_name,
+            storeId: store.storeId || store.store_id || 0,
+            storeName: store.storeName || store.store_name || 'Unnamed Store',
             description: store.description,
-            storeCreatorId: store.storeCreatorId || store.store_creator_id,
-            approvalStatus: store.approvalStatus || store.approval_status,
-            createdAt: store.createdAt || store.created_at,
-            updatedAt: store.updatedAt || store.updated_at,
-            contactPhone: store.contactPhone || store.contact_phone,
-            contactEmail: store.contactEmail || store.contact_email,
-            storeType: store.storeType || store.store_type,
+            storeCreatorId: store.storeCreatorId || store.store_creator_id || 0,
+            approvalStatus:
+              store.approvalStatus || store.approval_status || 'pending',
+            createdAt:
+              store.createdAt || store.created_at || new Date().toISOString(),
+            updatedAt:
+              store.updatedAt || store.updated_at || new Date().toISOString(),
+            contactPhone: store.contactPhone || store.contact_phone || '',
+            contactEmail: store.contactEmail || store.contact_email || '',
+            storeType: store.storeType || store.store_type || 'general',
             deliveryRadiusMi:
-              store.deliveryRadiusMi || store.delivery_radius_mi,
-            slug: store.slug,
+              store.deliveryRadiusMi || store.delivery_radius_mi || 0,
+            slug: store.slug || '',
             canProduce: store.canProduce || store.can_produce || false,
             canProcess: store.canProcess || store.can_process || false,
             canRetail: store.canRetail || store.can_retail || true,
