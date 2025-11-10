@@ -150,17 +150,21 @@ const UserDashboard: React.FC = () => {
 
   // Add minimum loading time to ensure loading state is shown first
   const [showLoading, setShowLoading] = useState(true);
+  const [hasStartedLoading, setHasStartedLoading] = useState(false);
+
   useEffect(() => {
     if (storeLoading) {
+      setHasStartedLoading(true);
       setShowLoading(true);
-    } else {
+    } else if (hasStartedLoading) {
+      // Only reset after loading has actually started and completed
       // Keep showing loading for at least 1 second even after data loads
       const timer = setTimeout(() => {
         setShowLoading(false);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [storeLoading]);
+  }, [storeLoading, hasStartedLoading]);
 
   // Store data loaded - primaryStore: ${!!primaryStore}, loading: ${storeLoading}
 
@@ -284,7 +288,7 @@ const UserDashboard: React.FC = () => {
         {/* Quick Stats */}
         {user.hasStore ? (
           // Store owner stats
-          (<Box
+          <Box
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -366,10 +370,10 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
-          </Box>)
+          </Box>
         ) : (
           // Regular customer stats
-          (<Box
+          <Box
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -471,7 +475,7 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
-          </Box>)
+          </Box>
         )}
 
         {/* Main Dashboard Content */}
@@ -629,53 +633,55 @@ const UserDashboard: React.FC = () => {
                   ) : null}
 
                   {/* Manual refresh section for debugging */}
-                  {user?.userType === 'store_owner' && !primaryStore && (
-                    <Box sx={{ mb: 4 }}>
-                      <Card variant='outlined'>
-                        <CardContent>
-                          <Typography variant='h6' gutterBottom>
-                            Store Not Found
-                          </Typography>
-                          <Typography
-                            variant='body2'
-                            color='text.secondary'
-                            sx={{ mb: 2 }}
-                          >
-                            Your account is set up as a store owner, but no
-                            store was found. This could mean:
-                          </Typography>
-                          <Typography
-                            variant='body2'
-                            color='text.secondary'
-                            component='div'
-                          >
-                            <ul>
-                              <li>Your store is still being created</li>
-                              <li>There was an issue with store creation</li>
-                              <li>The store data needs to be refreshed</li>
-                            </ul>
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                            <Button
-                              variant='outlined'
-                              onClick={handleRefreshStores}
-                              disabled={storeLoading}
+                  {user?.userType === 'store_owner' &&
+                    !primaryStore &&
+                    !showLoading && (
+                      <Box sx={{ mb: 4 }}>
+                        <Card variant='outlined'>
+                          <CardContent>
+                            <Typography variant='h6' gutterBottom>
+                              Store Not Found
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              color='text.secondary'
+                              sx={{ mb: 2 }}
                             >
-                              {storeLoading
-                                ? 'Refreshing...'
-                                : 'Refresh Stores'}
-                            </Button>
-                            <Button
-                              variant='contained'
-                              onClick={() => navigate('/create-store')}
+                              Your account is set up as a store owner, but no
+                              store was found. This could mean:
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              color='text.secondary'
+                              component='div'
                             >
-                              Create Store
-                            </Button>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Box>
-                  )}
+                              <ul>
+                                <li>Your store is still being created</li>
+                                <li>There was an issue with store creation</li>
+                                <li>The store data needs to be refreshed</li>
+                              </ul>
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                              <Button
+                                variant='outlined'
+                                onClick={handleRefreshStores}
+                                disabled={storeLoading}
+                              >
+                                {storeLoading
+                                  ? 'Refreshing...'
+                                  : 'Refresh Stores'}
+                              </Button>
+                              <Button
+                                variant='contained'
+                                onClick={() => navigate('/create-store')}
+                              >
+                                Create Store
+                              </Button>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    )}
 
                   {/* Customer Dashboard Section - Always show for all users */}
                   <Box>

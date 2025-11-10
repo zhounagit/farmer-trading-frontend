@@ -5,6 +5,7 @@ import type {
   StorefrontModule,
   PublicStorefront,
 } from '@/features/storefront/types/public-storefront';
+import { API_CONFIG } from '@/utils/api';
 
 interface StoreIntroductionModuleProps {
   module: StorefrontModule;
@@ -22,8 +23,18 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
   const showOwnerPhoto = (settings.showOwnerPhoto as boolean) !== false; // Default to true
   const textAlignment = (settings.textAlignment as string) || 'left';
 
+  // Helper function to convert relative URLs to absolute
+  const getImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${API_CONFIG.BASE_URL}${url}`;
+    return `${API_CONFIG.BASE_URL}/${url}`;
+  };
+
   // Use logo as owner photo if available
-  const ownerPhotoUrl = storefront.store.logoUrl || storefront.logoUrl;
+  const ownerPhotoUrl = getImageUrl(
+    storefront.store.logoUrl || storefront.logoUrl
+  );
 
   // Convert HTML content to display properly
   const renderContent = () => {
@@ -32,7 +43,7 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
         <Typography
           variant='body1'
           sx={{
-            textAlign: textAlignment as any,
+            textAlign: textAlignment as 'left' | 'center' | 'right',
             lineHeight: 1.7,
             fontSize: 'var(--theme-text-lg, 1.125rem)',
             color: 'var(--theme-text-primary, #0f172a)',
@@ -53,7 +64,7 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
       <Typography
         variant='body1'
         sx={{
-          textAlign: textAlignment as any,
+          textAlign: textAlignment as 'left' | 'center' | 'right',
           lineHeight: 1.7,
           fontSize: 'var(--theme-text-lg, 1.125rem)',
           color: 'var(--theme-text-primary, #0f172a)',
@@ -130,7 +141,7 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
                 component='h2'
                 sx={{
                   mb: 3,
-                  textAlign: textAlignment as any,
+                  textAlign: textAlignment as 'left' | 'center' | 'right',
                   fontWeight: 'bold',
                   color: 'primary.main',
                 }}
@@ -156,7 +167,7 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
                       variant='h6'
                       sx={{
                         mb: 2,
-                        textAlign: textAlignment as any,
+                        textAlign: textAlignment as 'left' | 'center' | 'right',
                         color: 'text.secondary',
                         fontWeight: 600,
                       }}
@@ -178,22 +189,27 @@ const StoreIntroductionModule: React.FC<StoreIntroductionModuleProps> = ({
                     >
                       {storefront.store.categories
                         .slice(0, 5)
-                        .map((category: any, index: number) => (
-                          <Box
-                            key={index}
-                            sx={{
-                              px: 2,
-                              py: 1,
-                              backgroundColor: 'primary.main',
-                              color: 'white',
-                              borderRadius: 2,
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                            }}
-                          >
-                            {category.categoryName || category.name}
-                          </Box>
-                        ))}
+                        .map(
+                          (
+                            category: { categoryName?: string; name?: string },
+                            index: number
+                          ) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                px: 2,
+                                py: 1,
+                                backgroundColor: 'primary.main',
+                                color: 'white',
+                                borderRadius: 2,
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {category.categoryName || category.name}
+                            </Box>
+                          )
+                        )}
                     </Box>
                   </Box>
                 )}

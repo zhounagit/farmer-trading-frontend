@@ -19,4 +19,3 @@ export type { PreviewSectionProps } from './sections/PreviewSection';
 export { default as ThemeSelector } from '../../../components/storefront/ThemeSelector';
 export { default as ThemePreview } from '../../../components/storefront/ThemePreview';
 export { default as StorefrontModuleRenderer } from '../../../components/storefront/StorefrontModuleRenderer';
-export { default as HeroBannerImageUpload } from '../../../components/storefront/HeroBannerImageUpload';

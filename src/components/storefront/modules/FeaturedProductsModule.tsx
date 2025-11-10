@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Container,
@@ -9,6 +9,8 @@ import {
   Chip,
   Paper,
   Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   ShoppingCart,
@@ -22,6 +24,11 @@ import type {
   PublicStorefront,
 } from '@/features/storefront/types/public-storefront';
 import type { StorefrontProduct } from '@/shared/types/storefront';
+import {
+  useProductsByIds,
+  mapApiProductToStorefrontProduct,
+  type ApiProduct,
+} from '@/features/storefront/hooks/useProductAPIs';
 
 interface FeaturedProductsModuleProps {
   module: StorefrontModule;
@@ -42,30 +49,153 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
   const showPrices = (settings.showPrices as boolean) !== false;
   const showSpecifications = (settings.showSpecifications as boolean) !== false;
   const maxProducts = (settings.maxProducts as number) || 6;
-  const productIds = (settings.productIds as string[]) || [];
 
-  // Get products from storefront and safely cast to StorefrontProduct[]
-  const allProducts =
-    (storefront.products as unknown as StorefrontProduct[]) || [];
+  // Memoize productIds to prevent dependency issues
+  const productIds = useMemo(
+    () => (settings.productIds as (string | number)[]) || [],
+    [settings.productIds]
+  );
 
-  // Filter products based on productIds if specified, otherwise use all products
-  const featuredProducts =
-    productIds.length > 0
-      ? allProducts.filter((product: StorefrontProduct) =>
-          productIds.includes(product.productId.toString())
-        )
-      : allProducts.slice(0, maxProducts);
+  // Get store ID
+  const storeId = storefront.store?.storeId || storefront.storeId;
+
+  // Fetch products from API if productIds are configured
+  const {
+    products: apiProducts,
+    loading,
+    error,
+  } = useProductsByIds(storeId, productIds);
+
+  // Get products from storefront fallback or use API products
+  const allProducts: StorefrontProduct[] = useMemo(() => {
+    if (apiProducts && apiProducts.length > 0) {
+      return apiProducts.map((apiProduct: ApiProduct) =>
+        mapApiProductToStorefrontProduct(apiProduct)
+      );
+    }
+
+    // Fallback to storefront products if available and no productIds configured
+    if (!productIds || productIds.length === 0) {
+      return (storefront.products as unknown as StorefrontProduct[]) || [];
+    }
+
+    return [];
+  }, [apiProducts, productIds, storefront.products]);
+
+  // Use productIds if specified, otherwise use all products up to maxProducts
+  const featuredProducts = useMemo(() => {
+    if (productIds && productIds.length > 0) {
+      return allProducts.slice(0, maxProducts);
+    }
+    return allProducts.slice(0, maxProducts);
+  }, [allProducts, productIds, maxProducts]);
 
   // Debug logging
   console.log('🛍️ FeaturedProductsModule Debug:', {
+    storeId,
+    apiProductsCount: apiProducts.length,
     allProductsCount: allProducts.length,
-    productIds: productIds,
+    productIds,
     featuredProductsCount: featuredProducts.length,
-    maxProducts: maxProducts,
-    showPrices: showPrices,
+    maxProducts,
+    loading,
+    error,
   });
 
-  // Show helpful message when no products available
+  // Loading state
+  if (loading && featuredProducts.length === 0) {
+    return (
+      <Box sx={{ py: 8, backgroundColor: 'var(--theme-surface, #F8FAFC)' }}>
+        <Container maxWidth='xl' sx={{ px: { xs: 2, md: 4 } }}>
+          <Typography
+            variant='h3'
+            component='h2'
+            textAlign='center'
+            sx={{
+              mb: 4,
+              fontWeight: 700,
+              color: 'var(--theme-text-primary, #1F2937)',
+              fontFamily: 'var(--theme-font-primary, Inter, sans-serif)',
+            }}
+          >
+            {title}
+          </Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              backgroundColor: 'var(--theme-background, white)',
+              borderRadius: 2,
+              border: '2px dashed var(--theme-border, #E5E7EB)',
+            }}
+          >
+            <CircularProgress sx={{ mb: 2 }} />
+            <Typography variant='h6' color='text.secondary' gutterBottom>
+              Loading Featured Products
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              Please wait while we fetch your products...
+            </Typography>
+          </Paper>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error && featuredProducts.length === 0) {
+    return (
+      <Box sx={{ py: 8, backgroundColor: 'var(--theme-surface, #F8FAFC)' }}>
+        <Container maxWidth='xl' sx={{ px: { xs: 2, md: 4 } }}>
+          <Typography
+            variant='h3'
+            component='h2'
+            textAlign='center'
+            sx={{
+              mb: 4,
+              fontWeight: 700,
+              color: 'var(--theme-text-primary, #1F2937)',
+              fontFamily: 'var(--theme-font-primary, Inter, sans-serif)',
+            }}
+          >
+            {title}
+          </Typography>
+          <Alert severity='error' sx={{ mb: 3 }}>
+            <Typography variant='body2'>
+              Failed to load featured products: {error}
+            </Typography>
+          </Alert>
+          <Paper
+            elevation={0}
+            sx={{
+              textAlign: 'center',
+              py: 8,
+              backgroundColor: 'var(--theme-background, white)',
+              borderRadius: 2,
+              border: '2px dashed var(--theme-border, #E5E7EB)',
+            }}
+          >
+            <Engineering
+              sx={{
+                fontSize: 64,
+                color: 'var(--theme-text-muted, #9CA3AF)',
+                mb: 2,
+              }}
+            />
+            <Typography variant='h6' color='text.secondary' gutterBottom>
+              Unable to Load Products
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              Please check your configuration or try again later.
+            </Typography>
+          </Paper>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Empty state
   if (featuredProducts.length === 0) {
     return (
       <Box sx={{ py: 8, backgroundColor: 'var(--theme-surface, #F8FAFC)' }}>
@@ -137,18 +267,6 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
     const inStock = product.isInStock !== false;
     const isProfessionalGrade = product.tags?.includes('professional') || false;
 
-    // Debug logging for product image
-    console.log('🖼️ Product image debug:', {
-      productId: product.productId || product.itemId,
-      productName: product.name,
-      imageUrl: product.imageUrl,
-      images: product.images,
-      finalImageUrl: imageUrl,
-      hasImageUrl: !!imageUrl,
-      quantityAvailable: product.quantityAvailable,
-      inStock: inStock,
-    });
-
     return (
       <Box
         key={product.productId || index}
@@ -182,7 +300,7 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
               height='240'
               image={
                 imageUrl ||
-                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTIwTDE4MCA5MEwyMjAgOTBMMjAwIDEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHN2ZyBpZD0iSWNvbmx5YWZpbGwtUGhvdG8iIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Im0xOSAzaDRjMS4xIDAgMiAuOSAyIDJ2MTRjMCAxLjEtLjkgMi0yIDJoLTE0Yy0xLjEgMC0yLS45L/placeholder/400/240'
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjIwMCIgY3k9IjEyMCIgcj0iNjAiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'
               }
               alt={product.name || 'Product Name'}
               sx={{ objectFit: 'cover' }}

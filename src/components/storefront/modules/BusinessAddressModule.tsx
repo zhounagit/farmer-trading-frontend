@@ -37,6 +37,20 @@ interface AddressData {
   zipCode?: string;
 }
 
+// API response structure for addresses
+interface StoreAddress {
+  type: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  instructions: string;
+  email?: string;
+}
+
 const BusinessAddressModule: React.FC<BusinessAddressModuleProps> = ({
   module,
   storefront,
@@ -50,25 +64,30 @@ const BusinessAddressModule: React.FC<BusinessAddressModuleProps> = ({
   const displayStyle = (settings.displayStyle as string) || 'card';
 
   // Get business address from store data or module settings
-  const storeDataWithAddresses = storefront as PublicStorefront & {
-    storeDetails?: {
-      addresses?: AddressData[];
-    };
-  };
-  const businessAddress =
-    (Array.isArray(storeDataWithAddresses.storeDetails?.addresses)
-      ? storeDataWithAddresses.storeDetails.addresses.find(
-          (addr: AddressData) => addr.addressType === 'business'
-        )
-      : undefined) ||
+  // The API returns store.addresses with 'type' property and snake_case field names
+  const storeAddresses =
+    (storefront.store?.addresses as StoreAddress[] | undefined) || [];
+  const foundAddress = storeAddresses.find(
+    (addr: StoreAddress) => addr.type === 'business'
+  );
+  const businessAddress = (foundAddress ||
     (settings.businessAddress as AddressData) ||
-    {};
+    {}) as Partial<StoreAddress> & Partial<AddressData>;
 
-  const { locationName, contactPhone, streetAddress, city, state, zipCode } =
-    businessAddress;
-
-  // Use store-level contact email as fallback (like Store Overview does)
-  const contactEmail = businessAddress.contactEmail;
+  // Map API field names to component field names
+  const locationName = (businessAddress.name ||
+    businessAddress.locationName) as string | undefined;
+  const contactPhone = (businessAddress.phone ||
+    businessAddress.contactPhone) as string | undefined;
+  const streetAddress = (businessAddress.street ||
+    businessAddress.streetAddress) as string | undefined;
+  const city = businessAddress.city as string | undefined;
+  const state = businessAddress.state as string | undefined;
+  const zipCode = (businessAddress.zip || businessAddress.zipCode) as
+    | string
+    | undefined;
+  const contactEmail = (businessAddress.email ||
+    businessAddress.contactEmail) as string | undefined;
 
   // Format full address
   const fullAddress = [streetAddress, city, state, zipCode]

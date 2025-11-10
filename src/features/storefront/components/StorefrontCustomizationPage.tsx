@@ -48,7 +48,6 @@ import {
   ViewModule,
   LocationOn,
   Inventory,
-  Payment,
   Schedule,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -59,7 +58,6 @@ import type { Store } from '../../../shared/types/store';
 import ThemeSelector from '../../../components/storefront/ThemeSelector';
 import { StorefrontApiService } from '../services/storefrontApi';
 import type { StorefrontPublishRequest } from '../../../shared/types/storefront';
-import HeroBannerImageUpload from '../../../components/storefront/HeroBannerImageUpload';
 import {
   AVAILABLE_THEMES,
   generateThemeCSS,
@@ -73,6 +71,12 @@ import type {
   StorefrontPreviewMode,
 } from '../../../types/storefront';
 import FeaturedProductsManager from '../../../components/storefront/FeaturedProductsManager';
+import AllProductsPreview from '../../../components/storefront/module-previews/AllProductsPreview';
+import SearchFilterPreview from '../../../components/storefront/module-previews/SearchFilterPreview';
+import BusinessAddressPreview from '../../../components/storefront/module-previews/BusinessAddressPreview';
+import SocialMediaPreview from '../../../components/storefront/module-previews/SocialMediaPreview';
+import NewsletterPreview from '../../../components/storefront/module-previews/NewsletterPreview';
+import TestimonialsPreview from '../../../components/storefront/module-previews/TestimonialsPreview';
 
 // Mock data for module templates
 const MODULE_TEMPLATES: ModuleTemplate[] = [
@@ -903,7 +907,7 @@ const StorefrontCustomizationPage: React.FC = () => {
         products: (products || []).map((product: any) => ({
           productId: product.itemId,
           itemId: product.itemId,
-          name: product.itemName,
+          name: product.name || product.itemName,
           price: product.price,
           imageUrl: product.imageUrl,
           isActive: true,
@@ -911,8 +915,25 @@ const StorefrontCustomizationPage: React.FC = () => {
       };
       setStorefrontData(mockStorefront);
 
+      // Update the featured-products module settings with productIds
+      const productIds = (products || []).map((product: any) => product.itemId);
+      setModules((prevModules) =>
+        prevModules.map((module) =>
+          module.type === 'featured-products'
+            ? {
+                ...module,
+                settings: {
+                  ...module.settings,
+                  productIds: productIds,
+                },
+              }
+            : module
+        )
+      );
+
       console.log('✅ Featured products loaded and mapped:', {
         count: products?.length || 0,
+        productIds: productIds,
         mappedProducts: mockStorefront.products,
         storefrontData: mockStorefront,
       });
@@ -1500,8 +1521,8 @@ const StorefrontCustomizationPage: React.FC = () => {
                     color='text.secondary'
                     sx={{ mb: 2 }}
                   >
-                    Choose from 3 professionally designed themes. Your store
-                    preview will update instantly.
+                    Select from 10 professionally designed themes to match your
+                    brand. Your store preview will update instantly.
                   </Typography>
 
                   <Alert severity='success' sx={{ mb: 3 }}>
@@ -1641,118 +1662,6 @@ const StorefrontCustomizationPage: React.FC = () => {
                               }}
                             >
                               Configure Featured
-                            </Button>
-                            <Button
-                              size='small'
-                              variant='contained'
-                              onClick={async () => {
-                                console.log(
-                                  '🔄 Refresh button clicked - comprehensive debugging'
-                                );
-
-                                // First reload inventory
-                                await loadInventoryItems();
-                                console.log(
-                                  '📊 Current inventory items after reload:',
-                                  {
-                                    count: inventoryItems.length,
-                                    items: inventoryItems.map((item) => ({
-                                      id: item.itemId,
-                                      name: item.name,
-                                      price: item.pricePerUnit,
-                                      isActive: item.status === 'active',
-                                      quantity: item.quantityAvailable,
-                                    })),
-                                  }
-                                );
-
-                                // Test raw featured products API endpoint
-                                try {
-                                  const response = await fetch(
-                                    `/api/stores/${storeId}/featured-products?limit=6`,
-                                    {
-                                      headers: {
-                                        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-                                        'Content-Type': 'application/json',
-                                      },
-                                    }
-                                  );
-
-                                  console.log(
-                                    '📞 Featured products API response:',
-                                    {
-                                      status: response.status,
-                                      statusText: response.statusText,
-                                      ok: response.ok,
-                                    }
-                                  );
-
-                                  if (response.ok) {
-                                    const featuredData = await response.json();
-                                    console.log(
-                                      '📦 Featured products raw data:',
-                                      featuredData
-                                    );
-                                    console.log(
-                                      '📊 Featured products comparison:',
-                                      {
-                                        inventoryCount: inventoryItems.length,
-                                        featuredCount:
-                                          featuredData?.length || 0,
-                                        match:
-                                          inventoryItems.length ===
-                                          (featuredData?.length || 0),
-                                      }
-                                    );
-                                  } else {
-                                    const errorText = await response.text();
-                                    console.error(
-                                      '❌ Featured products API error:',
-                                      errorText
-                                    );
-                                  }
-                                } catch (error) {
-                                  console.error(
-                                    '❌ Featured products fetch error:',
-                                    error
-                                  );
-                                }
-
-                                // Also test inventory API for comparison
-                                try {
-                                  const invResponse = await fetch(
-                                    `/api/inventory?storeId=${storeId}&isActive=true&limit=50`,
-                                    {
-                                      headers: {
-                                        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-                                        'Content-Type': 'application/json',
-                                      },
-                                    }
-                                  );
-
-                                  if (invResponse.ok) {
-                                    const invData = await invResponse.json();
-                                    console.log(
-                                      '📦 Inventory API raw data:',
-                                      invData
-                                    );
-                                  }
-                                } catch (error) {
-                                  console.error(
-                                    '❌ Inventory API test error:',
-                                    error
-                                  );
-                                }
-
-                                // Reload through service
-                                loadFeaturedProducts();
-                              }}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: '0.75rem',
-                              }}
-                            >
-                              Debug APIs
                             </Button>
                           </Box>
                         )}
@@ -2443,7 +2352,7 @@ const StorefrontCustomizationPage: React.FC = () => {
                               )}
                             </Card>
 
-                            {/* Payment Methods */}
+                            {/* Shipping Policy */}
                             <Card sx={{ p: 2 }}>
                               <Box
                                 sx={{
@@ -2452,69 +2361,115 @@ const StorefrontCustomizationPage: React.FC = () => {
                                   mb: 2,
                                 }}
                               >
-                                <Payment
+                                <LocationOn
                                   sx={{
                                     mr: 1,
                                     color: selectedTheme.colors.primary,
                                   }}
                                 />
                                 <Typography variant='subtitle2'>
-                                  Payment Methods
+                                  Shipping Policy
                                 </Typography>
                               </Box>
-                              {storeData?.paymentMethods &&
-                              storeData.paymentMethods.length > 0 ? (
-                                <Box
+                              <Typography
+                                variant='body2'
+                                color='text.secondary'
+                              >
+                                Free shipping on orders over $50. Delivery
+                                within 3-5 business days.
+                              </Typography>
+                            </Card>
+
+                            {/* Returns Policy */}
+                            <Card sx={{ p: 2 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  mb: 2,
+                                }}
+                              >
+                                <Settings
                                   sx={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 0.5,
+                                    mr: 1,
+                                    color: selectedTheme.colors.primary,
                                   }}
-                                >
-                                  {storeData.paymentMethods
-                                    .slice(0, 4)
-                                    .map((pm: any, index: number) => (
-                                      <Chip
-                                        key={index}
-                                        label={
-                                          pm.paymentMethod?.methodName ||
-                                          'Payment Method'
-                                        }
-                                        size='small'
-                                        variant='outlined'
-                                        sx={{
-                                          borderColor:
-                                            selectedTheme.colors.primary,
-                                          color: selectedTheme.colors.primary,
-                                          fontSize: '0.75rem',
-                                        }}
-                                      />
-                                    ))}
-                                </Box>
-                              ) : (
-                                <Typography
-                                  variant='body2'
-                                  color='text.secondary'
-                                >
-                                  Payment methods will appear here
+                                />
+                                <Typography variant='subtitle2'>
+                                  Returns Policy
                                 </Typography>
-                              )}
+                              </Box>
+                              <Typography
+                                variant='body2'
+                                color='text.secondary'
+                              >
+                                30-day returns policy. Items must be unused and
+                                in original packaging.
+                              </Typography>
+                            </Card>
+
+                            {/* Other Policies */}
+                            <Card sx={{ p: 2 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  mb: 2,
+                                }}
+                              >
+                                <ContactMail
+                                  sx={{
+                                    mr: 1,
+                                    color: selectedTheme.colors.primary,
+                                  }}
+                                />
+                                <Typography variant='subtitle2'>
+                                  Other Policies
+                                </Typography>
+                              </Box>
+                              <Typography
+                                variant='body2'
+                                color='text.secondary'
+                              >
+                                Our commitment to quality and customer
+                                satisfaction. Contact us for more details.
+                              </Typography>
                             </Card>
                           </Box>
                         </Box>
                       )}
 
-                      {![
-                        'hero-banner',
-                        'store-introduction',
-                        'featured-products',
-                        'product-categories',
-                        'contact-form',
-                        'policy-section',
-                      ].includes(module.type) && (
-                        <Alert severity='info'>
-                          {module.description} - Preview coming soon!
-                        </Alert>
+                      {module.type === 'all-products' && (
+                        <AllProductsPreview
+                          module={module}
+                          storeData={storeData}
+                        />
+                      )}
+
+                      {module.type === 'search-filter' && (
+                        <SearchFilterPreview
+                          module={module}
+                          storeData={storeData}
+                        />
+                      )}
+
+                      {module.type === 'business-address' && (
+                        <BusinessAddressPreview
+                          module={module}
+                          storeData={storeData}
+                        />
+                      )}
+
+                      {module.type === 'social-media' && (
+                        <SocialMediaPreview module={module} />
+                      )}
+
+                      {module.type === 'newsletter-signup' && (
+                        <NewsletterPreview module={module} />
+                      )}
+
+                      {module.type === 'testimonials' && (
+                        <TestimonialsPreview module={module} />
                       )}
                     </Box>
                   ))}
@@ -2669,147 +2624,11 @@ const StorefrontCustomizationPage: React.FC = () => {
                                 }}
                                 sx={{ mb: 2 }}
                               />
-                              <HeroBannerImageUpload
-                                storeId={parseInt(storeId!)}
-                                currentImageUrl={
-                                  (selectedModule.settings
-                                    .backgroundImage as string) || ''
-                                }
-                                onImageUploaded={async (imageUrl) => {
-                                  const updatedModules = modules.map((m) =>
-                                    m.id === selectedModuleId
-                                      ? {
-                                          ...m,
-                                          settings: {
-                                            ...m.settings,
-                                            backgroundImage: imageUrl,
-                                          },
-                                        }
-                                      : m
-                                  );
-
-                                  setModules(updatedModules);
-
-                                  // Auto-save the updated customization
-                                  try {
-                                    const customizationData: any = {
-                                      storeId: parseInt(storeId!),
-                                      themeId: selectedTheme.id,
-                                      modules: updatedModules.map((m) => ({
-                                        id: m.id,
-                                        type: m.type,
-                                        title: m.title,
-                                        content: {},
-                                        settings: m.settings,
-                                        order: m.order,
-                                        isVisible: m.enabled,
-                                      })),
-                                      globalSettings: {
-                                        primaryColor:
-                                          selectedTheme?.colors?.primary,
-                                        secondaryColor:
-                                          selectedTheme?.colors?.secondary,
-                                        fontFamily:
-                                          selectedTheme?.typography?.fontFamily
-                                            ?.primary,
-                                        headerStyle: 'modern',
-                                        footerText: 'Powered by HelloNeighbors',
-                                      },
-                                      customCss: selectedTheme
-                                        ? generateThemeCSS(selectedTheme)
-                                        : undefined,
-                                      isPublished: false,
-                                      lastModified: new Date().toISOString(),
-                                    };
-
-                                    await StorefrontApiService.saveStorefrontCustomization(
-                                      customizationData
-                                    );
-
-                                    setSnackbar({
-                                      open: true,
-                                      message:
-                                        'Hero banner image saved successfully!',
-                                      severity: 'success',
-                                    });
-                                  } catch {
-                                    // Failed to save hero banner image
-                                    setSnackbar({
-                                      open: true,
-                                      message:
-                                        'Image uploaded but failed to save. Please save manually.',
-                                      severity: 'error',
-                                    });
-                                  }
-                                }}
-                                onImageRemoved={async () => {
-                                  const updatedModules = modules.map((m) =>
-                                    m.id === selectedModuleId
-                                      ? {
-                                          ...m,
-                                          settings: {
-                                            ...m.settings,
-                                            backgroundImage: '',
-                                          },
-                                        }
-                                      : m
-                                  );
-
-                                  setModules(updatedModules);
-
-                                  // Auto-save the updated customization
-                                  try {
-                                    const customizationData: any = {
-                                      storeId: parseInt(storeId!),
-                                      themeId: selectedTheme.id,
-                                      modules: updatedModules.map((m) => ({
-                                        id: m.id,
-                                        type: m.type,
-                                        title: m.title,
-                                        content: {},
-                                        settings: m.settings,
-                                        order: m.order,
-                                        isVisible: m.enabled,
-                                      })),
-                                      globalSettings: {
-                                        primaryColor:
-                                          selectedTheme?.colors?.primary,
-                                        secondaryColor:
-                                          selectedTheme?.colors?.secondary,
-                                        fontFamily:
-                                          selectedTheme?.typography?.fontFamily
-                                            ?.primary,
-                                        headerStyle: 'modern',
-                                        footerText: 'Powered by HelloNeighbors',
-                                      },
-                                      customCss: selectedTheme
-                                        ? generateThemeCSS(selectedTheme)
-                                        : undefined,
-                                      isPublished: false,
-                                      lastModified: new Date().toISOString(),
-                                    };
-
-                                    await StorefrontApiService.saveStorefrontCustomization(
-                                      customizationData
-                                    );
-
-                                    setSnackbar({
-                                      open: true,
-                                      message:
-                                        'Hero banner image removed successfully!',
-                                      severity: 'success',
-                                    });
-                                  } catch {
-                                    // Failed to save hero banner removal
-                                    setSnackbar({
-                                      open: true,
-                                      message:
-                                        'Image removed but failed to save. Please save manually.',
-                                      severity: 'error',
-                                    });
-                                  }
-                                }}
-                              />
+                              <Alert severity='info' sx={{ mb: 2 }}>
+                                The hero banner uses your store's banner image.
+                                To change the hero banner image, please upload a
+                                new banner in your Store Settings.
+                              </Alert>
                               <FormControl fullWidth sx={{ mb: 2 }}>
                                 <InputLabel>Banner Height</InputLabel>
                                 <Select

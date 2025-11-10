@@ -61,6 +61,21 @@ export interface PublicStorefront {
       description: string;
       icon: string;
     }>;
+    galleryImages?: Array<{
+      imageId: number;
+      filePath: string;
+      imageType: string;
+      caption?: string;
+      displayOrder: number;
+      uploadedAt: string;
+    }>;
+    video?: {
+      imageId: number;
+      filePath: string;
+      mimeType: string;
+      uploadedAt: string;
+      isExternalVideo?: boolean;
+    };
   };
   products: Array<Record<string, unknown>>;
   isActive: boolean;

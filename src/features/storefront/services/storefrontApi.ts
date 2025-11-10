@@ -282,35 +282,6 @@ export class StorefrontApiService {
     return response;
   }
 
-  // Image and Media Management
-  static async uploadHeroBannerImage(
-    storefrontId: number,
-    file: File,
-    onUploadProgress?: (progress: number) => void
-  ): Promise<{ imageUrl: string; thumbnailUrl?: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await apiClient.upload<{
-      imageUrl: string;
-      thumbnailUrl?: string;
-    }>(
-      `${this.BASE_PATH}/${storefrontId}/hero-banner`,
-      formData,
-      onUploadProgress
-    );
-    return response;
-  }
-
-  static async deleteHeroBannerImage(
-    storefrontId: number
-  ): Promise<ApiResponse> {
-    const response = await apiClient.delete<ApiResponse>(
-      `${this.BASE_PATH}/${storefrontId}/hero-banner`
-    );
-    return response;
-  }
-
   static async uploadCustomImages(
     storefrontId: number,
     files: File[],

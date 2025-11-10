@@ -1,5 +1,14 @@
-import React from 'react';
-import { Box, Container, Typography, Grid, Button, Paper } from '@mui/material';
+import React, { useMemo } from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Button,
+  Paper,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
 import {
   Category,
   Build,
@@ -12,6 +21,10 @@ import type {
   StorefrontModule,
   PublicStorefront,
 } from '@/features/storefront/types/public-storefront';
+import {
+  useProductCategories,
+  type ApiCategory,
+} from '@/features/storefront/hooks/useProductAPIs';
 
 interface ProductCategoriesModuleProps {
   module: StorefrontModule;
@@ -24,62 +37,167 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
 }) => {
   const settings = module.settings || {};
 
-  // Industrial professional styling
+  // Get settings
   const title = (settings.title as string) || 'Shop by Category';
   const subtitle =
     (settings.subtitle as string) ||
     'Find exactly what you need with our organized product categories';
 
-  // Get categories from store or create default industrial categories
-  const categories = storefront.store.categories || [];
+  // Get store ID
+  const storeId = storefront.store?.storeId || storefront.storeId;
 
-  // Default industrial categories if none exist
-  const defaultCategories = [
-    {
-      id: 'tools',
-      name: 'Tools & Equipment',
-      icon: Build,
-      description: 'Professional-grade tools and equipment',
-    },
-    {
-      id: 'parts',
-      name: 'Parts & Components',
-      icon: Engineering,
-      description: 'Precision parts and components',
-    },
-    {
-      id: 'supplies',
-      name: 'Industrial Supplies',
-      icon: Inventory,
-      description: 'Essential supplies and materials',
-    },
-    {
-      id: 'shipping',
-      name: 'Shipping & Logistics',
-      icon: LocalShipping,
-      description: 'Shipping and logistics solutions',
-    },
-  ];
+  // Fetch categories from API
+  const {
+    categories: apiCategories,
+    loading,
+    error,
+  } = useProductCategories(storeId);
 
-  const displayCategories =
-    categories.length > 0 ? categories : defaultCategories;
+  // Default categories for fallback
+  const defaultCategories: ApiCategory[] = useMemo(
+    () => [
+      {
+        categoryId: 1,
+        categoryName: 'Tools & Equipment',
+        description: 'Professional-grade tools and equipment',
+        imageUrl: '',
+        isActive: true,
+      },
+      {
+        categoryId: 2,
+        categoryName: 'Parts & Components',
+        description: 'Precision parts and components',
+        imageUrl: '',
+        isActive: true,
+      },
+      {
+        categoryId: 3,
+        categoryName: 'Industrial Supplies',
+        description: 'Essential supplies and materials',
+        imageUrl: '',
+        isActive: true,
+      },
+      {
+        categoryId: 4,
+        categoryName: 'Shipping & Logistics',
+        description: 'Shipping and logistics solutions',
+        imageUrl: '',
+        isActive: true,
+      },
+    ],
+    []
+  );
 
-  const getIconForCategory = (_category: any, index: number) => {
-    const icons = [Build, Engineering, Inventory, LocalShipping, Category];
-    const IconComponent = icons[index % icons.length];
+  // Determine which categories to display
+  const displayCategories: ApiCategory[] = useMemo(() => {
+    if (apiCategories && apiCategories.length > 0) {
+      return apiCategories.filter((cat) => cat.isActive !== false);
+    }
+    return defaultCategories;
+  }, [apiCategories, defaultCategories]);
+
+  // Debug logging
+  console.log('📦 ProductCategoriesModule Debug:', {
+    storeId,
+    apiCategoriesCount: apiCategories.length,
+    displayCategoriesCount: displayCategories.length,
+    loading,
+    error,
+  });
+
+  const iconList = [Build, Engineering, Inventory, LocalShipping, Category];
+
+  const getIconForCategory = (index: number) => {
+    const IconComponent = iconList[index % iconList.length];
     return IconComponent;
   };
 
-  const handleCategoryClick = (_category: any) => {
+  const handleCategoryClick = () => {
     // Scroll to products section
     const productsSection =
-      document.getElementById('products') ||
+      document.getElementById('all-products') ||
       document.querySelector('[id*="featured-products"]') ||
-      document.querySelector('[id*="all-products"]');
+      document.querySelector('[id*="products"]');
     if (productsSection) {
       productsSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // Loading state
+  if (loading && apiCategories.length === 0) {
+    return (
+      <Box
+        sx={{
+          py: 8,
+          backgroundColor: 'var(--theme-surface, #F8FAFC)',
+          borderTop: '4px solid var(--theme-primary, #1E3A8A)',
+        }}
+      >
+        <Container maxWidth='xl' sx={{ px: { xs: 2, md: 4 } }}>
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography
+              variant='h3'
+              component='h2'
+              textAlign='center'
+              sx={{
+                mb: 2,
+                fontWeight: 700,
+                color: 'var(--theme-text-primary, #1F2937)',
+                fontSize: { xs: '1.875rem', md: '2.25rem' },
+                fontFamily: 'var(--theme-font-primary, Inter, sans-serif)',
+              }}
+            >
+              {title}
+            </Typography>
+            <CircularProgress sx={{ mt: 4 }} />
+            <Typography variant='body2' sx={{ mt: 2, color: '#6B7280' }}>
+              Loading categories...
+            </Typography>
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error && apiCategories.length === 0) {
+    return (
+      <Box
+        sx={{
+          py: 8,
+          backgroundColor: 'var(--theme-surface, #F8FAFC)',
+          borderTop: '4px solid var(--theme-primary, #1E3A8A)',
+        }}
+      >
+        <Container maxWidth='xl' sx={{ px: { xs: 2, md: 4 } }}>
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography
+              variant='h3'
+              component='h2'
+              textAlign='center'
+              sx={{
+                mb: 2,
+                fontWeight: 700,
+                color: 'var(--theme-text-primary, #1F2937)',
+                fontSize: { xs: '1.875rem', md: '2.25rem' },
+                fontFamily: 'var(--theme-font-primary, Inter, sans-serif)',
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+          <Alert severity='error' sx={{ mb: 3 }}>
+            <Typography variant='body2'>
+              Failed to load categories: {error}
+            </Typography>
+          </Alert>
+          <Typography variant='body2' textAlign='center' color='text.secondary'>
+            Showing default categories instead
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -123,15 +241,12 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
         {/* Category Grid */}
         <Grid container spacing={3}>
           {displayCategories.map((category, index) => {
-            const IconComponent =
-              category.icon || getIconForCategory(category, index);
+            const IconComponent = getIconForCategory(index);
 
             return (
               <Grid
                 size={{ xs: 12, sm: 6, lg: 3 }}
-                key={
-                  (category as any).categoryId || (category as any).id || index
-                }
+                key={category.categoryId || index}
               >
                 <Paper
                   elevation={0}
@@ -154,7 +269,7 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
                         'var(--theme-shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1))',
                     },
                   }}
-                  onClick={() => handleCategoryClick(category)}
+                  onClick={() => handleCategoryClick()}
                 >
                   {/* Icon */}
                   <Box
@@ -190,7 +305,7 @@ const ProductCategoriesModule: React.FC<ProductCategoriesModuleProps> = ({
                         'var(--theme-font-primary, Inter, sans-serif)',
                     }}
                   >
-                    {(category as any).categoryName || (category as any).name}
+                    {category.categoryName}
                   </Typography>
 
                   {/* Description */}

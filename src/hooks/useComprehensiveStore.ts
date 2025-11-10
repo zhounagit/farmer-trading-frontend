@@ -386,34 +386,6 @@ export const useComprehensiveStore = (
           )
         : [];
 
-    console.log('🖼️ Image Analysis:', {
-      logoImages: logoImages.length,
-      logoImageDetails: logoImages,
-      galleryImages: galleryImages.length,
-      galleryImageDetails: galleryImages,
-      allGalleryImages: allGalleryImages.length,
-      allGalleryImageDetails: allGalleryImages,
-      logoUrlExists: !!storeData.logoUrl,
-      logoUrlValue: storeData.logoUrl,
-      totalImages: storeData.images?.gallery?.length || 0,
-      allImagesBreakdown:
-        storeData.images?.gallery && Array.isArray(storeData.images.gallery)
-          ? storeData.images.gallery.map(
-              (img: {
-                imageId: number;
-                imageType: string;
-                filePath?: string;
-                isActive?: boolean;
-              }) => ({
-                imageId: img.imageId,
-                imageType: img.imageType,
-                fileName: img.filePath,
-                isActive: img.isActive,
-              })
-            )
-          : [],
-    });
-
     // Get contact info from store data or primary address fallback
     const primaryAddress =
       storeData.addresses?.pickupLocations &&

@@ -39,6 +39,8 @@ interface PaginationResponse {
 interface BackendInventoryListResponse {
   items?: BackendInventoryItem[];
   data?: BackendInventoryItem[];
+  success?: boolean;
+  message?: string;
   totalCount?: number;
   pageNumber?: number;
   pageSize?: number;
@@ -57,6 +59,10 @@ export class InventoryApiService {
   // Enhanced error handling and logging
   private static logOperation(operation: string, details?: unknown): void {
     console.log(`📦 InventoryAPI: ${operation}`, details || '');
+  }
+
+  private static logDebug(operation: string, details?: unknown): void {
+    console.debug(`🔍 InventoryAPI DEBUG: ${operation}`, details || '');
   }
 
   private static logError(operation: string, error: unknown): void {
@@ -106,26 +112,62 @@ export class InventoryApiService {
         BackendInventoryListResponse | BackendInventoryItem[]
       >(`${this.BASE_PATH}?${params.toString()}`);
 
+      this.logDebug('Raw API response received', { response });
+
       // Handle both array and object response formats
       let backendItems: BackendInventoryItem[] = [];
       let pagination: PaginationResponse | null | undefined = null;
 
       if (Array.isArray(response)) {
         // Response is directly an array
+        this.logDebug('Response is direct array');
         backendItems = response;
       } else if (response.data && Array.isArray(response.data)) {
-        // Response has data property with array
+        // Response has data property with array (new format)
+        this.logDebug('Response has data property with array', {
+          dataLength: response.data.length,
+          hasPagination: !!response.pagination,
+        });
         backendItems = response.data;
         pagination = response.pagination;
       } else if (response.items && Array.isArray(response.items)) {
         // Response has items property
+        this.logDebug('Response has items property');
         backendItems = response.items;
         pagination = response.pagination || response;
+      } else {
+        // Unknown response format
+        this.logDebug('Unknown response format', {
+          keys: Object.keys(response || {}),
+          responseType: typeof response,
+          isArray: Array.isArray(response),
+        });
       }
+
+      this.logDebug('Backend items extracted', {
+        count: backendItems.length,
+        firstItem: backendItems[0],
+      });
 
       // Convert backend items to frontend format using ApiMapper
       // Handle both PascalCase and camelCase backend responses
-      const items = ApiMapper.toCamelCase<InventoryItem[]>(backendItems);
+      let items: InventoryItem[];
+
+      // Check if backend items are already in camelCase format
+      if (backendItems.length > 0 && 'itemId' in backendItems[0]) {
+        // Items are already in camelCase, use them directly
+        this.logDebug('Items are already in camelCase format');
+        items = backendItems as unknown as InventoryItem[];
+      } else {
+        // Items are in PascalCase, convert them
+        this.logDebug('Converting items from PascalCase to camelCase');
+        items = ApiMapper.toCamelCase<InventoryItem[]>(backendItems);
+      }
+
+      this.logDebug('Final items after processing', {
+        count: items.length,
+        firstItem: items[0],
+      });
 
       // Map backend response to InventoryListResponse format
       const mappedResponse: InventoryListResponse = {

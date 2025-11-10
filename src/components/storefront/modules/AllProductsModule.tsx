@@ -16,6 +16,8 @@ import {
   Select,
   MenuItem,
   Pagination,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { ShoppingCart, FavoriteBorder, Search } from '@mui/icons-material';
 import type {
@@ -23,6 +25,11 @@ import type {
   PublicStorefront,
 } from '@/features/storefront/types/public-storefront';
 import type { StorefrontProduct } from '@/shared/types/storefront';
+import {
+  useProductsPaginated,
+  mapApiProductToStorefrontProduct,
+  type ApiProduct,
+} from '@/features/storefront/hooks/useProductAPIs';
 
 interface AllProductsModuleProps {
   module: StorefrontModule;
@@ -48,16 +55,40 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
   const [sortBy, setSortBy] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Get products from storefront and safely cast to StorefrontProduct[]
-  const allProducts =
-    (storefront.products as unknown as StorefrontProduct[]) || [];
+  // Get store ID
+  const storeId = storefront.store?.storeId || storefront.storeId;
+
+  // Fetch paginated products from API
+  const {
+    products: apiProducts,
+    pagination,
+    loading,
+    error,
+    goToPage,
+  } = useProductsPaginated(storeId, currentPage, productsPerPage);
+
+  // Map API products to StorefrontProduct format
+  const mappedProducts = apiProducts.map((apiProduct: ApiProduct) =>
+    mapApiProductToStorefrontProduct(apiProduct)
+  );
+
+  // Get products from API or fallback to storefront products
+  const allProducts: StorefrontProduct[] =
+    mappedProducts.length > 0
+      ? mappedProducts
+      : (storefront.products as unknown as StorefrontProduct[]) || [];
 
   // Debug logging
   console.log('🔍 DEBUG - AllProductsModule:', {
-    totalProducts: allProducts.length,
+    storeId,
+    currentPage,
+    productsPerPage,
+    apiProductsCount: apiProducts.length,
+    totalProducts: pagination?.total || allProducts.length,
+    pagination,
+    loading,
+    error,
     searchQuery,
-    sampleProduct: allProducts[0] || null,
-    allProductsKeys: allProducts[0] ? Object.keys(allProducts[0]) : [],
   });
 
   // Filter products based on search query
@@ -88,16 +119,27 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
     }
   });
 
-  // Pagination
-  const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = sortedProducts.slice(
-    startIndex,
-    startIndex + productsPerPage
-  );
+  // Use paginated products from API if available
+  const paginatedProducts =
+    apiProducts.length > 0 ? mappedProducts : sortedProducts;
+
+  // Calculate pagination for local sorting
+  const totalPages =
+    apiProducts.length > 0
+      ? pagination?.totalPages || 1
+      : Math.ceil(sortedProducts.length / productsPerPage);
 
   const handleAddToCart = () => {
     // Add to cart functionality would be implemented here
+  };
+
+  const handlePageChange = (
+    _event: React.ChangeEvent<unknown>,
+    page: number
+  ) => {
+    setCurrentPage(page);
+    goToPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const formatPrice = (price: number) => {
@@ -109,7 +151,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
 
   const renderProduct = (product: StorefrontProduct, index: number) => {
     const price = product.price || 0;
-    const imageUrl = product.imageUrl || '/api/placeholder/300/200';
+    const imageUrl = product.imageUrl || '';
     const productName = product.name || 'Product Name';
 
     return (
@@ -138,7 +180,10 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
             <CardMedia
               component='img'
               height='200'
-              image={imageUrl}
+              image={
+                imageUrl ||
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEwMCIgcj0iNDUiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'
+              }
               alt={productName}
               sx={{ objectFit: 'cover' }}
             />
@@ -185,6 +230,17 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
               </Typography>
             )}
 
+            {/* Unit Info */}
+            {product.unit && (
+              <Typography
+                variant='caption'
+                color='text.secondary'
+                sx={{ mb: 1 }}
+              >
+                Unit: {product.unit}
+              </Typography>
+            )}
+
             {/* Price and Actions */}
             <Box
               display='flex'
@@ -213,7 +269,62 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
     );
   };
 
-  if (allProducts.length === 0) {
+  // Loading state
+  if (loading && paginatedProducts.length === 0) {
+    return (
+      <Box
+        id='all-products'
+        sx={{ py: 6, backgroundColor: 'background.default' }}
+      >
+        <Container maxWidth='lg'>
+          <Typography
+            variant='h3'
+            component='h2'
+            textAlign='center'
+            sx={{ mb: 4 }}
+          >
+            {title}
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress size={48} />
+          </Box>
+          <Typography variant='body1' textAlign='center' color='text.secondary'>
+            Loading products...
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error && paginatedProducts.length === 0) {
+    return (
+      <Box
+        id='all-products'
+        sx={{ py: 6, backgroundColor: 'background.default' }}
+      >
+        <Container maxWidth='lg'>
+          <Typography
+            variant='h3'
+            component='h2'
+            textAlign='center'
+            sx={{ mb: 4 }}
+          >
+            {title}
+          </Typography>
+          <Alert severity='error' sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+          <Typography variant='body1' textAlign='center' color='text.secondary'>
+            Unable to load products. Please try again later.
+          </Typography>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Empty state
+  if (paginatedProducts.length === 0) {
     return (
       <Box
         id='all-products'
@@ -307,8 +418,11 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
 
         {/* Products Count */}
         <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-          Showing {paginatedProducts.length} of {sortedProducts.length} products
+          Showing {paginatedProducts.length} products
+          {pagination &&
+            ` (Page ${pagination.page} of ${pagination.totalPages})`}
           {searchQuery && ` matching "${searchQuery}"`}
+          {pagination && ` (${pagination.total} total)`}
         </Typography>
 
         {/* Products Grid */}
@@ -324,7 +438,7 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
                 <Pagination
                   count={totalPages}
                   page={currentPage}
-                  onChange={(_, page) => setCurrentPage(page)}
+                  onChange={handlePageChange}
                   color='primary'
                   size='large'
                 />

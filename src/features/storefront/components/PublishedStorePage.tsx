@@ -28,7 +28,11 @@ import {
   generateThemeCSS,
   type StorefrontTheme,
 } from '../../../types/themes';
-import { StorefrontModules } from '../../../components/storefront/StorefrontModuleRenderer';
+import {
+  StorefrontModules,
+  StorefrontFooterModules,
+} from '../../../components/storefront/StorefrontModuleRenderer';
+import GalleryMediaSection from '../../../components/storefront/GalleryMediaSection';
 import { API_CONFIG } from '../../../utils/api';
 
 const PublishedStorePage: React.FC = () => {
@@ -79,6 +83,56 @@ const PublishedStorePage: React.FC = () => {
 
         if (!data) {
           throw new Error('Unable to parse storefront data from API response');
+        }
+
+        // Transform the API response to match PublicStorefront structure
+        // Backend returns videoUrl and galleryUrls at root level, but frontend expects store.galleryImages and store.video
+        if (data && ('videoUrl' in data || 'galleryUrls' in data)) {
+          const enhancedData = data as {
+            storeId: number;
+            storeName: string;
+            description?: string;
+            logoUrl?: string;
+            bannerUrl?: string;
+            videoUrl?: string;
+            galleryUrls?: string[];
+          };
+
+          // Transform galleryUrls to galleryImages format
+          const galleryImages =
+            enhancedData.galleryUrls?.map((filePath, index) => ({
+              imageId: index + 1,
+              filePath: filePath,
+              imageType: 'gallery',
+              caption: '',
+              displayOrder: index,
+              uploadedAt: new Date().toISOString(),
+            })) || [];
+
+          // Transform videoUrl to video format
+          const video = enhancedData.videoUrl
+            ? {
+                imageId: 1,
+                filePath: enhancedData.videoUrl,
+                mimeType: 'video/mp4',
+                uploadedAt: new Date().toISOString(),
+                isExternalVideo: false,
+              }
+            : undefined;
+
+          data = {
+            ...data,
+            store: {
+              ...(data.store || {}),
+              storeId: enhancedData.storeId,
+              storeName: enhancedData.storeName,
+              description: enhancedData.description,
+              logoUrl: enhancedData.logoUrl,
+              bannerUrl: enhancedData.bannerUrl,
+              galleryImages: galleryImages,
+              video: video,
+            },
+          } as PublicStorefront;
         }
 
         setStorefront(data);
@@ -425,6 +479,9 @@ const PublishedStorePage: React.FC = () => {
           <StorefrontModules storefront={storefront} />
         </Box>
 
+        {/* Gallery & Media Section - will display if backend includes gallery/video data */}
+        {storefront && <GalleryMediaSection storefront={storefront} />}
+
         {/* Fallback: If no modules are configured, show basic store info */}
         {(!storefront.customization?.modules ||
           storefront.customization.modules.length === 0) && (
@@ -449,6 +506,9 @@ const PublishedStorePage: React.FC = () => {
             </Container>
           </Box>
         )}
+
+        {/* Footer Modules (Policies, Contact Form, etc.) */}
+        {storefront && <StorefrontFooterModules storefront={storefront} />}
 
         {/* Footer */}
         <Box

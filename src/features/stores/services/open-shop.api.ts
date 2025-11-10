@@ -37,20 +37,11 @@ export class OpenShopApiService {
       const formData = new FormData();
       formData.append('VideoFile', videoFile);
 
-      console.log('🎥 Uploading video:', {
-        storeId,
-        fileName: videoFile.name,
-        fileSize: videoFile.size,
-        fileType: videoFile.type,
-      });
-
       // Use upload method which properly handles FormData with multipart/form-data
       const response = await apiService.upload<StoreImage>(
         `${this.BASE_PATH}/${storeId}/video/upload`,
         formData
       );
-
-      console.log('🎥 Video upload response:', response);
 
       if (!response) {
         throw new Error('Failed to upload video - no response');
@@ -556,14 +547,6 @@ export class OpenShopApiService {
     storeId: number,
     bannerFile: File
   ): Promise<StoreImage> {
-    console.log('🖼️ === OpenShopApiService.uploadBanner CALLED ===');
-    console.log('Store ID:', storeId);
-    console.log('Banner file:', {
-      name: bannerFile.name,
-      size: bannerFile.size,
-      type: bannerFile.type,
-    });
-
     const formData = new FormData();
     formData.append('File', bannerFile);
 
@@ -587,17 +570,6 @@ export class OpenShopApiService {
     storeId: number,
     imageFiles: File[]
   ): Promise<StoreImage[]> {
-    console.log('🖼️ === OpenShopApiService.uploadGalleryImages CALLED ===');
-    console.log('Store ID:', storeId);
-    console.log(
-      'Gallery files:',
-      imageFiles.map((f) => ({
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      }))
-    );
-
     const formData = new FormData();
     imageFiles.forEach((file) => {
       formData.append('Files', file);
@@ -608,7 +580,7 @@ export class OpenShopApiService {
 
     try {
       const result = await apiService.upload<StoreImage[]>(endpoint, formData);
-      console.log('✅ Gallery upload successful:', result);
+
       return result;
     } catch (error) {
       console.error('❌ Gallery upload failed in OpenShopApiService:', error);

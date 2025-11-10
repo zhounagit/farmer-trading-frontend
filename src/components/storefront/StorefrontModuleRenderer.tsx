@@ -116,10 +116,7 @@ interface StorefrontModulesProps {
 export const StorefrontModules: React.FC<StorefrontModulesProps> = ({
   storefront,
 }) => {
-  // Module filtering logic
-
-  // Filter out modules that should appear in the footer instead of main content
-  // These modules will be rendered separately in the footer section
+  // Filter out footer modules from main content
   const footerModuleTypes = ['policy-section', 'contact-form'];
 
   // Sort modules by order, excluding footer modules from main content
@@ -145,7 +142,6 @@ export const StorefrontModules: React.FC<StorefrontModulesProps> = ({
       }}
     >
       {sortedModules.map((module, index) => {
-        // Add visual separation between modules
         return (
           <Box
             key={module.id}
@@ -178,14 +174,55 @@ export const StorefrontModules: React.FC<StorefrontModulesProps> = ({
   );
 };
 
-// Export function to get footer modules for separate rendering
-export const getFooterModules = (storefront: PublicStorefront) => {
+/**
+ * Component to render footer modules (policy-section, contact-form)
+ * These modules appear in the footer section of the published storefront
+ */
+interface StorefrontFooterModulesProps {
+  storefront: PublicStorefront;
+}
+
+export const StorefrontFooterModules: React.FC<
+  StorefrontFooterModulesProps
+> = ({ storefront }) => {
+  // Filter for footer module types only
   const footerModuleTypes = ['policy-section', 'contact-form'];
 
-  return [...(storefront.customization?.modules || [])]
+  // Get and sort footer modules
+  const footerModules = [...(storefront.customization?.modules || [])]
     .filter((module) => module.isVisible !== false)
     .filter((module) => footerModuleTypes.includes(module.type))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (footerModules.length === 0) {
+    return null;
+  }
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+      }}
+    >
+      {footerModules.map((module, index) => (
+        <Box
+          key={module.id}
+          sx={{
+            position: 'relative',
+            width: '100%',
+          }}
+        >
+          <StorefrontModuleRenderer
+            module={module}
+            storefront={storefront}
+            index={index}
+          />
+        </Box>
+      ))}
+    </Box>
+  );
 };
 
 export default StorefrontModuleRenderer;

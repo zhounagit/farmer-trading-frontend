@@ -162,7 +162,7 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
   );
 
   const availableProducts = filteredProducts.filter(
-    (p) => !p.isFeatured && p.status === 'active'
+    (p) => !p.isFeatured && p.isActive
   );
 
   return (
@@ -247,8 +247,11 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
                               variant='caption'
                               color='text.secondary'
                             >
-                              ${product.pricePerUnit?.toFixed(2)} •{' '}
-                              {product.unitType}
+                              $
+                              {(product.price || product.pricePerUnit)?.toFixed(
+                                2
+                              )}{' '}
+                              • {product.unit || product.unitType}
                             </Typography>
                           </Box>
                           <IconButton
@@ -319,18 +322,24 @@ const FeaturedProductsManager: React.FC<FeaturedProductsManagerProps> = ({
                               variant='caption'
                               color='text.secondary'
                             >
-                              ${product.pricePerUnit?.toFixed(2)} •{' '}
-                              {product.unitType}
+                              $
+                              {(product.price || product.pricePerUnit)?.toFixed(
+                                2
+                              )}{' '}
+                              • {product.unit || product.unitType}
                             </Typography>
-                            {product.quantityAvailable &&
-                              product.quantityAvailable <= 5 && (
+                            {(() => {
+                              const qty =
+                                product.quantityAvailable || product.quantity;
+                              return qty && qty <= 5 ? (
                                 <Chip
                                   label='Low Stock'
                                   size='small'
                                   color='warning'
                                   sx={{ ml: 1 }}
                                 />
-                              )}
+                              ) : null;
+                            })()}
                           </Box>
                           <Tooltip title='Add to featured'>
                             <IconButton

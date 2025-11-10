@@ -398,9 +398,9 @@ const OpenShopPage: React.FC = () => {
       if (
         storeData.images &&
         typeof storeData.images === 'object' &&
-        !Array.isArray(storeData.images)
+        !Array.isArray(storeData.images) &&
+        storeData.images.gallery
       ) {
-        console.log('🖼️ Processing images object:', storeData.images);
         images = Array.isArray(storeData.images.gallery)
           ? storeData.images.gallery.map((img) => {
               const image = img as unknown as {
@@ -413,7 +413,6 @@ const OpenShopPage: React.FC = () => {
               };
             })
           : [];
-        console.log('🖼️ Gallery images after mapping:', images);
 
         if (storeData.images.logoUrl) {
           images.push({
@@ -442,7 +441,6 @@ const OpenShopPage: React.FC = () => {
             mimeType: storeData.images.video.mimeType,
           });
         }
-        console.log('🖼️ Final images array:', images);
       } else {
         images = Array.isArray(storeData.images) ? storeData.images : [];
       }
@@ -679,7 +677,6 @@ const OpenShopPage: React.FC = () => {
             return storeData.bannerUrl;
           })(),
           galleryUrls: (() => {
-            console.log('🖼️ Filtering gallery images from:', images);
             const galleryImages =
               images
                 ?.filter((img: unknown) => {
@@ -698,7 +695,6 @@ const OpenShopPage: React.FC = () => {
                     (imageA.displayOrder || 0) - (imageB.displayOrder || 0)
                   );
                 }) || [];
-            console.log('🖼️ Filtered gallery images:', galleryImages);
 
             const galleryUrls = galleryImages
               .map((img: unknown) => {
@@ -709,11 +705,10 @@ const OpenShopPage: React.FC = () => {
                 return '';
               })
               .filter((url: string) => url !== '');
-            console.log('🖼️ Final gallery URLs:', galleryUrls);
+
             return galleryUrls;
           })(),
           videoUrl: (() => {
-            console.log('🎥 Processing video data:', { images, videoData });
             // Check for video in images array first
             const videoImage = Array.isArray(images)
               ? images.find((img: unknown) => {
@@ -725,7 +720,6 @@ const OpenShopPage: React.FC = () => {
                   return image.imageType === 'video' && image.isActive;
                 })
               : undefined;
-            console.log('🎥 Found video image:', videoImage);
 
             const videoImagePath = (
               videoImage as unknown as {
@@ -734,14 +728,14 @@ const OpenShopPage: React.FC = () => {
             )?.filePath;
             if (videoImagePath) {
               const videoUrl = buildImageUrl(videoImagePath as string);
-              console.log('🎥 Using video from images array:', videoUrl);
+
               return videoUrl;
             }
 
             // Use separately fetched video data if available
             if (videoData?.filePath) {
               const videoUrl = buildImageUrl(videoData.filePath);
-              console.log('🎥 Using separately fetched video:', videoUrl);
+
               return videoUrl;
             }
 
@@ -757,7 +751,7 @@ const OpenShopPage: React.FC = () => {
             // Return any existing video URL from store data
             const fallbackUrl = (storeData as unknown as { videoUrl?: string })
               .videoUrl;
-            console.log('🎥 Using fallback video URL:', fallbackUrl);
+
             return fallbackUrl;
           })(),
         },

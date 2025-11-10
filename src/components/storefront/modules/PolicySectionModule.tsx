@@ -17,7 +17,6 @@ import {
   Email,
   LocalShipping,
   ExpandMore,
-  Security,
   VerifiedUser,
   SupportAgent,
   Agriculture,
@@ -68,9 +67,13 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
   // Contact settings configured
 
   // Get enhanced data from backend
-  const businessHours = (settings.businessHours as StoreOpenHours[]) || [];
+  // Use real store openHours from backend, not module settings which may be empty/incorrect
+  const storeOpenHours = storefront.store?.openHours || [];
+  const businessHours =
+    storeOpenHours.length > 0
+      ? (storeOpenHours as StoreOpenHours[])
+      : (settings.businessHours as StoreOpenHours[]) || [];
 
-  const paymentMethods = (settings.paymentMethods as string[]) || [];
   const contactInfo =
     (settings.contactInfo as {
       phone?: string;
@@ -79,6 +82,7 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
     }) || {};
 
   // Get real logistics data from store setup (like Store Overview)
+  // Use actual store data to determine availability, not just settings
   let logisticsInfo =
     (settings.logisticsInfo as {
       hasDelivery?: boolean;
@@ -87,39 +91,34 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
       hasBusinessAddress?: boolean;
     }) || {};
 
-  // Fallback: If logistics info not in settings, derive from storefront data
-  if (!logisticsInfo.hasDelivery && !logisticsInfo.hasFarmPickup) {
-    const storeData = storefront.store;
-    if (storeData) {
-      // Check if delivery is available based on storefront data
-      const hasDelivery =
-        storeData.addresses?.some(
-          (addr: Record<string, unknown>) =>
-            (addr.addressType as string) === 'business' ||
-            (addr.addressType as string) === 'business_address'
-        ) &&
-        Boolean(
-          (storeData as any).contactPhone || storeData.addresses?.[0]?.phone
-        ); // Basic delivery capability check
-
-      const hasFarmPickup = storeData.addresses?.some(
+  // Always derive logistics info from storefront data (it's the source of truth)
+  const storeData = storefront.store;
+  if (storeData) {
+    // Check if delivery is available based on storefront data
+    // API returns 'type' field with values like 'business', 'pickup', 'billing'
+    const hasDelivery =
+      storeData.addresses?.some(
         (addr: Record<string, unknown>) =>
-          (addr.addressType as string) === 'farm_location'
-      );
+          (addr.type as string) === 'business' ||
+          (addr.type as string) === 'business_address'
+      ) &&
+      Boolean(
+        (storeData as any).contactPhone || storeData.addresses?.[0]?.phone
+      ); // Basic delivery capability check
 
-      const hasBusinessAddress = storeData.addresses?.some(
-        (addr: Record<string, unknown>) =>
-          (addr.addressType as string) === 'business' ||
-          (addr.addressType as string) === 'business_address'
-      );
+    const hasFarmPickup = storeData.addresses?.some(
+      (addr: Record<string, unknown>) => (addr.type as string) === 'pickup'
+    );
 
-      logisticsInfo = {
-        hasDelivery: hasDelivery,
-        deliveryRadius: 16, // Default delivery radius based on your Store Overview
-        hasFarmPickup: hasFarmPickup,
-        hasBusinessAddress: hasBusinessAddress,
-      };
-    }
+    const hasBusinessAddress = storeData.addresses?.some(
+      (addr: Record<string, unknown>) => (addr.type as string) === 'business'
+    );
+
+    logisticsInfo = {
+      hasDelivery: hasDelivery,
+      hasFarmPickup: hasFarmPickup,
+      hasBusinessAddress: hasBusinessAddress,
+    };
   }
 
   // Debug logging to see what logistics data we have
@@ -187,78 +186,6 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
             </ListItem>
           ))}
         </List>
-      </Box>
-    );
-  };
-
-  const renderPaymentMethods = () => {
-    const industrialPaymentMethods =
-      paymentMethods.length > 0
-        ? paymentMethods
-        : [
-            'Credit Card',
-            'Corporate Account',
-            'Purchase Order',
-            'Bank Transfer',
-            'Check',
-          ];
-
-    return (
-      <Box>
-        <Typography variant='body2' sx={{ mb: 3, color: '#6B7280' }}>
-          Secure payment options designed for business and professional
-          customers.
-        </Typography>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-          {industrialPaymentMethods.map((method, index) => (
-            <Chip
-              key={index}
-              label={method}
-              sx={{
-                backgroundColor: '#1E3A8A',
-                color: 'white',
-                fontWeight: 500,
-                fontSize: '0.875rem',
-                '&:hover': {
-                  backgroundColor: '#1E40AF',
-                },
-              }}
-            />
-          ))}
-        </Box>
-
-        <Box
-          sx={{
-            p: 2,
-            backgroundColor: '#F8FAFC',
-            borderRadius: 1,
-            border: '1px solid #E5E7EB',
-          }}
-        >
-          <Typography
-            variant='caption'
-            sx={{
-              color: '#6B7280',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              display: 'block',
-              mb: 1,
-            }}
-          >
-            Business Terms Available
-          </Typography>
-          <Typography
-            variant='body2'
-            sx={{ color: '#374151', fontSize: '0.875rem' }}
-          >
-            • Net 30 payment terms for qualified businesses
-            <br />
-            • Volume discounts for bulk orders
-            <br />• Dedicated account management
-          </Typography>
-        </Box>
       </Box>
     );
   };
@@ -445,11 +372,6 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
                     >
                       Local Delivery Available
                     </Typography>
-                    {logisticsInfo.deliveryRadius && (
-                      <Typography variant='caption' sx={{ color: '#059669' }}>
-                        Delivery radius: {logisticsInfo.deliveryRadius} miles
-                      </Typography>
-                    )}
                   </Box>
                 </Box>
               )}
@@ -755,43 +677,6 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
       );
     }
 
-    accordions.push(
-      <Accordion
-        key='payment'
-        expanded={expandedAccordions.includes('payment')}
-        onChange={handleAccordionChange('payment')}
-        sx={{
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px !important',
-          mb: 2,
-          '&:before': { display: 'none' },
-          boxShadow: 'none',
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMore />}
-          sx={{
-            backgroundColor: '#F8FAFC',
-            borderRadius: '8px',
-            '&.Mui-expanded': {
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-            },
-          }}
-        >
-          <Box display='flex' alignItems='center'>
-            <Security sx={{ mr: 2, color: '#1E3A8A', fontSize: 24 }} />
-            <Typography variant='h6' sx={{ fontWeight: 600, color: '#1F2937' }}>
-              Payment & Terms
-            </Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails sx={{ p: 3 }}>
-          {renderPaymentMethods()}
-        </AccordionDetails>
-      </Accordion>
-    );
-
     if (showContact) {
       accordions.push(
         <Accordion
@@ -924,7 +809,6 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
   const renderCardsView = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {businessHours.length > 0 && renderBusinessHours()}
-      {renderPaymentMethods()}
       {showContact && renderContactInfo()}
       {showShipping && renderShippingPolicy()}
       {showReturns && renderReturnsPolicy()}
@@ -934,11 +818,7 @@ const PolicySectionModule: React.FC<PolicySectionModuleProps> = ({
   // Don't render if no content to show
   // Check if we have any content to show
   const hasContent = Boolean(
-    businessHours.length > 0 ||
-      paymentMethods.length > 0 ||
-      showContact ||
-      showShipping ||
-      showReturns
+    businessHours.length > 0 || showContact || showShipping || showReturns
   );
 
   if (!hasContent) {

@@ -31,11 +31,8 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
   const height = (settings.height as string) || 'large';
   const overlayOpacity = (settings.overlayOpacity as number) || 0.4;
 
-  // Use background image from module settings, fall back to store banner if not set
-  let backgroundImage =
-    (settings.backgroundImage as string) ||
-    storefront.bannerUrl ||
-    storefront.store?.bannerUrl;
+  // Use store's banner image
+  let backgroundImage = storefront.bannerUrl || storefront.store?.bannerUrl;
 
   // Convert relative URLs to absolute URLs with API base
   if (backgroundImage) {
@@ -53,73 +50,6 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
       backgroundImage = `${API_CONFIG.BASE_URL}/${backgroundImage}`;
     }
   }
-
-  // Debug logging for background image
-  console.log('🖼️ HeroBannerModule background image debug:', {
-    originalBackgroundImage: settings.backgroundImage,
-    storefrontBannerUrl: storefront.bannerUrl,
-    storeBannerUrl: storefront.store?.bannerUrl,
-    finalBackgroundImage: backgroundImage,
-    isRelativePath: backgroundImage && backgroundImage.startsWith('/'),
-    isAbsolutePath: backgroundImage && backgroundImage.startsWith('http'),
-    apiBaseUrl: API_CONFIG.BASE_URL,
-    moduleId: module.id,
-    moduleType: module.type,
-  });
-
-  // Test image loading and CSS validity
-  React.useEffect(() => {
-    if (backgroundImage) {
-      console.log('🧪 Testing background image:', backgroundImage);
-
-      // Log the exact CSS that will be applied
-      const cssBackgroundImage = backgroundImage
-        ? `url("${backgroundImage}")`
-        : 'none';
-      console.log('🎨 CSS backgroundImage property:', cssBackgroundImage);
-
-      // Test 1: Direct image loading
-      const testImage = new Image();
-      testImage.onload = () => {
-        console.log('✅ Direct image load successful:', backgroundImage);
-        console.log(
-          '✅ Image dimensions:',
-          testImage.width,
-          'x',
-          testImage.height
-        );
-      };
-      testImage.onerror = (error) => {
-        console.error('❌ Direct image load failed:', backgroundImage);
-        console.error('❌ Error details:', error);
-        console.error('❌ Test image src that failed:', testImage.src);
-      };
-      testImage.src = backgroundImage;
-
-      // Test 2: Check if it's a valid URL format
-      try {
-        new URL(backgroundImage);
-        // Valid URL format
-      } catch (e) {
-        // Invalid URL format
-      }
-
-      // Test 3: Fetch test
-      fetch(backgroundImage)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          return response.blob();
-        })
-        .then(() => {
-          // Image loaded successfully
-        })
-        .catch(() => {
-          // Image fetch failed
-        });
-    }
-  }, [backgroundImage]);
 
   // Height mappings
   const getHeight = () => {
@@ -158,11 +88,6 @@ const HeroBannerModule: React.FC<HeroBannerModuleProps> = ({
       productsSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
-  // Additional debug logging for the Box component
-  React.useEffect(() => {
-    // Apply background image styles if available
-  }, [backgroundImage]);
 
   return (
     <Box

@@ -182,13 +182,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
       const normalizedPath = fileUrl.startsWith('/') ? fileUrl : '/' + fileUrl;
       const finalUrl = `${baseUrl}${normalizedPath}`;
 
-      console.log('🖼️ Building image URL:', {
-        originalPath: fileUrl,
-        baseUrl,
-        normalizedPath,
-        finalUrl,
-      });
-
       return finalUrl;
     }
   };
@@ -304,17 +297,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             lastUpdated: new Date().toISOString(),
           };
 
-          console.log('🖼️ Final branding data from comprehensive store:', {
-            hasLogo: !!logoImage,
-            hasBanner: !!bannerImage,
-            galleryCount: galleryImages.length,
-            hasVideo: !!videoImage,
-            logoUrl: updatedBrandingData.logoUrl,
-            bannerUrl: updatedBrandingData.bannerUrl,
-            galleryImages: galleryImages.map((img) => img.url),
-            videoUrl: updatedBrandingData.videoUrl,
-          });
-
           setBrandingData(updatedBrandingData);
           setHasLoadedFromComprehensive(true);
           onUpdate?.(updatedBrandingData);
@@ -323,16 +305,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
 
         // Only use API fallback if we haven't loaded from comprehensive data
         if (!hasLoadedFromComprehensive) {
-          console.log(
-            '🖼️ Comprehensive store data not available, falling back to API call'
-          );
           const images = await StoresApiService.getStoreImages(storeId);
-
-          console.log('🖼️ Images API response:', images);
-          console.log(
-            '🖼️ Number of images:',
-            Array.isArray(images) ? images.length : 'N/A'
-          );
 
           // Ensure images is always an array
           const imagesArray = Array.isArray(images) ? images : [];
@@ -409,12 +382,6 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
             videoFile: undefined,
             lastUpdated: new Date().toISOString(),
           };
-
-          console.log('🖼️ Final branding data from API:', {
-            hasLogo: !!logoImage,
-            hasBanner: !!bannerImage,
-            galleryCount: galleryImages.length,
-          });
 
           setBrandingData(updatedBrandingData);
           onUpdate?.(updatedBrandingData);
@@ -1416,7 +1383,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                 <Box sx={{ position: 'relative' }}>
                   {brandingData?.videoImage?.externalVideoUrl ? (
                     // External video (YouTube/Vimeo)
-                    (<Box
+                    <Box
                       sx={{
                         width: '100%',
                         maxHeight: 300,
@@ -1433,10 +1400,10 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                         External Video:{' '}
                         {brandingData?.videoImage?.externalVideoUrl}
                       </Typography>
-                    </Box>)
+                    </Box>
                   ) : (
                     // Uploaded video file
-                    (<video
+                    <video
                       controls
                       style={{
                         width: '100%',
@@ -1445,7 +1412,7 @@ const BrandingVisualsSection: React.FC<BrandingVisualsSectionProps> = ({
                         objectFit: 'cover',
                       }}
                       src={brandingData?.videoUrl}
-                    />)
+                    />
                   )}
                   <Box
                     sx={{
