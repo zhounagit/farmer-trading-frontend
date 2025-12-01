@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useCart } from '../../../hooks/useCart';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import {
   Box,
   Container,
@@ -85,12 +87,42 @@ interface SearchFilters {
 }
 
 const ProductSearchPage: React.FC = () => {
+  const { addItem } = useCart();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [products, setProducts] = useState<ProductSearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleAddToCart = async (
+    itemId: number,
+    quantity: number,
+    productInfo?: {
+      name?: string;
+      price?: number;
+      imageUrl?: string;
+      storeId?: number;
+      storeName?: string;
+      availableQuantity?: number;
+    }
+  ) => {
+    setAddingToCart(itemId);
+    try {
+      const result = await addItem(itemId, quantity, productInfo);
+      if (result.success) {
+        toast.success('Item added to cart!');
+      } else {
+        toast.error(result.error || 'Failed to add item to cart');
+      }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(null);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
@@ -549,8 +581,9 @@ const ProductSearchPage: React.FC = () => {
                   xs: 12,
                   sm: 6,
                   md: 4,
-                  lg: 3
-                }}>
+                  lg: 3,
+                }}
+              >
                 <Card>
                   <Skeleton variant='rectangular' height={200} />
                   <CardContent>
@@ -587,8 +620,9 @@ const ProductSearchPage: React.FC = () => {
                     xs: 12,
                     sm: viewMode === 'list' ? 12 : 6,
                     md: viewMode === 'list' ? 12 : 4,
-                    lg: viewMode === 'list' ? 12 : 3
-                  }}>
+                    lg: viewMode === 'list' ? 12 : 3,
+                  }}
+                >
                   <Card
                     sx={{
                       height: '100%',
@@ -749,14 +783,25 @@ const ProductSearchPage: React.FC = () => {
                           startIcon={<ShoppingCart />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Implement add to cart
-                            console.log('Add to cart:', product);
+                            handleAddToCart(product.itemId, 1, {
+                              name: product.productName,
+                              price: product.price,
+                              imageUrl: product.images?.[0]?.imageUrl,
+                              storeId: product.store.storeId,
+                              storeName: product.store.storeName,
+                              availableQuantity: product.quantity,
+                            });
                           }}
-                          disabled={product.quantity <= 0}
+                          disabled={
+                            product.quantity <= 0 ||
+                            addingToCart === product.itemId
+                          }
                         >
                           {product.quantity <= 0
                             ? 'Out of Stock'
-                            : 'Add to Cart'}
+                            : addingToCart === product.itemId
+                              ? 'Adding...'
+                              : 'Add to Cart'}
                         </Button>
                       </Box>
                     </CardContent>

@@ -173,7 +173,7 @@ const AdminDashboard: React.FC = () => {
       orders: {
         value: 3400,
         change: 15.2,
-        label: 'Total Orders',
+        label: 'Platform Orders',
         format: 'number' as const,
       },
       customers: {

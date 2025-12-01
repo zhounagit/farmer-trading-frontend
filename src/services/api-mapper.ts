@@ -6,6 +6,13 @@
  */
 
 import type {
+  Cart,
+  CartItem,
+  AddToCartRequest,
+  UpdateCartItemRequest,
+} from '../types/cart';
+
+import type {
   InventoryItem,
   CreateInventoryItemRequest,
   UpdateInventoryItemRequest,
@@ -89,6 +96,59 @@ interface BackendUpdateInventoryItemRequest {
   ServiceCategory?: string;
   ProcessingTimeDays?: number;
   RequiresRawMaterial?: boolean;
+}
+
+// Backend Cart types (PascalCase)
+interface BackendCart {
+  CartId: number;
+  UserId: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+  SelectedFulfillment?: string;
+  IsEmpty: boolean;
+  ItemCount: number;
+  Total: number;
+  TotalDiscount: number;
+  Subtotal: number;
+  HasSelectedFulfillment: boolean;
+  CartItems: BackendCartItem[];
+}
+
+interface BackendCartItem {
+  CartItemId: number;
+  CartId: number;
+  ItemId: number;
+  Quantity: number;
+  AddedAt: string;
+  ItemPrice: number;
+  ItemName: string;
+  ItemSku: string;
+  ItemImageUrl?: string;
+  StoreId: number;
+  OriginalPrice?: number;
+  DiscountAmount: number;
+  IsActive: boolean;
+  InStock: boolean;
+  AvailableQuantity: number;
+  LineTotal: number;
+  EffectivePrice: number;
+  LineTotalWithDiscount: number;
+  HasDiscount: boolean;
+  TotalSavings: number;
+  DiscountPercentage: number;
+  IsQuantityAvailable: boolean;
+  NeedsQuantityAdjustment: boolean;
+  IsOutOfStock: boolean;
+  StatusDisplay: string;
+}
+
+interface BackendAddToCartRequest {
+  ItemId: number;
+  Quantity: number;
+}
+
+interface BackendUpdateCartItemRequest {
+  Quantity: number;
 }
 
 // Backend StoreAddress types (PascalCase)
@@ -405,5 +465,83 @@ export class ApiMapper {
       result[pascalKey] = this.toPascalCase(value);
     }
     return result as T;
+  }
+
+  /**
+   * Convert backend Cart (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendCart(backendCart: BackendCart): Cart {
+    return {
+      cartId: backendCart.CartId,
+      userId: backendCart.UserId,
+      createdAt: backendCart.CreatedAt,
+      updatedAt: backendCart.UpdatedAt,
+      selectedFulfillment: backendCart.SelectedFulfillment,
+      isEmpty: backendCart.IsEmpty,
+      itemCount: backendCart.ItemCount,
+      total: backendCart.Total,
+      totalDiscount: backendCart.TotalDiscount,
+      subtotal: backendCart.Subtotal,
+      hasSelectedFulfillment: backendCart.HasSelectedFulfillment,
+      cartItems: backendCart.CartItems.map((item) =>
+        this.toFrontendCartItem(item)
+      ),
+    };
+  }
+
+  /**
+   * Convert backend CartItem (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendCartItem(backendCartItem: BackendCartItem): CartItem {
+    return {
+      cartItemId: backendCartItem.CartItemId,
+      cartId: backendCartItem.CartId,
+      itemId: backendCartItem.ItemId,
+      quantity: backendCartItem.Quantity,
+      addedAt: backendCartItem.AddedAt,
+      itemPrice: backendCartItem.ItemPrice,
+      itemName: backendCartItem.ItemName,
+      itemSku: backendCartItem.ItemSku,
+      itemImageUrl: backendCartItem.ItemImageUrl,
+      storeId: backendCartItem.StoreId,
+      originalPrice: backendCartItem.OriginalPrice,
+      discountAmount: backendCartItem.DiscountAmount,
+      isActive: backendCartItem.IsActive,
+      inStock: backendCartItem.InStock,
+      availableQuantity: backendCartItem.AvailableQuantity,
+      lineTotal: backendCartItem.LineTotal,
+      effectivePrice: backendCartItem.EffectivePrice,
+      lineTotalWithDiscount: backendCartItem.LineTotalWithDiscount,
+      hasDiscount: backendCartItem.HasDiscount,
+      totalSavings: backendCartItem.TotalSavings,
+      discountPercentage: backendCartItem.DiscountPercentage,
+      isQuantityAvailable: backendCartItem.IsQuantityAvailable,
+      needsQuantityAdjustment: backendCartItem.NeedsQuantityAdjustment,
+      isOutOfStock: backendCartItem.IsOutOfStock,
+      statusDisplay: backendCartItem.StatusDisplay,
+    };
+  }
+
+  /**
+   * Convert frontend AddToCartRequest (camelCase) to backend format (PascalCase)
+   */
+  static toBackendAddToCartRequest(
+    request: AddToCartRequest
+  ): BackendAddToCartRequest {
+    return {
+      ItemId: request.itemId,
+      Quantity: request.quantity,
+    };
+  }
+
+  /**
+   * Convert frontend UpdateCartItemRequest (camelCase) to backend format (PascalCase)
+   */
+  static toBackendUpdateCartItemRequest(
+    request: UpdateCartItemRequest
+  ): BackendUpdateCartItemRequest {
+    return {
+      Quantity: request.quantity,
+    };
   }
 }

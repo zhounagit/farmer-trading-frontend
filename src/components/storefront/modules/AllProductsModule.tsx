@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useCart } from '@/hooks/useCart';
+import { toast } from 'react-hot-toast';
 import {
   Box,
   Container,
@@ -129,8 +131,31 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
       ? pagination?.totalPages || 1
       : Math.ceil(sortedProducts.length / productsPerPage);
 
-  const handleAddToCart = () => {
-    // Add to cart functionality would be implemented here
+  const { addItem } = useCart();
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
+  const handleAddToCart = async (product: StorefrontProduct) => {
+    setAddingToCart(product.itemId);
+    try {
+      const result = await addItem(product.itemId, 1, {
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        storeId: storefront.storeId,
+        storeName: storefront.storeName,
+        availableQuantity: product.quantityAvailable,
+      });
+      if (result.success) {
+        toast.success(`Added ${product.name} to cart!`);
+      } else {
+        toast.error(result.error || 'Failed to add item to cart');
+      }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(null);
+    }
   };
 
   const handlePageChange = (
@@ -257,10 +282,13 @@ const AllProductsModule: React.FC<AllProductsModuleProps> = ({
               <Button
                 variant='outlined'
                 size='small'
-                startIcon={<ShoppingCart />}
-                onClick={() => handleAddToCart()}
+                startIcon={
+                  addingToCart === product.itemId ? undefined : <ShoppingCart />
+                }
+                onClick={() => handleAddToCart(product)}
+                disabled={addingToCart === product.itemId}
               >
-                Add to Cart
+                {addingToCart === product.itemId ? 'Adding...' : 'Add to Cart'}
               </Button>
             </Box>
           </CardContent>

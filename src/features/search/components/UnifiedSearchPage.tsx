@@ -607,20 +607,21 @@ const UnifiedSearchPage: React.FC = () => {
   return (
     <Box>
       <Header onLoginClick={() => navigate('/login')} />
-      <Container maxWidth='xl' sx={{ py: 3 }}>
+      <Container maxWidth='xl' sx={{ py: 3, px: 0 }}>
         {/* Search Header */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Grid container spacing={2} alignItems='center'>
+        <Paper sx={{ p: 1, mb: 3 }}>
+          <Grid container spacing={0} alignItems='center'>
             <div>
               <Grid
                 size={{
                   xs: 12,
-                  md: 6,
+                  md: 12,
                 }}
               >
                 <Box sx={{ position: 'relative' }}>
                   <TextField
                     fullWidth
+                    size='medium'
                     placeholder='Search for products, stores, categories...'
                     value={searchQuery}
                     onChange={(e) => handleSearchInputChange(e.target.value)}

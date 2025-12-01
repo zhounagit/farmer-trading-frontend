@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Container,
@@ -19,6 +19,8 @@ import {
   LocalShipping,
   Engineering,
 } from '@mui/icons-material';
+import { useCart } from '@/hooks/useCart';
+import { toast } from 'react-hot-toast';
 import type {
   StorefrontModule,
   PublicStorefront,
@@ -244,9 +246,44 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
     );
   }
 
-  const handleAddToCart = (product: StorefrontProduct) => {
-    // TODO: Implement add to cart functionality
-    console.log('Add to cart:', product);
+  const { addItem } = useCart();
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
+  const handleAddToCart = async (product: StorefrontProduct) => {
+    setAddingToCart(product.itemId);
+    try {
+      console.log('🛒 Adding to guest cart - Product data:', {
+        itemId: product.itemId,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        storeId: storefront.storeId,
+        storeName: storefront.storeName,
+        quantityAvailable: product.quantityAvailable,
+      });
+
+      const result = await addItem(product.itemId, 1, {
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        storeId: storefront.storeId,
+        storeName: storefront.storeName,
+        availableQuantity: product.quantityAvailable,
+      });
+
+      console.log('🛒 Add to cart result:', result);
+
+      if (result.success) {
+        toast.success(`Added ${product.name} to cart!`);
+      } else {
+        toast.error(result.error || 'Failed to add item to cart');
+      }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(null);
+    }
   };
 
   const handleRequestQuote = (product: StorefrontProduct) => {
@@ -489,8 +526,13 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
                 <Button
                   variant='contained'
                   fullWidth
-                  startIcon={<ShoppingCart sx={{ fontSize: 18 }} />}
+                  startIcon={
+                    addingToCart === product.itemId ? undefined : (
+                      <ShoppingCart sx={{ fontSize: 18 }} />
+                    )
+                  }
                   onClick={() => handleAddToCart(product)}
+                  disabled={addingToCart === product.itemId}
                   sx={{
                     py: 1.5,
                     backgroundColor: 'var(--theme-primary, #1E3A8A)',
@@ -499,11 +541,13 @@ const FeaturedProductsModule: React.FC<FeaturedProductsModuleProps> = ({
                     textTransform: 'uppercase',
                     fontSize: '0.875rem',
                     '&:hover': {
-                      backgroundColor: 'var(--theme-secondary, #1E40AF)',
+                      backgroundColor: 'var(--theme-primary-dark, #1E40AF)',
                     },
                   }}
                 >
-                  Add to Cart
+                  {addingToCart === product.itemId
+                    ? 'Adding...'
+                    : 'Add to Cart'}
                 </Button>
                 <Button
                   variant='outlined'

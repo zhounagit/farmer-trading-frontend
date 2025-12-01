@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCart } from '../../../hooks/useCart';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -86,6 +87,8 @@ const ProductDetailPage: React.FC = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+
+  const { guestCart, refetchCart } = useCart();
 
   // Get back navigation info from location state
   const backTo = (location.state as any)?.from || '/unified-search';
@@ -218,23 +221,45 @@ const ProductDetailPage: React.FC = () => {
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= (product?.quantity || 1)) {
+    const originalQuantity = product?.quantity || 0;
+    const cartQuantity =
+      guestCart?.items?.find((item) => item.itemId === product?.itemId)
+        ?.quantity || 0;
+    const availableQuantity = Math.max(0, originalQuantity - cartQuantity);
+
+    if (newQuantity >= 1 && newQuantity <= availableQuantity) {
       setQuantity(newQuantity);
     }
   };
+
+  const { addItem } = useCart();
 
   const handleAddToCart = async () => {
     if (!product) return;
 
     setAddingToCart(true);
     try {
-      // TODO: Implement actual cart API call
-      // await CartApiService.addToCart({ itemId: product.itemId, quantity });
+      // Implement actual cart API call using our cart hook
+      const result = await addItem(product.itemId, quantity, {
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images?.[0]?.originalUrl,
+        storeId: product.storeId,
+        storeName: store?.storeName,
+        availableQuantity: product.quantity,
+      });
 
-      toast.success(`Added ${quantity} ${product.name} to cart!`);
+      if (result.success) {
+        toast.success(`Added ${quantity} ${product.name} to cart!`);
 
-      // Optional: Reset quantity to 1 after adding
-      setQuantity(1);
+        // Refresh cart data to update badge and inventory display
+        await refetchCart();
+
+        // Optional: Reset quantity to 1 after adding
+        setQuantity(1);
+      } else {
+        toast.error(result.error || 'Failed to add item to cart');
+      }
     } catch (err) {
       console.error('Error adding to cart:', err);
       toast.error('Failed to add item to cart');
@@ -522,7 +547,27 @@ const ProductDetailPage: React.FC = () => {
                 icon={<Inventory />}
               />
               <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                {product.quantity || 0} units available
+                {(() => {
+                  const originalQuantity = product.quantity || 0;
+                  const cartQuantity =
+                    guestCart?.items?.find(
+                      (item) => item.itemId === product.itemId
+                    )?.quantity || 0;
+                  const availableQuantity = Math.max(
+                    0,
+                    originalQuantity - cartQuantity
+                  );
+                  const remainingAfterSelection = Math.max(
+                    0,
+                    availableQuantity - quantity
+                  );
+
+                  if (cartQuantity > 0) {
+                    return `${availableQuantity} units available (${cartQuantity} in your cart) - ${remainingAfterSelection} will remain after adding`;
+                  } else {
+                    return `${availableQuantity} units available - ${remainingAfterSelection} will remain after adding`;
+                  }
+                })()}
               </Typography>
             </Box>
 
@@ -566,19 +611,45 @@ const ProductDetailPage: React.FC = () => {
                       inputProps={{
                         style: { textAlign: 'center' },
                         min: 1,
-                        max: product.quantity ?? 1,
+                        max: (() => {
+                          const originalQuantity = product.quantity || 0;
+                          const cartQuantity =
+                            guestCart?.items?.find(
+                              (item) => item.itemId === product.itemId
+                            )?.quantity || 0;
+                          return Math.max(0, originalQuantity - cartQuantity);
+                        })(),
                       }}
                       type='number'
                       onChange={(e) => {
                         const val = parseInt(e.target.value);
-                        if (val >= 1 && val <= (product.quantity ?? 1)) {
+                        const originalQuantity = product.quantity || 0;
+                        const cartQuantity =
+                          guestCart?.items?.find(
+                            (item) => item.itemId === product.itemId
+                          )?.quantity || 0;
+                        const availableQuantity = Math.max(
+                          0,
+                          originalQuantity - cartQuantity
+                        );
+                        if (val >= 1 && val <= availableQuantity) {
                           setQuantity(val);
                         }
                       }}
                     />
                     <IconButton
                       onClick={() => handleQuantityChange(1)}
-                      disabled={quantity >= (product.quantity ?? 0)}
+                      disabled={
+                        quantity >=
+                        (() => {
+                          const originalQuantity = product.quantity || 0;
+                          const cartQuantity =
+                            guestCart?.items?.find(
+                              (item) => item.itemId === product.itemId
+                            )?.quantity || 0;
+                          return Math.max(0, originalQuantity - cartQuantity);
+                        })()
+                      }
                       size='small'
                     >
                       <Add />

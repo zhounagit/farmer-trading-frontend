@@ -110,21 +110,21 @@ const UserDashboard: React.FC = () => {
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'store', label: 'Store Overview', icon: <Store /> },
         { key: 'branding', label: 'Branding & Visuals', icon: <Palette /> },
-        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
     } else if (isAdmin) {
       console.log('✅ Loading ADMIN dashboard tabs (4 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
-        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
     } else {
       console.log('✅ Loading CUSTOMER dashboard tabs (4 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
-        { key: 'orders', label: 'My Orders', icon: <ShoppingCart /> },
+        { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
     }
@@ -344,7 +344,7 @@ const UserDashboard: React.FC = () => {
                           : (metrics?.ordersThisMonth ?? 0)}
                       </Typography>
                       <Typography variant='body2' color='text.secondary'>
-                        Total Orders
+                        Store Orders
                       </Typography>
                     </Box>
                   </Box>
@@ -730,6 +730,9 @@ const UserDashboard: React.FC = () => {
                                 variant='outlined'
                                 size='small'
                                 sx={{ textTransform: 'none' }}
+                                onClick={() => {
+                                  navigate('/unified-search');
+                                }}
                               >
                                 Browse Products
                               </Button>
@@ -824,10 +827,10 @@ const UserDashboard: React.FC = () => {
               {tabValue === index && tab.key === 'orders' && (
                 <Box sx={{ p: 3 }}>
                   <Typography variant='h6' gutterBottom>
-                    My Orders
+                    My Purchases
                   </Typography>
                   <Typography variant='body2' color='text.secondary'>
-                    Your order history and current orders will be displayed
+                    Your purchase history and current orders will be displayed
                     here.
                   </Typography>
                 </Box>

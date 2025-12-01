@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { type RouteObject } from 'react-router-dom';
+import { type RouteObject, Navigate } from 'react-router-dom';
 import SearchFeatureWrapper from './components/SearchFeatureWrapper';
 
 // Lazy load search components from local feature directory
@@ -31,6 +31,11 @@ export const searchRoutes: RouteObject[] = [
         <ProductDetailPage />
       </SearchFeatureWrapper>
     ),
+  },
+  // Redirect /products to /unified-search for backward compatibility
+  {
+    path: '/products',
+    element: <Navigate to='/unified-search' replace />,
   },
 ];
 

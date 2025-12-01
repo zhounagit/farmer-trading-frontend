@@ -21,7 +21,10 @@ import {
   Settings,
   Info,
   Store,
+  ShoppingCart,
 } from '@mui/icons-material';
+
+import { CartBadge } from '@features/cart';
 import { useAuth } from '../../contexts/AuthContext';
 import Logo from '../common/Logo';
 import UserProfilePictureAvatar from '../user/UserProfilePictureAvatar';
@@ -193,9 +196,10 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
           try {
             // Don't call refreshProfilePicture - it overrides the correct new URL with stale backend data
             profilePictureRetryCountRef.current += 1;
-          } catch (error) {
+          } catch {
             // Only log error on first attempt to prevent spam
             if (profilePictureRetryCountRef.current === 0) {
+              // Silent error handling
             }
             profilePictureRetryCountRef.current += 1;
           } finally {
@@ -207,8 +211,11 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
     } else if (
       profilePictureRetryCountRef.current >= maxProfilePictureRetries
     ) {
+      // Max retries reached
     } else if (profilePictureExists === false) {
+      // Profile picture doesn't exist
     } else {
+      // No action needed
     }
   }, [
     user,
@@ -289,6 +296,13 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
             gap: { xs: 1, md: 2 },
           }}
         >
+          {/* Cart Badge - Show for both authenticated and guest users */}
+          <CartBadge
+            onClick={() => navigate('/cart')}
+            size='medium'
+            color='primary'
+          />
+
           {isAuthenticated && user ? (
             <>
               {/* User Info */}
@@ -436,6 +450,16 @@ export const Header: React.FC<HeaderProps> = ({ onLoginClick }) => {
                     My Stores
                   </MenuItem>
                 )}
+
+                <MenuItem
+                  onClick={() => {
+                    handleProfileMenuClose();
+                    navigate('/cart');
+                  }}
+                >
+                  <ShoppingCart sx={{ mr: 2 }} />
+                  View Cart
+                </MenuItem>
 
                 <MenuItem
                   onClick={() => {

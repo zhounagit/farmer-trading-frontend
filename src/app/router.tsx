@@ -33,6 +33,7 @@ import { searchRoutes } from '../features/search/routes';
 import { coreRoutes } from '../features/core/routes';
 import { referralRoutes } from '../features/referral/routes';
 import { accountSettingsRoutes } from '../features/account-settings/routes';
+import { cartRoutes } from '../features/cart/routes';
 
 // Performance tracking for route transitions
 const RoutePerformanceTracker = ({
@@ -527,6 +528,20 @@ const createOptimizedRoutes = () => {
 
     // Referral program routes
     ...referralRoutes.map((route) => ({
+      ...route,
+      loader: async ({ request, params, context }: LoaderArgs) => {
+        // Bundle analysis disabled
+        const result =
+          route.loader && typeof route.loader === 'function'
+            ? await route.loader({ request, params: params ?? {}, context })
+            : null;
+
+        return result;
+      },
+    })),
+
+    // Cart routes
+    ...cartRoutes.map((route) => ({
       ...route,
       loader: async ({ request, params, context }: LoaderArgs) => {
         // Bundle analysis disabled

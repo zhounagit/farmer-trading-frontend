@@ -22,6 +22,8 @@ import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
 import { useProfile } from '../hooks/useProfile';
 import { normalizeToFrontendUserType } from '../utils/typeMapping';
 import { profilePictureCache } from '../services/profilePictureCache';
+import { GuestCartService } from '../features/cart/services/guestCartStorageService';
+import { CartService } from '../features/cart/services/userCartService';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -223,6 +225,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       toast.success('Welcome back!');
 
+      // Migrate guest cart to authenticated cart if guest cart exists
+      await migrateGuestCartToUserCart(parseInt(userData.userId));
+
       return userData;
     } catch (err) {
       const errorMessage = handleApiError(err, 'login');
@@ -277,6 +282,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
       setUser(userData);
+
+      // Migrate guest cart to authenticated cart if guest cart exists
+      await migrateGuestCartToUserCart(parseInt(userData.userId));
+
       toast.success('Account created successfully!');
     } catch (err) {
       const errorMessage = handleApiError(err, 'general');
@@ -383,7 +392,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     },
-    [user, userVersion]
+    [user]
   );
 
   // Load user preferences function
@@ -402,7 +411,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUserPreferences(preferences);
       setPreferencesError(null);
-    } catch (error: unknown) {
+    } catch {
       setPreferencesError('Failed to load preferences');
       // Set default preferences on error
       setUserPreferences({
@@ -505,7 +514,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await loadProfile(userId);
 
       // Skip profile picture sync - it overrides correct data
-    } catch (error) {}
+    } catch {
+      // Silently handle profile refresh errors
+    }
+  };
+
+  /**
+   * Migrate guest cart items to authenticated user cart
+   */
+  const migrateGuestCartToUserCart = async (userId: number): Promise<void> => {
+    try {
+      const guestCart = GuestCartService.getCart();
+      console.log(
+        '🛒 Guest cart migration - Guest cart items:',
+        guestCart.items
+      );
+
+      if (guestCart.items.length === 0) {
+        console.log('🛒 No items to migrate - guest cart is empty');
+        return; // No items to migrate
+      }
+
+      console.log(
+        `🛒 Migrating ${guestCart.items.length} items from guest cart to user cart for user ${userId}`
+      );
+
+      // Migrate each item from guest cart to user cart
+      let migratedCount = 0;
+      for (const guestItem of guestCart.items) {
+        try {
+          console.log(
+            `🛒 Migrating item ${guestItem.itemId} with quantity ${guestItem.quantity}`
+          );
+          await CartService.addItem(userId, {
+            itemId: guestItem.itemId,
+            quantity: guestItem.quantity,
+          });
+          migratedCount++;
+          console.log(`🛒 Successfully migrated item ${guestItem.itemId}`);
+        } catch (error) {
+          console.warn(
+            `🛒 Failed to migrate item ${guestItem.itemId} to user cart:`,
+            error
+          );
+          // Continue with other items even if one fails
+        }
+      }
+
+      console.log(
+        `🛒 Migration completed: ${migratedCount}/${guestCart.items.length} items migrated`
+      );
+
+      // Clear guest cart after successful migration
+      GuestCartService.clearCart();
+      console.log('🛒 Guest cart cleared after migration');
+
+      if (migratedCount > 0) {
+        toast.success(`Your guest cart items have been added to your account`);
+      } else {
+        console.warn('🛒 No items were successfully migrated');
+      }
+    } catch (error) {
+      console.error('🛒 Guest cart migration failed:', error);
+      // Don't show error toast - migration failure shouldn't block login
+    }
   };
 
   const value: AuthContextType = {

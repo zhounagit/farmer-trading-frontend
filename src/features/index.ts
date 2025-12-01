@@ -7,6 +7,7 @@ export { inventoryRoutes } from './inventory/routes';
 export { searchRoutes } from './search/routes';
 export { coreRoutes } from './core/routes';
 export { referralRoutes } from './referral/routes';
+export { cartRoutes } from './cart/routes';
 
 // Export default routes as named exports for convenience
 export { default as authRoutesDefault } from './auth/routes';
@@ -17,3 +18,4 @@ export { default as inventoryRoutesDefault } from './inventory/routes';
 export { default as searchRoutesDefault } from './search/routes';
 export { default as coreRoutesDefault } from './core/routes';
 export { default as referralRoutesDefault } from './referral/routes';
+export { default as cartRoutesDefault } from './cart/routes';
