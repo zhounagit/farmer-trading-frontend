@@ -57,12 +57,12 @@ export class InventoryApiService {
   private static readonly CATEGORIES_PATH = '/api/inventory-categories';
 
   // Enhanced error handling and logging
-  private static logOperation(operation: string, details?: unknown): void {
-    console.log(`📦 InventoryAPI: ${operation}`, details || '');
+  private static logOperation(_operation: string, _details?: unknown): void {
+    // Debug logging disabled
   }
 
-  private static logDebug(operation: string, details?: unknown): void {
-    console.debug(`🔍 InventoryAPI DEBUG: ${operation}`, details || '');
+  private static logDebug(_operation: string, _details?: unknown): void {
+    // Debug logging disabled
   }
 
   private static logError(operation: string, error: unknown): void {

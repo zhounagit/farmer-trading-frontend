@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, useTheme } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { RegisterForm } from '../../../components/auth/RegisterForm';
 
 /**
@@ -12,16 +12,25 @@ import { RegisterForm } from '../../../components/auth/RegisterForm';
  */
 const RegisterFormPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
 
+  // Get redirect destination from either query parameters or navigation state
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = searchParams.get('returnUrl');
+  const fromState = location.state?.from?.pathname;
+
+  // Priority: 1. returnUrl query param, 2. from state, 3. default home
+  const redirectTo = returnUrl || fromState || '/';
+
   const handleSwitchToLogin = () => {
-    navigate('/login');
+    // Pass the redirect URL to login page
+    navigate(`/login?returnUrl=${encodeURIComponent(redirectTo)}`);
   };
 
   const handleClose = () => {
-    // After successful registration, RegisterForm will handle navigation
-    // via the auth context. This close handler can be used if needed.
-    navigate('/');
+    // After successful registration, redirect to the intended destination
+    navigate(redirectTo);
   };
 
   return (

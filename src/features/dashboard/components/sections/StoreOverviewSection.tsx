@@ -71,18 +71,6 @@ const StoreOverviewSection: React.FC = () => {
         const data = await OpenShopApiService.getComprehensiveStoreDetails(
           primaryStore.storeId
         );
-        console.log(
-          '✅ StoreOverviewSection: Comprehensive store data received:',
-          data
-        );
-        console.log('✅ StoreOverviewSection: Contact info:', data.contactInfo);
-        console.log('✅ StoreOverviewSection: Addresses:', data.addresses);
-        console.log('✅ StoreOverviewSection: Images:', data.images);
-        console.log('✅ StoreOverviewSection: Status:', data.status);
-        console.log(
-          '✅ StoreOverviewSection: Full data structure:',
-          JSON.stringify(data, null, 2)
-        );
         setComprehensiveStoreData(data);
       } catch (err) {
         const errorMessage =

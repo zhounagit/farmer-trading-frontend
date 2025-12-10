@@ -169,26 +169,11 @@ export class OpenShopApiService {
   static async submitStore(
     request: StoreSubmissionRequest
   ): Promise<StoreSubmissionResponse> {
-    console.log('🔍 [submitStore] Starting method execution');
-    console.log('🔍 [submitStore] Request parameter:', request);
-    console.log('🔍 [submitStore] Store ID:', request.storeId);
-    console.log('🔍 [submitStore] SUBMISSIONS_PATH:', this.SUBMISSIONS_PATH);
-
     try {
-      console.log('=== SUBMITTING STORE FOR REVIEW ===');
-      console.log('Request:', request);
-      console.log(
-        'Endpoint:',
-        `${this.SUBMISSIONS_PATH}/${request.storeId}/submit-for-review`
-      );
-
       const result = await apiService.post<StoreSubmissionResponse>(
         `${this.SUBMISSIONS_PATH}/${request.storeId}/submit-for-review`,
         request
       );
-
-      console.log('✅ Store submission completed successfully');
-      console.log('Response:', result);
       return result;
     } catch (error) {
       console.error('❌ Error submitting store for review:', error);

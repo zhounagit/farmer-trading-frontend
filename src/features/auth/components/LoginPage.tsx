@@ -21,7 +21,7 @@ import {
   Login as LoginIcon,
 } from '@mui/icons-material';
 import { LoadingButton } from '@mui/lab';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -29,6 +29,30 @@ const LoginPage: React.FC = () => {
   const theme = useTheme();
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [rateLimitCooldown, setRateLimitCooldown] = useState<number | null>(
+    () => {
+      // Check localStorage for existing rate limit cooldown
+      const savedCooldown = localStorage.getItem('login_rate_limit_cooldown');
+      const savedTimestamp = localStorage.getItem('login_rate_limit_timestamp');
+
+      if (savedCooldown && savedTimestamp) {
+        const remainingSeconds = parseInt(savedCooldown, 10);
+        const timestamp = parseInt(savedTimestamp, 10);
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - timestamp) / 1000);
+
+        if (elapsedSeconds < remainingSeconds) {
+          return remainingSeconds - elapsedSeconds;
+        } else {
+          // Clear expired cooldown
+          localStorage.removeItem('login_rate_limit_cooldown');
+          localStorage.removeItem('login_rate_limit_timestamp');
+        }
+      }
+      return null;
+    }
+  );
 
   const [formData, setFormData] = useState({
     email: '',
@@ -36,6 +60,15 @@ const LoginPage: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+
+  // Get redirect destination from either query parameters or navigation state
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = searchParams.get('returnUrl');
+  const fromState = location.state?.from?.pathname;
+
+  // Priority: 1. returnUrl query param, 2. from state, 3. default home
+  const redirectTo = returnUrl || fromState || '/';
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
@@ -76,16 +109,71 @@ const LoginPage: React.FC = () => {
       return;
     }
 
+    // Check if we're in rate limit cooldown
+    if (rateLimitCooldown && rateLimitCooldown > 0) {
+      return;
+    }
+
     try {
       await login(formData.email, formData.password);
-      navigate('/');
-    } catch (error) {
-      // Error is handled by the auth context and toast
+      navigate(redirectTo);
+    } catch (error: any) {
+      // Check if this is a rate limit error
+      if (error?.status === 429) {
+        // Extract retryAfterSeconds from error details
+        const retrySeconds = error?.details?.retryAfterSeconds || 60;
+        setRateLimitCooldown(retrySeconds);
+        setRateLimitError(
+          `Too many login attempts. Please try again in ${Math.ceil(retrySeconds / 60)} minute${Math.ceil(retrySeconds / 60) !== 1 ? 's' : ''}.`
+        );
+
+        // Save to localStorage for persistence
+        localStorage.setItem(
+          'login_rate_limit_cooldown',
+          retrySeconds.toString()
+        );
+        localStorage.setItem(
+          'login_rate_limit_timestamp',
+          Date.now().toString()
+        );
+
+        // Start countdown timer
+        const interval = setInterval(() => {
+          setRateLimitCooldown((prev) => {
+            if (prev && prev > 1) {
+              // Update localStorage with remaining time
+              localStorage.setItem(
+                'login_rate_limit_cooldown',
+                (prev - 1).toString()
+              );
+              return prev - 1;
+            } else {
+              clearInterval(interval);
+              setRateLimitError(null);
+              // Clear localStorage when cooldown expires
+              localStorage.removeItem('login_rate_limit_cooldown');
+              localStorage.removeItem('login_rate_limit_timestamp');
+              return null;
+            }
+          });
+        }, 1000);
+      }
+      // Error is also handled by the auth context and toast
     }
   };
 
   const handleTogglePassword = () => {
     setShowPassword(!showPassword);
+  };
+
+  // Format cooldown time for display
+  const formatCooldownTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes > 0) {
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    return `${remainingSeconds}s`;
   };
 
   return (
@@ -137,8 +225,42 @@ const LoginPage: React.FC = () => {
             <CardContent sx={{ p: 4 }}>
               <form onSubmit={handleSubmit}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {/* Error Alert */}
-                  {error && (
+                  {/* Rate Limit Error Alert */}
+                  {rateLimitError && (
+                    <Alert
+                      severity='warning'
+                      sx={{
+                        borderRadius: 2,
+                        '& .MuiAlert-message': {
+                          width: '100%',
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          width: '100%',
+                        }}
+                      >
+                        <Typography variant='body2'>
+                          {rateLimitError}
+                        </Typography>
+                        {rateLimitCooldown && rateLimitCooldown > 0 && (
+                          <Typography
+                            variant='body2'
+                            sx={{ fontWeight: 'bold', ml: 2 }}
+                          >
+                            {formatCooldownTime(rateLimitCooldown)}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Alert>
+                  )}
+
+                  {/* Regular Error Alert */}
+                  {error && !rateLimitError && (
                     <Alert severity='error' sx={{ borderRadius: 2 }}>
                       {error}
                     </Alert>
@@ -211,19 +333,28 @@ const LoginPage: React.FC = () => {
                     variant='contained'
                     size='large'
                     loading={isLoading}
+                    disabled={!!rateLimitCooldown && rateLimitCooldown > 0}
                     sx={{
                       py: 1.5,
                       borderRadius: 2,
                       textTransform: 'none',
                       fontSize: '1.1rem',
                       fontWeight: 600,
-                      background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
-                      '&:hover': {
-                        background: `linear-gradient(45deg, ${theme.palette.primary.dark} 30%, ${theme.palette.primary.main} 90%)`,
-                      },
+                      background:
+                        rateLimitCooldown && rateLimitCooldown > 0
+                          ? theme.palette.grey[400]
+                          : `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                      '&:hover':
+                        rateLimitCooldown && rateLimitCooldown > 0
+                          ? {}
+                          : {
+                              background: `linear-gradient(45deg, ${theme.palette.primary.dark} 30%, ${theme.palette.primary.main} 90%)`,
+                            },
                     }}
                   >
-                    Sign In
+                    {rateLimitCooldown && rateLimitCooldown > 0
+                      ? `Try again in ${formatCooldownTime(rateLimitCooldown)}`
+                      : 'Sign In'}
                   </LoadingButton>
 
                   {/* Forgot Password Link */}
@@ -280,7 +411,7 @@ const LoginPage: React.FC = () => {
                   {/* Register Link */}
                   <Button
                     component={RouterLink}
-                    to='/register'
+                    to={`/register?returnUrl=${encodeURIComponent(redirectTo)}`}
                     variant='outlined'
                     size='large'
                     sx={{

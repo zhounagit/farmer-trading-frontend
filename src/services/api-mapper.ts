@@ -13,7 +13,6 @@ import type {
 } from '../types/cart';
 
 import type {
-  InventoryItem,
   CreateInventoryItemRequest,
   UpdateInventoryItemRequest,
 } from '../shared/types/inventory';
@@ -21,8 +20,6 @@ import type {
 import type {
   ProductCategory,
   Store,
-  Order,
-  OrderItem,
   UserProfile,
 } from '../shared/types/api-contracts';
 
@@ -31,6 +28,18 @@ import type {
   StoreAddressRequest,
   AddressType,
 } from '../shared/types/store';
+
+import type {
+  Order as FrontendOrder,
+  OrderItem as FrontendOrderItem,
+  OrderStatusHistory,
+  OrderListResponse,
+  OrderFilterParams,
+  OrderDetails,
+  OrderStatus,
+  PaymentStatus,
+  FulfillmentMethod,
+} from '../types/order';
 
 // Backend response types (PascalCase)
 export interface BackendInventoryItem {
@@ -57,6 +66,86 @@ export interface BackendInventoryItem {
   UpdatedAt?: string;
   CreatedBy?: number;
   UpdatedBy?: number;
+}
+
+// Backend order types (PascalCase)
+interface BackendOrderItem {
+  OrderItemId: number;
+  OrderId: number;
+  ItemId: number;
+  StoreId: number;
+  ItemName: string;
+  ItemSku: string;
+  ItemPrice: number;
+  OriginalPrice: number;
+  ItemImageUrl?: string;
+  Quantity: number;
+  QuantityFulfilled: number;
+  QuantityRefunded: number;
+  DiscountAmount: number;
+  DiscountDescription?: string;
+  Status: string;
+  ReturnReason?: string;
+  RefundAmount: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+interface BackendOrder {
+  OrderId: number;
+  OrderNumber: string;
+  StoreId: number;
+  UserId?: number;
+  GuestId?: number;
+  Status: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+  Subtotal: number;
+  TaxAmount: number;
+  ShippingCost: number;
+  DiscountAmount: number;
+  Total: number;
+  PlatformFee: number;
+  PaymentMethod: string;
+  PaymentStatus: string;
+  PaidAt?: string;
+  ShippingAddressId?: number;
+  BillingAddressId?: number;
+  ShippingMethod: string;
+  TrackingNumber?: string;
+  EstimatedDelivery?: string;
+  FulfillmentMethod: string;
+  CustomerNote?: string;
+  AdminNote?: string;
+}
+
+interface BackendOrderStatusHistory {
+  OrderHistoryId: number;
+  OrderId: number;
+  Status: string;
+  Notes?: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+interface BackendOrderListResponse {
+  Orders: BackendOrder[];
+  Pagination: {
+    TotalCount: number;
+    TotalPages: number;
+    CurrentPage: number;
+    PageSize: number;
+    HasPreviousPage: boolean;
+    HasNextPage: boolean;
+  };
+}
+
+interface BackendOrderDetails {
+  Order: BackendOrder;
+  Items: BackendOrderItem[];
+  StatusHistory: BackendOrderStatusHistory[];
+  ShippingAddress?: any;
+  BillingAddress?: any;
 }
 
 interface BackendCreateInventoryItemRequest {
@@ -288,66 +377,6 @@ export class ApiMapper {
   }
 
   /**
-   * Convert backend Order (PascalCase) to frontend format (camelCase)
-   */
-  static toFrontendOrder(backendOrder: {
-    OrderId: number;
-    CustomerId: number;
-    StoreId: number;
-    TotalAmount: number;
-    Status: string;
-    PaymentStatus: string;
-    CreatedAt: string;
-    UpdatedAt: string;
-  }): Order {
-    return {
-      orderId: backendOrder.OrderId,
-      customerId: backendOrder.CustomerId,
-      storeId: backendOrder.StoreId,
-      totalAmount: backendOrder.TotalAmount,
-      status: backendOrder.Status as
-        | 'pending'
-        | 'confirmed'
-        | 'preparing'
-        | 'ready'
-        | 'completed'
-        | 'cancelled',
-      paymentStatus: backendOrder.PaymentStatus as
-        | 'pending'
-        | 'paid'
-        | 'failed'
-        | 'refunded',
-      createdAt: backendOrder.CreatedAt,
-      updatedAt: backendOrder.UpdatedAt,
-    };
-  }
-
-  /**
-   * Convert backend OrderItem (PascalCase) to frontend format (camelCase)
-   */
-  static toFrontendOrderItem(backendOrderItem: {
-    OrderItemId: number;
-    OrderId: number;
-    ItemId: number;
-    Quantity: number;
-    UnitPrice: number;
-    TotalPrice: number;
-    InventoryItem?: BackendInventoryItem;
-  }): OrderItem {
-    return {
-      orderItemId: backendOrderItem.OrderItemId,
-      orderId: backendOrderItem.OrderId,
-      itemId: backendOrderItem.ItemId,
-      quantity: backendOrderItem.Quantity,
-      unitPrice: backendOrderItem.UnitPrice,
-      totalPrice: backendOrderItem.TotalPrice,
-      inventoryItem: backendOrderItem.InventoryItem
-        ? this.toCamelCase<InventoryItem>(backendOrderItem.InventoryItem)
-        : undefined,
-    };
-  }
-
-  /**
    * Convert backend UserProfile (PascalCase) to frontend format (camelCase)
    */
   static toFrontendUserProfile(backendProfile: {
@@ -442,6 +471,167 @@ export class ApiMapper {
       IsPrimary: request.IsPrimary,
       PickupInstructions: request.PickupInstructions,
     };
+  }
+
+  /**
+   * Convert backend Order (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendOrder(backendOrder: BackendOrder): FrontendOrder {
+    return {
+      orderId: backendOrder.OrderId,
+      orderNumber: backendOrder.OrderNumber,
+      storeId: backendOrder.StoreId,
+      userId: backendOrder.UserId,
+      guestId: backendOrder.GuestId,
+      status: backendOrder.Status as OrderStatus,
+      createdAt: backendOrder.CreatedAt,
+      updatedAt: backendOrder.UpdatedAt,
+      subtotal: backendOrder.Subtotal,
+      taxAmount: backendOrder.TaxAmount,
+      shippingCost: backendOrder.ShippingCost,
+      discountAmount: backendOrder.DiscountAmount,
+      total: backendOrder.Total,
+      platformFee: backendOrder.PlatformFee,
+      paymentMethod: backendOrder.PaymentMethod,
+      paymentStatus: backendOrder.PaymentStatus as PaymentStatus,
+      paidAt: backendOrder.PaidAt,
+      shippingAddressId: backendOrder.ShippingAddressId,
+      billingAddressId: backendOrder.BillingAddressId,
+      shippingMethod: backendOrder.ShippingMethod,
+      trackingNumber: backendOrder.TrackingNumber,
+      estimatedDelivery: backendOrder.EstimatedDelivery,
+      fulfillmentMethod: backendOrder.FulfillmentMethod as FulfillmentMethod,
+      customerNote: backendOrder.CustomerNote,
+      adminNote: backendOrder.AdminNote,
+    };
+  }
+
+  /**
+   * Convert backend OrderItem (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendOrderItem(backendItem: BackendOrderItem): FrontendOrderItem {
+    return {
+      orderItemId: backendItem.OrderItemId,
+      orderId: backendItem.OrderId,
+      itemId: backendItem.ItemId,
+      storeId: backendItem.StoreId,
+      itemName: backendItem.ItemName,
+      itemSku: backendItem.ItemSku,
+      itemPrice: backendItem.ItemPrice,
+      originalPrice: backendItem.OriginalPrice,
+      itemImageUrl: backendItem.ItemImageUrl,
+      quantity: backendItem.Quantity,
+      quantityFulfilled: backendItem.QuantityFulfilled,
+      quantityRefunded: backendItem.QuantityRefunded,
+      discountAmount: backendItem.DiscountAmount,
+      discountDescription: backendItem.DiscountDescription,
+      status: backendItem.Status as OrderStatus,
+      returnReason: backendItem.ReturnReason,
+      refundAmount: backendItem.RefundAmount,
+      createdAt: backendItem.CreatedAt,
+      updatedAt: backendItem.UpdatedAt,
+    };
+  }
+
+  /**
+   * Convert backend OrderStatusHistory (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendOrderStatusHistory(
+    backendHistory: BackendOrderStatusHistory
+  ): OrderStatusHistory {
+    return {
+      orderHistoryId: backendHistory.OrderHistoryId,
+      orderId: backendHistory.OrderId,
+      status: backendHistory.Status as OrderStatus,
+      notes: backendHistory.Notes,
+      createdAt: backendHistory.CreatedAt,
+      updatedAt: backendHistory.UpdatedAt,
+    };
+  }
+
+  /**
+   * Convert backend OrderListResponse (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendOrderListResponse(
+    backendResponse: BackendOrderListResponse
+  ): OrderListResponse {
+    return {
+      orders: backendResponse.Orders.map((order) =>
+        this.toFrontendOrder(order)
+      ),
+      pagination: {
+        totalCount: backendResponse.Pagination.TotalCount,
+        totalPages: backendResponse.Pagination.TotalPages,
+        currentPage: backendResponse.Pagination.CurrentPage,
+        pageSize: backendResponse.Pagination.PageSize,
+        hasPreviousPage: backendResponse.Pagination.HasPreviousPage,
+        hasNextPage: backendResponse.Pagination.HasNextPage,
+      },
+    };
+  }
+
+  /**
+   * Convert backend OrderDetails (PascalCase) to frontend format (camelCase)
+   */
+  static toFrontendOrderDetails(
+    backendDetails: BackendOrderDetails
+  ): OrderDetails {
+    return {
+      ...this.toFrontendOrder(backendDetails.Order),
+      items: backendDetails.Items.map((item) => this.toFrontendOrderItem(item)),
+      statusHistory: backendDetails.StatusHistory.map((history) =>
+        this.toFrontendOrderStatusHistory(history)
+      ),
+      shippingAddress: backendDetails.ShippingAddress,
+      billingAddress: backendDetails.BillingAddress,
+    };
+  }
+
+  /**
+   * Convert frontend OrderFilterParams (camelCase) to backend query parameters
+   */
+  static toBackendOrderFilterParams(
+    params: OrderFilterParams
+  ): Record<string, string> {
+    const backendParams: Record<string, string> = {};
+
+    if (params.status) {
+      backendParams.status = Array.isArray(params.status)
+        ? params.status.join(',')
+        : params.status;
+    }
+    if (params.activeOnly !== undefined) {
+      backendParams.activeOnly = params.activeOnly.toString();
+    }
+    if (params.completedOnly !== undefined) {
+      backendParams.completedOnly = params.completedOnly.toString();
+    }
+    if (params.fromDate) {
+      backendParams.fromDate = params.fromDate;
+    }
+    if (params.toDate) {
+      backendParams.toDate = params.toDate;
+    }
+    if (params.storeId !== undefined) {
+      backendParams.storeId = params.storeId.toString();
+    }
+    if (params.search) {
+      backendParams.search = params.search;
+    }
+    if (params.sortBy) {
+      backendParams.sortBy = params.sortBy;
+    }
+    if (params.sortDirection) {
+      backendParams.sortDirection = params.sortDirection;
+    }
+    if (params.page !== undefined) {
+      backendParams.page = params.page.toString();
+    }
+    if (params.pageSize !== undefined) {
+      backendParams.pageSize = params.pageSize.toString();
+    }
+
+    return backendParams;
   }
 
   /**

@@ -240,12 +240,9 @@ class PartnershipsApiService {
         params.append('pageSize', request.pageSize.toString());
 
       const url = `/api/partnerships/store/${storeId}?${params.toString()}`;
-      console.log(`🔍 PartnershipsAPI: Making request to ${url}`);
 
       const response =
         await apiClient.get<ApiResponse<PartnershipsResponse>>(url);
-
-      console.log(`📡 PartnershipsAPI: Raw response received:`, response);
 
       // Handle wrapped response structure: { data: { partnerships: [...] }, success: true, message: "..." }
       const partnershipsData: PartnershipsResponse | undefined =
@@ -536,9 +533,6 @@ class PartnershipsApiService {
         );
         partnersList = response.data || [];
       }
-
-      console.log('🔍 Raw API response:', partnersList);
-      console.log('🔍 Response data:', partnersList);
 
       this.logOperation('Partner search completed successfully', {
         resultCount: partnersList.length,

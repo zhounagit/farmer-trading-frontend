@@ -13,6 +13,7 @@ export { guestService } from './services/guestService';
 export { CartPage } from './components/CartPage';
 export { CartItem as CartItemComponent } from './components/CartItem';
 export { CartBadge } from './components/CartBadge';
+export { default as OrderConfirmation } from './components/OrderConfirmation';
 
 // Re-export hooks for convenience
 export { useCart } from '../../hooks/useCart';

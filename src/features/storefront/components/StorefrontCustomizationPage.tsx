@@ -537,12 +537,6 @@ const StorefrontCustomizationPage: React.FC = () => {
       const data = await StoresApiService.getStore(Number(storeId));
       setStoreData(data);
 
-      console.log('✅ Store data loaded:', {
-        storeId: data.storeId,
-        storeName: data.storeName,
-        addressCount: data.addresses?.length || 0,
-      });
-
       setStoreData(data);
     } catch (error) {
       console.error('❌ Store data loading error:', error);
@@ -562,8 +556,6 @@ const StorefrontCustomizationPage: React.FC = () => {
   // Function to populate module settings with store data
   const populateModuleSettings = useCallback(
     (storeData: Store) => {
-      console.log('🔄 Populating module settings with store data');
-
       // Add null/undefined checks for storeData
       if (!storeData) {
         console.warn(
@@ -727,7 +719,6 @@ const StorefrontCustomizationPage: React.FC = () => {
                   zipCode: primaryAddress.zipCode,
                 },
               };
-              console.log('✅ Business Address module populated with data');
             }
           }
 
@@ -751,10 +742,6 @@ const StorefrontCustomizationPage: React.FC = () => {
     if (!storeId || !storeData) return;
 
     try {
-      console.log(
-        '🔄 Manually updating published storefront logistics data...'
-      );
-
       // Get current customization
       const customization: any =
         await StorefrontApiService.getStorefrontCustomization(Number(storeId));
@@ -805,7 +792,6 @@ const StorefrontCustomizationPage: React.FC = () => {
           Number(storeId),
           updatedCustomization
         );
-        console.log('✅ Published storefront logistics data updated!');
       }
     } catch (error) {
       console.error(
@@ -822,13 +808,6 @@ const StorefrontCustomizationPage: React.FC = () => {
   // Load inventory items for the store
   const loadInventoryItems = useCallback(async () => {
     if (!storeId) return;
-
-    console.log('🔄 loadInventoryItems called with storeId:', {
-      storeId,
-      type: typeof storeId,
-      asNumber: Number(storeId),
-      isNaN: isNaN(Number(storeId)),
-    });
 
     try {
       // Loading inventory items...
@@ -873,30 +852,12 @@ const StorefrontCustomizationPage: React.FC = () => {
   const loadFeaturedProducts = useCallback(async () => {
     if (!storeId) return;
 
-    console.log('🔄 Loading featured products for store:', storeId);
-    console.log(
-      '🔧 Current auth token:',
-      localStorage.getItem('authToken') ? 'Present' : 'Missing'
-    );
-
     try {
-      // Add detailed debugging for the API call
-      console.log(
-        '📞 Making API call to:',
-        `/api/stores/${storeId}/featured-products?limit=6`
-      );
-
       const products = await StorefrontApiService.getFeaturedProducts(
         Number(storeId),
         6
       );
-
-      console.log('📦 Raw featured products response:', {
-        count: products?.length || 0,
-        products,
-        storeId: Number(storeId),
-        firstProduct: products?.[0] || null,
-      });
+    
 
       // Store products for storefront data
 
@@ -917,7 +878,7 @@ const StorefrontCustomizationPage: React.FC = () => {
 
       // Update the featured-products module settings with productIds
       const productIds = (products || []).map((product: any) => product.itemId);
-      setModules((prevModules) =>
+            setModules((prevModules) =>
         prevModules.map((module) =>
           module.type === 'featured-products'
             ? {
@@ -930,30 +891,12 @@ const StorefrontCustomizationPage: React.FC = () => {
             : module
         )
       );
-
-      console.log('✅ Featured products loaded and mapped:', {
-        count: products?.length || 0,
-        productIds: productIds,
-        mappedProducts: mockStorefront.products,
-        storefrontData: mockStorefront,
-      });
     } catch (error) {
       console.error('❌ Failed to load featured products:', {
         error,
         storeId,
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : null,
-      });
-
-      // Also log raw inventory items for comparison
-      console.log('📊 Current inventory items for comparison:', {
-        count: inventoryItems.length,
-        items: inventoryItems.slice(0, 3).map((item) => ({
-          id: item.itemId,
-          name: item.name,
-          price: item.pricePerUnit,
-          isActive: item.status === 'active',
-        })),
       });
 
       setStorefrontData({
@@ -976,6 +919,7 @@ const StorefrontCustomizationPage: React.FC = () => {
       loadFeaturedProducts();
     }
   }, [storeData, loadFeaturedProducts]);
+
 
   // Apply theme CSS when theme changes
   useEffect(() => {
@@ -1269,7 +1213,6 @@ const StorefrontCustomizationPage: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <IconButton
                 onClick={() => {
-                  console.log('🔙 Back button clicked');
                   window.location.href = '/dashboard';
                 }}
                 title='Back to Dashboard'
@@ -1283,7 +1226,6 @@ const StorefrontCustomizationPage: React.FC = () => {
                 size='small'
                 startIcon={<ArrowBack />}
                 onClick={() => {
-                  console.log('📊 Dashboard button clicked');
                   window.location.href = '/dashboard';
                 }}
                 sx={{ ml: 1 }}

@@ -160,7 +160,7 @@ class ApiService {
               response.status,
               errorData.error,
               errorData.message,
-              errorData.details
+              errorData // Pass entire errorData as details to include retryAfterSeconds
             );
           }
 

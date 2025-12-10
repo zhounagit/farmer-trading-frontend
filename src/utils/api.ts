@@ -93,16 +93,8 @@ export const apiRequest = async <T = unknown>(
   // Debug JWT token details
   if (token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('🔍 JWT Token Debug:', {
-        tokenLength: token.length,
-        tokenPrefix: token.substring(0, 50) + '...',
-        payload: payload,
-        exp: new Date(payload.exp * 1000),
-        isExpired: payload.exp < Date.now() / 1000,
-        role: payload.role,
-        sub: payload.sub,
-      });
+      // JWT token decoded silently
+      JSON.parse(atob(token.split('.')[1]));
     } catch (e) {
       console.error('Failed to decode JWT token:', e);
     }
@@ -370,33 +362,11 @@ export const authApi = {
     phone?: string;
     referralCode?: string;
   }) => {
-    console.log('🔍 DEBUG: Registration API call starting...');
-    console.log(
-      '📤 Registration URL:',
-      `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REGISTER}`
-    );
-    console.log('📤 Registration Data:', {
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      userType: data.userType,
-      phone: data.phone || 'Not provided',
-      referralCode: data.referralCode || 'Not provided',
-      passwordLength: data.password.length,
-      confirmPasswordLength: data.confirmPassword.length,
-    });
-
     try {
       const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, data);
-      console.log('✅ Registration Success:', response);
       return response;
     } catch (error) {
       console.error('❌ Registration Failed:', error);
-      console.log('🔍 Error Details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        status: (error as unknown as { status?: number }).status,
-        data: (error as unknown as { data?: unknown }).data,
-      });
       throw error;
     }
   },
@@ -502,16 +472,11 @@ export const storeApi = {
     acceptedPaymentMethods: string[];
     deliveryRadiusKm: number;
   }) => {
-    console.log('🔍 DEBUG: Store creation API call starting...');
-    console.log('📤 Store creation URL:', `${API_CONFIG.BASE_URL}/api/stores`);
-
     // Convert camelCase frontend data to PascalCase backend format
     const backendData = ApiMapper.toPascalCase(storeData);
-    console.log('📤 Store Data:', JSON.stringify(backendData, null, 2));
 
     try {
       const response = await api.post('/api/stores', backendData);
-      console.log('✅ Store creation success:', response);
       return response;
     } catch (error) {
       console.error('❌ Store creation failed:', error);
@@ -543,16 +508,8 @@ export const storeApi = {
 
   // Update store
   update: async (storeId: number, storeData: Record<string, unknown>) => {
-    console.log('🔍 DEBUG: Store update API call starting...');
-    console.log(
-      '📤 Store update URL:',
-      `${API_CONFIG.BASE_URL}/api/stores/${storeId}`
-    );
-    console.log('📤 Update Data:', JSON.stringify(storeData, null, 2));
-
     try {
       const response = await api.put(`/api/stores/${storeId}`, storeData);
-      console.log('✅ Store update success:', response);
       return response;
     } catch (error) {
       console.error('❌ Store update failed:', error);
@@ -741,6 +698,14 @@ export const handleApiError = (
       case HTTP_STATUS.UNPROCESSABLE_ENTITY:
         return 'Please check your input and try again';
       case HTTP_STATUS.TOO_MANY_REQUESTS:
+        // Check if we have retryAfterSeconds in the error details
+        if (apiError.details && typeof apiError.details === 'object') {
+          const details = apiError.details as any;
+          if (details.retryAfterSeconds) {
+            const minutes = Math.ceil(details.retryAfterSeconds / 60);
+            return `Too many requests. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+          }
+        }
         return 'Too many requests. Please try again later';
       case HTTP_STATUS.INTERNAL_SERVER_ERROR:
         return 'Server error. Please try again later';
@@ -791,6 +756,14 @@ export const handleApiError = (
       case HTTP_STATUS.UNPROCESSABLE_ENTITY:
         return 'Please check your input and try again';
       case HTTP_STATUS.TOO_MANY_REQUESTS:
+        // Check if we have retryAfterSeconds in the error details
+        if (error.data && typeof error.data === 'object') {
+          const data = error.data as any;
+          if (data.retryAfterSeconds) {
+            const minutes = Math.ceil(data.retryAfterSeconds / 60);
+            return `Too many requests. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+          }
+        }
         return 'Too many requests. Please try again later';
       case HTTP_STATUS.INTERNAL_SERVER_ERROR:
         return 'Server error. Please try again later';

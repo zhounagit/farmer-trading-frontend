@@ -41,10 +41,6 @@ export interface DashboardAnalytics {
 class DashboardApiService {
   async getUserMetrics(): Promise<DashboardMetrics> {
     try {
-      console.log(
-        '🔍 DashboardAPI: Fetching customer metrics with multi-source aggregation...'
-      );
-
       // For customers, we currently return default metrics
       // In the future, this could fetch:
       // - Orders placed by the user
@@ -59,7 +55,6 @@ class DashboardApiService {
         referralCredits: 0, // TODO: Fetch from referrals system
       };
 
-      console.log('✅ DashboardAPI: Customer metrics loaded:', metrics);
       return metrics;
     } catch (error) {
       console.error('❌ Failed to load customer metrics:', error);
@@ -69,10 +64,6 @@ class DashboardApiService {
 
   async getStoreMetrics(storeId: number): Promise<DashboardMetrics> {
     try {
-      console.log(
-        `🔍 DashboardAPI: Fetching real store metrics for storeId: ${storeId} with multi-source aggregation...`
-      );
-
       // Fetch data from multiple sources in parallel with comprehensive error handling
       const [inventoryData, storeStats] = await Promise.allSettled([
         InventoryApiService.getInventoryItems(storeId),
@@ -96,15 +87,6 @@ class DashboardApiService {
         } else {
           productsListed = 0;
         }
-
-        console.log('📦 Products listed:', productsListed);
-        console.log('📦 Inventory data structure analyzed:', {
-          hasTotalCount: !!inventoryResult.totalCount,
-          totalItems: inventoryResult.totalCount,
-          dataLength: Array.isArray(inventoryResult.items)
-            ? inventoryResult.items.length
-            : 'not array',
-        });
       } else {
         console.warn(
           '⚠️ Failed to fetch inventory data:',
@@ -117,7 +99,6 @@ class DashboardApiService {
       // Inventory stats endpoint not available - use default values
       inventoryValue = 0;
       lowStockItems = 0;
-      console.log('📊 Inventory stats not available - using defaults');
 
       // Extract orders and revenue from store stats with enhanced parsing
       let ordersThisMonth = 0;
@@ -145,14 +126,6 @@ class DashboardApiService {
           typeof statsObj.averageRating === 'number'
             ? statsObj.averageRating
             : 0;
-
-        console.log('📊 Store stats extracted:', {
-          orders: ordersThisMonth,
-          revenue: totalRevenue,
-          conversionRate: conversionRate,
-          averageRating: customerSatisfaction,
-          totalViews: statsObj.totalViews,
-        });
       } else {
         console.warn('⚠️ Failed to fetch store stats:', storeStats.reason);
         // Fallback to default values for store stats
@@ -173,23 +146,6 @@ class DashboardApiService {
         customerSatisfaction,
       };
 
-      console.log(
-        '✅ DashboardAPI: Real store metrics compiled with multi-source aggregation:',
-        metrics
-      );
-      console.log(
-        '🎯 Multi-Source Summary - Products:',
-        productsListed,
-        'Orders:',
-        ordersThisMonth,
-        'Revenue: $' + totalRevenue,
-        'Inventory Value: $' + inventoryValue,
-        'Low Stock Items:',
-        lowStockItems,
-        'Conversion Rate:',
-        conversionRate + '%'
-      );
-
       return metrics;
     } catch (error) {
       console.error('❌ Failed to load store metrics:', error);
@@ -199,10 +155,6 @@ class DashboardApiService {
 
   async getDashboardAnalytics(storeId?: number): Promise<DashboardAnalytics> {
     try {
-      console.log(
-        `🔍 DashboardAPI: Fetching analytics for ${storeId ? 'store' : 'user'}...`
-      );
-
       const currentMetrics = storeId
         ? await this.getStoreMetrics(storeId)
         : await this.getUserMetrics();
@@ -230,7 +182,6 @@ class DashboardApiService {
         insights,
       };
 
-      console.log('✅ DashboardAPI: Analytics loaded:', analytics);
       return analytics;
     } catch (error) {
       console.error('❌ Failed to load dashboard analytics:', error);

@@ -644,7 +644,7 @@ export const CartPage: React.FC = () => {
                   size='large'
                   fullWidth
                   disabled={hasValidationIssues || isLoading}
-                  href='/login'
+                  href='/login?returnUrl=/checkout'
                   sx={{ mb: 2 }}
                 >
                   Sign In to Checkout

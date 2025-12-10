@@ -506,8 +506,17 @@ const GuestCheckoutPage: React.FC = () => {
       // Clear guest session after successful checkout
       guestService.clearGuestSession();
 
-      // Redirect to home or order confirmation page
-      navigate('/');
+      // Redirect to order confirmation page
+      navigate('/order-confirmation', {
+        state: {
+          orderId:
+            (result as { orderId?: number })?.orderId ||
+            Math.floor(Math.random() * 1000000),
+          orderNumber:
+            (result as { orderNumber?: string })?.orderNumber ||
+            `ORD-${Date.now()}`,
+        },
+      });
     } catch (error) {
       console.error('Checkout failed:', error);
       toast.error('Failed to place order. Please try again.');

@@ -18,6 +18,11 @@ import type { UseCartItemCountReturn } from '../types/cart';
 // React Query key
 const CART_COUNT_QUERY_KEY = 'cart-count';
 
+// Cache time constants
+const CART_COUNT_STALE_TIME = 1000 * 60 * 2; // 2 minutes - balance between freshness and performance
+const CART_COUNT_CACHE_TIME = 1000 * 60 * 10; // 10 minutes
+const CART_COUNT_REFETCH_INTERVAL = 1000 * 60 * 3; // 3 minutes - less frequent than before
+
 /**
  * Custom hook to manage cart item count for header badge
  */
@@ -88,8 +93,9 @@ export const useCartItemCount = (): UseCartItemCountReturn => {
       return CartService.getItemCount(parseInt(user.userId));
     },
     enabled: isAuthenticated && !!user?.userId,
-    staleTime: 1000 * 30, // 30 seconds for frequent updates
-    refetchInterval: 1000 * 60, // Auto-refresh every minute
+    staleTime: CART_COUNT_STALE_TIME,
+    gcTime: CART_COUNT_CACHE_TIME,
+    refetchInterval: CART_COUNT_REFETCH_INTERVAL, // Auto-refresh every 3 minutes
     retry: 1, // Minimal retries for performance
   });
 

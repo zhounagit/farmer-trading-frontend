@@ -162,12 +162,12 @@ export const useCart = (): UseCartReturn => {
       const request: AddToCartRequest = { itemId, quantity };
       return CartService.addItem(parseInt(user.userId), request);
     },
-    onSuccess: (newItem) => {
+    onSuccess: () => {
       // Invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: [CART_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [CART_COUNT_QUERY_KEY] });
 
-      toast.success(`Added ${newItem.itemName} to cart`);
+      // Toast message removed - handled by components
     },
     onError: (error: Error) => {
       const errorMessage = error.message || 'Failed to add item to cart';
@@ -287,7 +287,7 @@ export const useCart = (): UseCartReturn => {
           if (result.success) {
             // Update local guest cart state
             await loadGuestCart();
-            toast.success('Item added to cart');
+            // Toast message removed - handled by components
             return { success: true };
           } else {
             return {

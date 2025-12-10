@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router-dom';
 import { CartPage } from './components/CartPage';
 import GuestCheckoutPage from './components/GuestCheckoutPage';
 import UserCheckoutPage from './components/UserCheckoutPage';
+import OrderConfirmation from './components/OrderConfirmation';
 
 /**
  * Cart Routes Configuration
@@ -21,6 +22,10 @@ export const cartRoutes: RouteObject[] = [
   {
     path: '/checkout/guest',
     element: <GuestCheckoutPage />,
+  },
+  {
+    path: '/order-confirmation',
+    element: <OrderConfirmation />,
   },
 ];
 

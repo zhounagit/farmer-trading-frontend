@@ -166,7 +166,32 @@ export class UserAddressService {
   }
 
   /**
+   * Set address as default shipping for user
+   */
+  async setDefaultShippingAddress(
+    userId: number,
+    addressId: number
+  ): Promise<void> {
+    await apiService.post(
+      `/api/users/${userId}/addresses/${addressId}/set-default-shipping`
+    );
+  }
+
+  /**
+   * Set address as default billing for user
+   */
+  async setDefaultBillingAddress(
+    userId: number,
+    addressId: number
+  ): Promise<void> {
+    await apiService.post(
+      `/api/users/${userId}/addresses/${addressId}/set-default-billing`
+    );
+  }
+
+  /**
    * Set address as primary for user
+   * @deprecated Use setDefaultShippingAddress or setDefaultBillingAddress instead
    */
   async setPrimaryAddress(userId: number, addressId: number): Promise<void> {
     await apiService.put(

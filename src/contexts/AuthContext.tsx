@@ -232,7 +232,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err) {
       const errorMessage = handleApiError(err, 'login');
       setError(errorMessage);
-      toast.error(errorMessage);
+
+      // Don't show toast for rate limit errors - handled by LoginPage UI
+      if ((err as any)?.status !== 429) {
+        toast.error(errorMessage);
+      }
+
       throw err;
     } finally {
       setIsLoading(false);
@@ -385,10 +390,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // instead of using stale cached data, fixing intermittent display issues
         if (updates.profilePictureUrl !== undefined) {
           profilePictureCache.invalidateUser(user.userId);
-          console.log(
-            '🔄 AuthContext: Profile picture cache invalidated for user:',
-            user.userId
-          );
         }
       }
     },
@@ -525,33 +526,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const migrateGuestCartToUserCart = async (userId: number): Promise<void> => {
     try {
       const guestCart = GuestCartService.getCart();
-      console.log(
-        '🛒 Guest cart migration - Guest cart items:',
-        guestCart.items
-      );
 
       if (guestCart.items.length === 0) {
-        console.log('🛒 No items to migrate - guest cart is empty');
         return; // No items to migrate
       }
-
-      console.log(
-        `🛒 Migrating ${guestCart.items.length} items from guest cart to user cart for user ${userId}`
-      );
 
       // Migrate each item from guest cart to user cart
       let migratedCount = 0;
       for (const guestItem of guestCart.items) {
         try {
-          console.log(
-            `🛒 Migrating item ${guestItem.itemId} with quantity ${guestItem.quantity}`
-          );
           await CartService.addItem(userId, {
             itemId: guestItem.itemId,
             quantity: guestItem.quantity,
           });
           migratedCount++;
-          console.log(`🛒 Successfully migrated item ${guestItem.itemId}`);
         } catch (error) {
           console.warn(
             `🛒 Failed to migrate item ${guestItem.itemId} to user cart:`,
@@ -561,13 +549,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
-      console.log(
-        `🛒 Migration completed: ${migratedCount}/${guestCart.items.length} items migrated`
-      );
-
       // Clear guest cart after successful migration
       GuestCartService.clearCart();
-      console.log('🛒 Guest cart cleared after migration');
 
       if (migratedCount > 0) {
         toast.success(`Your guest cart items have been added to your account`);

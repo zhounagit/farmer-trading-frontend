@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -164,13 +164,16 @@ const GuestCheckoutPage: React.FC = () => {
     };
 
     loadGuestAddresses();
-  }, [guestSession]);
+  }, [guestSession, guestCart]);
 
   // Calculate order totals
-  const orderTotal =
-    guestCart?.items?.reduce((total, item) => {
-      return total + (item.productPrice || 0) * item.quantity;
-    }, 0) || 0;
+  const orderTotal = useMemo(
+    () =>
+      guestCart?.items?.reduce((total, item) => {
+        return total + (item.productPrice || 0) * item.quantity;
+      }, 0) || 0,
+    [guestCart?.items]
+  );
 
   // Function to normalize country input (convert names to codes)
   const normalizeCountry = (country: string): string => {
@@ -203,10 +206,10 @@ const GuestCheckoutPage: React.FC = () => {
 
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals>({
     subtotal: orderTotal,
-    taxAmount: orderTotal * 0.08, // Default 8% tax
+    taxAmount: 0, // Tax will be calculated when zip code is provided
     shippingCost: 5.99, // Default shipping
     discountAmount: 0,
-    total: orderTotal + 5.99 + orderTotal * 0.08,
+    total: orderTotal + 5.99, // Initial total without tax
   });
 
   // Initialize guest session and calculate real totals
@@ -218,6 +221,21 @@ const GuestCheckoutPage: React.FC = () => {
         // Guest session is already initialized on component mount
 
         // Calculate totals with guest session
+        const calculatedShipping = 5.99;
+
+        // Only calculate tax if zip code is provided
+        const calculatedTax = formData.zipCode ? orderTotal * 0.08 : 0;
+
+        setCheckoutTotals({
+          subtotal: orderTotal,
+          taxAmount: calculatedTax,
+          shippingCost: calculatedShipping,
+          discountAmount: 0,
+          total: orderTotal + calculatedShipping + calculatedTax,
+        });
+
+        // If zip code is provided, we could make additional API calls
+        // for more accurate tax/shipping calculations
         if (formData.zipCode) {
           // In a real implementation, we would call:
           // const totals = await checkoutService.getCheckoutTotals(
@@ -228,25 +246,17 @@ const GuestCheckoutPage: React.FC = () => {
           //   guestSession?.guestId // guestId
           // );
           // setCheckoutTotals(totals);
-
-          // For now, use calculated values
-          const calculatedTax = orderTotal * 0.08;
-          const calculatedShipping = 5.99;
-          setCheckoutTotals({
-            subtotal: orderTotal,
-            taxAmount: calculatedTax,
-            shippingCost: calculatedShipping,
-            discountAmount: 0,
-            total: orderTotal + calculatedShipping + calculatedTax,
-          });
         }
       } catch (error) {
         console.error('Error calculating totals:', error);
       }
     };
 
-    initializeGuestAndTotals();
-  }, [orderTotal, formData.zipCode, guestCart]);
+    // Handle promise rejection
+    initializeGuestAndTotals().catch((error) => {
+      console.error('Failed to initialize guest and totals:', error);
+    });
+  }, [orderTotal, formData.zipCode, guestCart, guestCart?.items]);
 
   const handleNext = () => {
     // Validate primary address when moving from shipping step
@@ -561,8 +571,17 @@ const GuestCheckoutPage: React.FC = () => {
       // Clear guest session after successful checkout
       guestService.clearGuestSession();
 
-      // Redirect to home or order confirmation page
-      navigate('/');
+      // Redirect to order confirmation page
+      navigate('/order-confirmation', {
+        state: {
+          orderId:
+            (result as { orderId?: number })?.orderId ||
+            Math.floor(Math.random() * 1000000),
+          orderNumber:
+            (result as { orderNumber?: string })?.orderNumber ||
+            `ORD-${Date.now()}`,
+        },
+      });
     } catch (error) {
       console.error('Checkout failed:', error);
       toast.error('Failed to place order. Please try again.');

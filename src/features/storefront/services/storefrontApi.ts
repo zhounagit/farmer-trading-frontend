@@ -390,8 +390,6 @@ export class StorefrontApiService {
       }
   > {
     try {
-      console.log('🔍 StorefrontAPI: Fetching search suggestions...');
-
       // Handle both old and new API signatures
       let actualQuery: string;
       let actualLimit: number;
@@ -403,12 +401,6 @@ export class StorefrontApiService {
         actualLimit = storefrontIdOrParams.limit || 5;
         entityTypes = storefrontIdOrParams.entityTypes;
 
-        console.log('🔍 Search suggestions request:', {
-          query: actualQuery,
-          limit: actualLimit,
-          entityTypes,
-        });
-
         const response = await apiClient.get<
           ApiResponse<
             Array<{ text: string; entityType?: string; matchCount?: number }>
@@ -416,10 +408,6 @@ export class StorefrontApiService {
         >(
           `/api/public/storefronts/search/suggestions?query=${encodeURIComponent(actualQuery)}&limit=${actualLimit}${entityTypes ? `&entityTypes=${entityTypes.join(',')}` : ''}`
         );
-
-        console.log('✅ Search suggestions fetched successfully:', {
-          count: response.data?.length || 0,
-        });
 
         // Return new format for new signature with enhanced data
         return {
@@ -437,20 +425,11 @@ export class StorefrontApiService {
         actualQuery = query || '';
         actualLimit = limit;
 
-        console.log('🔍 Legacy search suggestions request:', {
-          query: actualQuery,
-          limit: actualLimit,
-        });
-
         const response = await apiClient.get<
           ApiResponse<Array<{ text: string }>>
         >(
           `/api/public/storefronts/search/suggestions?query=${encodeURIComponent(actualQuery)}&limit=${actualLimit}`
         );
-
-        console.log('✅ Legacy search suggestions fetched successfully:', {
-          count: response.data?.length || 0,
-        });
 
         // Return old format for old signature
         return (response.data || []).map((s) => s.text);
@@ -486,8 +465,6 @@ export class StorefrontApiService {
     limit?: number
   ): Promise<{ term: string; count: number }[] | { terms: string[] }> {
     try {
-      console.log('🔍 StorefrontAPI: Fetching popular search terms...');
-
       let actualLimit: number;
 
       if (limit !== undefined) {
@@ -498,17 +475,9 @@ export class StorefrontApiService {
         actualLimit = storefrontIdOrLimit;
       }
 
-      console.log('🔍 Popular search terms request:', {
-        limit: actualLimit,
-      });
-
       const response = await apiClient.get<ApiResponse<string[]>>(
         `/api/public/storefronts/search/popular-terms?limit=${actualLimit}`
       );
-
-      console.log('✅ Popular search terms fetched successfully:', {
-        count: response.data?.length || 0,
-      });
 
       if (limit !== undefined) {
         // Old signature return format
@@ -576,16 +545,6 @@ export class StorefrontApiService {
     searchTimeMs: number;
   }> {
     try {
-      console.log('🔍 StorefrontAPI: Performing unified search...', {
-        query: params.query,
-        category: params.category,
-        location: params.location,
-        store: params.store,
-        entityTypes: params.entityTypes,
-        page: params.page,
-        limit: params.limit,
-      });
-
       const searchParams = new URLSearchParams();
 
       if (params.query) searchParams.append('query', params.query);
@@ -609,7 +568,7 @@ export class StorefrontApiService {
       if (params.limit !== undefined)
         searchParams.append('limit', params.limit.toString());
 
-      const startTime = Date.now();
+      // Start time removed as unused
       const searchData = await apiClient.get<{
         results: Array<{
           entityType: string;
@@ -643,19 +602,7 @@ export class StorefrontApiService {
         query?: string;
         searchTimeMs: number;
       }>(`/api/public/storefronts/search?${searchParams.toString()}`);
-      const clientTime = Date.now() - startTime;
-
-      console.log('✅ Unified search completed successfully:', {
-        resultsCount: searchData.results?.length || 0,
-        totalResults: searchData.total,
-        searchTimeMs: searchData.searchTimeMs,
-        clientTimeMs: clientTime,
-        facets: {
-          categories: searchData.facets?.categories?.length || 0,
-          locations: searchData.facets?.locations?.length || 0,
-          stores: searchData.facets?.stores?.length || 0,
-        },
-      });
+      // Client time calculation removed as unused
 
       // Transform API response to expected format
       const transformedResults = (searchData.results || []).map(

@@ -28,9 +28,10 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import ReferralProgramPage from '../../referral/components/ReferralProgramPage';
+import MyPurchases from './MyPurchases';
 import BrandingVisualsSection from './sections/BrandingVisualsSection';
 import { useUserStore } from '@/hooks/useUserStore';
 import { useComprehensiveStore } from '@/hooks/useComprehensiveStore';
@@ -80,9 +81,11 @@ const UserDashboard: React.FC = () => {
   const { user, handleAuthenticationError } = useAuth();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [hasLoadedMetrics, setHasLoadedMetrics] = useState(false);
 
   const handleLoginClick = () => {
     navigate('/login');
@@ -105,7 +108,6 @@ const UserDashboard: React.FC = () => {
     const isAdmin = isAdminUser(user?.userType);
 
     if (canAccessStore && !isAdmin) {
-      console.log('✅ Loading STORE OWNER dashboard tabs (6 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'store', label: 'Store Overview', icon: <Store /> },
@@ -114,14 +116,12 @@ const UserDashboard: React.FC = () => {
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
     } else if (isAdmin) {
-      console.log('✅ Loading ADMIN dashboard tabs (4 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
     } else {
-      console.log('✅ Loading CUSTOMER dashboard tabs (4 tabs)');
       return [
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
@@ -131,6 +131,21 @@ const UserDashboard: React.FC = () => {
   };
 
   const tabConfig = getTabConfig();
+
+  // Check if user can access store features (store owners and admins)
+  const canAccessStore = canAccessStoreFeatures(user?.userType, user?.hasStore);
+
+  // Set active tab based on location state
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      const tabIndex = tabConfig.findIndex(
+        (tab) => tab.key === location.state.activeTab
+      );
+      if (tabIndex !== -1) {
+        setTabValue(tabIndex);
+      }
+    }
+  }, [location.state, tabConfig]);
 
   // Get dynamic metric labels based on user type
   // - Store Owners: "Total Transactions" (transaction volume from their store)
@@ -190,6 +205,11 @@ const UserDashboard: React.FC = () => {
     const fetchMetrics = async () => {
       if (!user) return;
 
+      // Skip if metrics have already been loaded for this user/store combination
+      if (hasLoadedMetrics) {
+        return;
+      }
+
       setMetricsLoading(true);
       try {
         let dashboardMetrics: DashboardMetrics;
@@ -205,7 +225,7 @@ const UserDashboard: React.FC = () => {
         }
 
         setMetrics(dashboardMetrics);
-        console.log('✅ Dashboard metrics loaded:', dashboardMetrics);
+        setHasLoadedMetrics(true);
       } catch (error) {
         console.error('❌ Failed to load dashboard metrics:', error);
         // Use default metrics on error
@@ -218,29 +238,23 @@ const UserDashboard: React.FC = () => {
           totalRevenue: 0,
           referralCredits: 0,
         });
+        setHasLoadedMetrics(true);
       } finally {
         setMetricsLoading(false);
       }
     };
 
     fetchMetrics();
-  }, [user, primaryStore]);
+  }, [user?.userId, user?.userType, primaryStore?.storeId]);
+
+  // Reset metrics loaded state when user or primary store actually changes
+  useEffect(() => {
+    setHasLoadedMetrics(false);
+  }, [user?.userId, primaryStore?.storeId]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-
-  // Debug: Validate store type
-  useEffect(() => {
-    if (primaryStore) {
-      console.log('✅ Store type validation:', {
-        storeId: primaryStore.storeId,
-        storeName: primaryStore.storeName,
-        approvalStatus: primaryStore.approvalStatus,
-        type: typeof primaryStore,
-      });
-    }
-  }, [primaryStore]);
 
   if (!user) {
     return (
@@ -370,6 +384,23 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
+            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+              <Card>
+                <CardContent>
+                  <Box display='flex' alignItems='center' gap={2}>
+                    <Star color='warning' />
+                    <Box>
+                      <Typography variant='h6' fontWeight={600}>
+                        {metricsLoading ? '...' : (metrics?.averageRating ?? 0)}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Average Rating
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
           </Box>
         ) : (
           // Regular customer stats
@@ -381,25 +412,6 @@ const UserDashboard: React.FC = () => {
               mb: 3,
             }}
           >
-            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-              <Card>
-                <CardContent>
-                  <Box display='flex' alignItems='center' gap={2}>
-                    <ShoppingCart color='primary' />
-                    <Box>
-                      <Typography variant='h6' fontWeight={600}>
-                        {metricsLoading
-                          ? '...'
-                          : (metrics?.ordersThisMonth ?? 0)}
-                      </Typography>
-                      <Typography variant='body2' color='text.secondary'>
-                        Orders This Month
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
             <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
               <Card>
                 <CardContent>
@@ -458,23 +470,6 @@ const UserDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </Box>
-            <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-              <Card>
-                <CardContent>
-                  <Box display='flex' alignItems='center' gap={2}>
-                    <Star color='warning' />
-                    <Box>
-                      <Typography variant='h6' fontWeight={600}>
-                        {metricsLoading ? '...' : (metrics?.averageRating ?? 0)}
-                      </Typography>
-                      <Typography variant='body2' color='text.secondary'>
-                        Average Rating
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
           </Box>
         )}
 
@@ -507,181 +502,195 @@ const UserDashboard: React.FC = () => {
             <TabPanel key={tab.key} value={tabValue} index={index}>
               {tabValue === index && tab.key === 'overview' && (
                 <Box sx={{ p: 3 }}>
-                  {/* Store Status Section - Always show if store exists */}
-                  {primaryStore ? (
-                    <Box sx={{ mb: 4 }}>
-                      <StoreSetupProgress
-                        storeId={primaryStore.storeId}
-                        storeData={comprehensiveStoreData}
-                      />
-                    </Box>
-                  ) : showLoading || storeLoading ? (
-                    <Alert severity='info' sx={{ mb: 2 }}>
-                      <Typography variant='body2'>
-                        Loading store information...
-                      </Typography>
-                    </Alert>
-                  ) : (
-                    <Alert severity='warning' sx={{ mb: 2 }}>
-                      No store found. Please create a store first to manage
-                      branding.
-                    </Alert>
-                  )}
+                  {/* Store Status Section - Only show for store owners */}
+                  {canAccessStore && (
+                    <>
+                      {primaryStore ? (
+                        <Box sx={{ mb: 4 }}>
+                          <StoreSetupProgress
+                            storeId={primaryStore.storeId}
+                            storeData={comprehensiveStoreData}
+                          />
+                        </Box>
+                      ) : showLoading || storeLoading ? (
+                        <Alert severity='info' sx={{ mb: 2 }}>
+                          <Typography variant='body2'>
+                            Loading store information...
+                          </Typography>
+                        </Alert>
+                      ) : (
+                        <Alert severity='warning' sx={{ mb: 2 }}>
+                          No store found. Please create a store first to manage
+                          branding.
+                        </Alert>
+                      )}
 
-                  {/* Store Management Section */}
-                  {primaryStore && getCompletionPercentage() === 100 ? (
-                    <Box sx={{ mb: 4 }}>
-                      <Card
-                        sx={{
-                          bgcolor: 'success.50',
-                          border: '1px solid',
-                          borderColor: 'success.200',
-                        }}
-                      >
-                        <CardContent sx={{ p: 3 }}>
+                      {/* Store Management Section */}
+                      {primaryStore && getCompletionPercentage() === 100 ? (
+                        <Box sx={{ mb: 4 }}>
+                          <Card
+                            sx={{
+                              bgcolor: 'success.50',
+                              border: '1px solid',
+                              borderColor: 'success.200',
+                            }}
+                          >
+                            <CardContent sx={{ p: 3 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  mb: 2,
+                                }}
+                              >
+                                <CheckCircle
+                                  sx={{
+                                    color: 'success.main',
+                                    mr: 2,
+                                    fontSize: 32,
+                                  }}
+                                />
+                                <Box>
+                                  <Typography
+                                    variant='h6'
+                                    fontWeight={600}
+                                    color='success.main'
+                                  >
+                                    Store Setup Complete! 🎉
+                                  </Typography>
+                                  <Typography
+                                    variant='body2'
+                                    color='text.secondary'
+                                  >
+                                    {primaryStore.storeName} is ready and live
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  gap: 2,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <Button
+                                  variant='contained'
+                                  color='success'
+                                  startIcon={<Store />}
+                                  onClick={() =>
+                                    setTabValue(
+                                      tabConfig.findIndex(
+                                        (t) => t.key === 'store'
+                                      )
+                                    )
+                                  }
+                                >
+                                  View Store Overview
+                                </Button>
+                                <Button
+                                  variant='outlined'
+                                  color='success'
+                                  onClick={() =>
+                                    navigate(
+                                      `/stores/${primaryStore.storeId}/customize`
+                                    )
+                                  }
+                                >
+                                  Preview Live Store
+                                </Button>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Box>
+                      ) : primaryStore &&
+                        comprehensiveStoreData?.status?.approvalStatus ===
+                          'approved' ? (
+                        <Alert severity='success' sx={{ mb: 2 }}>
+                          <Typography variant='body2'>
+                            Your store is ready for business! You can now manage
+                            products and view analytics.
+                          </Typography>
+                        </Alert>
+                      ) : primaryStore ? (
+                        <Alert severity='info' sx={{ mb: 2 }}>
+                          <Typography variant='body2'>
+                            Your store setup is complete. The status will be
+                            updated once reviewed.
+                          </Typography>
+                        </Alert>
+                      ) : user.hasStore ? (
+                        <Box sx={{ mb: 4 }}>
                           <Box
                             sx={{
                               display: 'flex',
-                              alignItems: 'center',
-                              mb: 2,
+                              justifyContent: 'center',
+                              py: 4,
                             }}
                           >
-                            <CheckCircle
-                              sx={{
-                                color: 'success.main',
-                                mr: 2,
-                                fontSize: 32,
-                              }}
-                            />
-                            <Box>
-                              <Typography
-                                variant='h6'
-                                fontWeight={600}
-                                color='success.main'
-                              >
-                                Store Setup Complete! 🎉
-                              </Typography>
-                              <Typography
-                                variant='body2'
-                                color='text.secondary'
-                              >
-                                {primaryStore.storeName} is ready and live
-                              </Typography>
-                            </Box>
+                            <CircularProgress />
+                            <Typography variant='body2' sx={{ ml: 2 }}>
+                              Loading your store...
+                            </Typography>
                           </Box>
-                          <Box
-                            sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}
-                          >
-                            <Button
-                              variant='contained'
-                              color='success'
-                              startIcon={<Store />}
-                              onClick={() =>
-                                setTabValue(
-                                  tabConfig.findIndex((t) => t.key === 'store')
-                                )
-                              }
-                            >
-                              View Store Overview
-                            </Button>
-                            <Button
-                              variant='outlined'
-                              color='success'
-                              onClick={() =>
-                                navigate(
-                                  `/stores/${primaryStore.storeId}/customize`
-                                )
-                              }
-                            >
-                              Preview Live Store
-                            </Button>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Box>
-                  ) : primaryStore &&
-                    comprehensiveStoreData?.status?.approvalStatus ===
-                      'approved' ? (
-                    <Alert severity='success' sx={{ mb: 2 }}>
-                      <Typography variant='body2'>
-                        Your store is ready for business! You can now manage
-                        products and view analytics.
-                      </Typography>
-                    </Alert>
-                  ) : primaryStore ? (
-                    <Alert severity='info' sx={{ mb: 2 }}>
-                      <Typography variant='body2'>
-                        Your store setup is complete. The status will be updated
-                        once reviewed.
-                      </Typography>
-                    </Alert>
-                  ) : user.hasStore ? (
-                    <Box sx={{ mb: 4 }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          py: 4,
-                        }}
-                      >
-                        <CircularProgress />
-                        <Typography variant='body2' sx={{ ml: 2 }}>
-                          Loading your store...
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ) : null}
+                        </Box>
+                      ) : null}
 
-                  {/* Manual refresh section for debugging */}
-                  {user?.userType === 'store_owner' &&
-                    !primaryStore &&
-                    !showLoading && (
-                      <Box sx={{ mb: 4 }}>
-                        <Card variant='outlined'>
-                          <CardContent>
-                            <Typography variant='h6' gutterBottom>
-                              Store Not Found
-                            </Typography>
-                            <Typography
-                              variant='body2'
-                              color='text.secondary'
-                              sx={{ mb: 2 }}
-                            >
-                              Your account is set up as a store owner, but no
-                              store was found. This could mean:
-                            </Typography>
-                            <Typography
-                              variant='body2'
-                              color='text.secondary'
-                              component='div'
-                            >
-                              <ul>
-                                <li>Your store is still being created</li>
-                                <li>There was an issue with store creation</li>
-                                <li>The store data needs to be refreshed</li>
-                              </ul>
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                              <Button
-                                variant='outlined'
-                                onClick={handleRefreshStores}
-                                disabled={storeLoading}
-                              >
-                                {storeLoading
-                                  ? 'Refreshing...'
-                                  : 'Refresh Stores'}
-                              </Button>
-                              <Button
-                                variant='contained'
-                                onClick={() => navigate('/create-store')}
-                              >
-                                Create Store
-                              </Button>
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      </Box>
-                    )}
+                      {/* Manual refresh section for debugging */}
+                      {user?.userType === 'store_owner' &&
+                        !primaryStore &&
+                        !showLoading && (
+                          <Box sx={{ mb: 4 }}>
+                            <Card variant='outlined'>
+                              <CardContent>
+                                <Typography variant='h6' gutterBottom>
+                                  Store Not Found
+                                </Typography>
+                                <Typography
+                                  variant='body2'
+                                  color='text.secondary'
+                                  sx={{ mb: 2 }}
+                                >
+                                  Your account is set up as a store owner, but
+                                  no store was found. This could mean:
+                                </Typography>
+                                <Typography
+                                  variant='body2'
+                                  color='text.secondary'
+                                  component='div'
+                                >
+                                  <ul>
+                                    <li>Your store is still being created</li>
+                                    <li>
+                                      There was an issue with store creation
+                                    </li>
+                                    <li>
+                                      The store data needs to be refreshed
+                                    </li>
+                                  </ul>
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                                  <Button
+                                    variant='outlined'
+                                    onClick={handleRefreshStores}
+                                    disabled={storeLoading}
+                                  >
+                                    {storeLoading
+                                      ? 'Refreshing...'
+                                      : 'Refresh Stores'}
+                                  </Button>
+                                  <Button
+                                    variant='contained'
+                                    onClick={() => navigate('/create-store')}
+                                  >
+                                    Create Store
+                                  </Button>
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          </Box>
+                        )}
+                    </>
+                  )}
 
                   {/* Customer Dashboard Section - Always show for all users */}
                   <Box>
@@ -808,8 +817,7 @@ const UserDashboard: React.FC = () => {
                       comprehensiveStoreData={
                         comprehensiveStoreData || undefined
                       }
-                      onUpdate={(data: unknown) => {
-                        console.log('Branding data updated:', data);
+                      onUpdate={() => {
                         // TODO: Save to backend or update local state
                       }}
                       onError={(error: unknown) => {
@@ -825,15 +833,9 @@ const UserDashboard: React.FC = () => {
               )}
 
               {tabValue === index && tab.key === 'orders' && (
-                <Box sx={{ p: 3 }}>
-                  <Typography variant='h6' gutterBottom>
-                    My Purchases
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Your purchase history and current orders will be displayed
-                    here.
-                  </Typography>
-                </Box>
+                <MyPurchases
+                  userId={user?.userId ? parseInt(user.userId) : undefined}
+                />
               )}
 
               {tabValue === index && tab.key === 'referral' && (

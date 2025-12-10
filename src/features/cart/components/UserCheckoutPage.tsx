@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -71,6 +71,7 @@ const UserCheckoutPage: React.FC = () => {
     state: '',
     zipCode: '',
     country: 'United States',
+    setAsDefaultShipping: false,
 
     // Billing Information
     sameAsShipping: true,
@@ -81,6 +82,7 @@ const UserCheckoutPage: React.FC = () => {
     billingState: '',
     billingZipCode: '',
     billingCountry: 'United States',
+    setAsDefaultBilling: false,
 
     // Payment Information
     cardNumber: '',
@@ -98,7 +100,7 @@ const UserCheckoutPage: React.FC = () => {
   });
 
   // Load user addresses on component mount
-  const loadUserAddresses = async () => {
+  const loadUserAddresses = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -107,37 +109,44 @@ const UserCheckoutPage: React.FC = () => {
       );
       setUserAddresses(addresses);
 
-      // Set primary address as default selection if available
-      const primaryAddress = addresses.find((addr) => addr.isPrimary);
-      if (primaryAddress) {
-        setSelectedShippingAddressId(primaryAddress.addressId);
-        setSelectedBillingAddressId(primaryAddress.addressId);
+      // Set default shipping address as default selection if available
+      // Note: We need to get default shipping address from a separate API
+      // For now, use the first shipping or both address
+      const shippingAddress = addresses.find(
+        (addr) => addr.addressType === 'shipping' || addr.addressType === 'both'
+      );
+      if (shippingAddress) {
+        setSelectedShippingAddressId(shippingAddress.addressId);
+        setSelectedBillingAddressId(shippingAddress.addressId);
         setUseSavedAddress(true);
 
-        // Pre-fill form with primary address data
+        // Pre-fill form with shipping address data
         setFormData((prev) => ({
           ...prev,
-          firstName: primaryAddress.firstName,
-          lastName: primaryAddress.lastName,
-          address: primaryAddress.streetAddress,
-          city: primaryAddress.city,
-          state: primaryAddress.state,
-          zipCode: primaryAddress.zipCode,
-          country: primaryAddress.country,
-          email: primaryAddress.email || '',
-          phone: primaryAddress.phone || '',
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          address: shippingAddress.streetAddress,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zipCode: shippingAddress.zipCode,
+          country: shippingAddress.country,
         }));
+      } else if (addresses.length > 0) {
+        // Use the first address if no shipping address found
+        setSelectedShippingAddressId(addresses[0].addressId);
+        setSelectedBillingAddressId(addresses[0].addressId);
+        setUseSavedAddress(true);
       }
     } catch (error) {
       console.error('Failed to load user addresses:', error);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       loadUserAddresses();
     }
-  }, [user]);
+  }, [user, loadUserAddresses]);
 
   // Function to normalize country input (convert names to codes)
   const normalizeCountry = (country: string): string => {
@@ -174,7 +183,7 @@ const UserCheckoutPage: React.FC = () => {
   useEffect(() => {
     if (!user) {
       toast.error('Please sign in to continue with checkout');
-      navigate('/login');
+      navigate('/login?returnUrl=/checkout');
       return;
     }
 
@@ -182,7 +191,7 @@ const UserCheckoutPage: React.FC = () => {
     if (user.email) {
       setFormData((prev) => ({ ...prev, email: user.email }));
     }
-  }, [user, navigate]);
+  }, [user, navigate, loadUserAddresses]);
 
   // Calculate order totals when cart or shipping address changes
   useEffect(() => {
@@ -292,26 +301,42 @@ const UserCheckoutPage: React.FC = () => {
     }
   };
 
-  const handleSetPrimaryAddress = async (addressId: number) => {
+  const handleSetDefaultShippingAddress = async (addressId: number) => {
     if (!user) return;
 
     try {
-      await userAddressService.setPrimaryAddress(
+      await userAddressService.setDefaultShippingAddress(
         parseInt(user.userId),
         addressId
       );
 
-      // Update local state to reflect the new primary address
+      // Update local state to reflect the new default shipping address
       const updatedAddresses = userAddresses.map((addr) => ({
         ...addr,
         isPrimary: addr.addressId === addressId,
       }));
       setUserAddresses(updatedAddresses);
 
-      toast.success('Primary address updated');
+      toast.success('Default shipping address updated');
     } catch (error) {
-      console.error('Failed to set primary address:', error);
-      toast.error('Failed to update primary address');
+      console.error('Failed to set default shipping address:', error);
+      toast.error('Failed to update default shipping address');
+    }
+  };
+
+  const handleSetDefaultBillingAddress = async (addressId: number) => {
+    if (!user) return;
+
+    try {
+      await userAddressService.setDefaultBillingAddress(
+        parseInt(user.userId),
+        addressId
+      );
+
+      toast.success('Default billing address updated');
+    } catch (error) {
+      console.error('Failed to set default billing address:', error);
+      toast.error('Failed to update default billing address');
     }
   };
 
@@ -399,6 +424,14 @@ const UserCheckoutPage: React.FC = () => {
           shippingAddressData
         );
         shippingAddressId = shippingAddressResult.addressId;
+
+        // If user wants to set this as default shipping address
+        if (formData.setAsDefaultShipping) {
+          await userAddressService.setDefaultShippingAddress(
+            parseInt(user.userId),
+            shippingAddressResult.addressId
+          );
+        }
       }
 
       if (formData.sameAsShipping) {
@@ -428,6 +461,14 @@ const UserCheckoutPage: React.FC = () => {
           billingAddressData
         );
         billingAddressId = billingAddressResult.addressId;
+
+        // If user wants to set this as default billing address
+        if (formData.setAsDefaultBilling) {
+          await userAddressService.setDefaultBillingAddress(
+            parseInt(user.userId),
+            billingAddressResult.addressId
+          );
+        }
       }
 
       // Prepare checkout request
@@ -507,6 +548,11 @@ const UserCheckoutPage: React.FC = () => {
         return !!formData.email && !!formData.phone;
 
       case 1: // Shipping
+        // When using saved addresses, check if a shipping address is selected
+        if (useSavedAddress && userAddresses.length > 0) {
+          return selectedShippingAddressId !== null;
+        }
+        // When entering new address, check all required fields
         return (
           !!formData.firstName &&
           !!formData.lastName &&
@@ -530,6 +576,46 @@ const UserCheckoutPage: React.FC = () => {
 
       default:
         return false;
+    }
+  };
+
+  const getStepValidationMessage = (step: number): string => {
+    switch (step) {
+      case 0: // Contact Info
+        if (!formData.email) return 'Email is required';
+        if (!formData.phone) return 'Phone number is required';
+        return 'Contact information incomplete';
+
+      case 1: // Shipping
+        if (useSavedAddress && userAddresses.length > 0) {
+          if (selectedShippingAddressId === null) {
+            return 'Please select a shipping address';
+          }
+          return 'Shipping address not selected';
+        } else {
+          const missingFields = [];
+          if (!formData.firstName) missingFields.push('First Name');
+          if (!formData.lastName) missingFields.push('Last Name');
+          if (!formData.address) missingFields.push('Address');
+          if (!formData.city) missingFields.push('City');
+          if (!formData.state) missingFields.push('State');
+          if (!formData.zipCode) missingFields.push('ZIP Code');
+          if (!formData.country) missingFields.push('Country');
+          return `Missing: ${missingFields.join(', ')}`;
+        }
+
+      case 2: {
+        // Payment
+        const missingPaymentFields = [];
+        if (!formData.cardNumber) missingPaymentFields.push('Card Number');
+        if (!formData.expiryDate) missingPaymentFields.push('Expiry Date');
+        if (!formData.cvv) missingPaymentFields.push('CVV');
+        if (!formData.nameOnCard) missingPaymentFields.push('Name on Card');
+        return `Missing: ${missingPaymentFields.join(', ')}`;
+      }
+
+      default:
+        return 'Step validation failed';
     }
   };
 
@@ -610,9 +696,13 @@ const UserCheckoutPage: React.FC = () => {
                     : 'grey.300',
                 cursor: 'pointer',
               }}
-              onClick={() =>
-                handleAddressSelection(address.addressId, 'shipping')
-              }
+              onClick={() => {
+                handleAddressSelection(address.addressId, 'shipping');
+                // Ensure useSavedAddress is true when clicking an address card
+                if (!useSavedAddress) {
+                  setUseSavedAddress(true);
+                }
+              }}
             >
               <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
                 <Box
@@ -633,21 +723,27 @@ const UserCheckoutPage: React.FC = () => {
                       {address.city}, {address.state} {address.zipCode}
                     </Typography>
                     <Typography variant='body2'>{address.country}</Typography>
-                    {address.isPrimary && (
+                    {address.addressType === 'shipping' ||
+                    address.addressType === 'both' ? (
                       <Typography variant='caption' color='primary'>
-                        Primary Address
+                        Shipping Address
+                      </Typography>
+                    ) : (
+                      <Typography variant='caption' color='secondary'>
+                        Billing Address
                       </Typography>
                     )}
                   </Box>
-                  {!address.isPrimary && (
+                  {(address.addressType === 'shipping' ||
+                    address.addressType === 'both') && (
                     <Button
                       size='small'
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSetPrimaryAddress(address.addressId);
+                        handleSetDefaultShippingAddress(address.addressId);
                       }}
                     >
-                      Set Primary
+                      Set as Default Shipping
                     </Button>
                   )}
                 </Box>
@@ -731,6 +827,20 @@ const UserCheckoutPage: React.FC = () => {
               }
               label='Save this shipping address to my profile'
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.setAsDefaultShipping}
+                  onChange={(e) =>
+                    handleCheckboxChange(
+                      'setAsDefaultShipping',
+                      e.target.checked
+                    )
+                  }
+                />
+              }
+              label='Set as my default shipping address'
+            />
           </Grid>
         </Grid>
       )}
@@ -774,9 +884,13 @@ const UserCheckoutPage: React.FC = () => {
                         : 'grey.300',
                     cursor: 'pointer',
                   }}
-                  onClick={() =>
-                    handleAddressSelection(address.addressId, 'billing')
-                  }
+                  onClick={() => {
+                    handleAddressSelection(address.addressId, 'billing');
+                    // Ensure useSavedAddress is true when clicking an address card
+                    if (!useSavedAddress) {
+                      setUseSavedAddress(true);
+                    }
+                  }}
                 >
                   <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
                     <Box
@@ -803,6 +917,18 @@ const UserCheckoutPage: React.FC = () => {
                           {address.country}
                         </Typography>
                       </Box>
+                      {(address.addressType === 'billing' ||
+                        address.addressType === 'both') && (
+                        <Button
+                          size='small'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetDefaultBillingAddress(address.addressId);
+                          }}
+                        >
+                          Set as Default Billing
+                        </Button>
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
@@ -890,6 +1016,20 @@ const UserCheckoutPage: React.FC = () => {
                     />
                   }
                   label='Save this billing address to my profile'
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.setAsDefaultBilling}
+                      onChange={(e) =>
+                        handleCheckboxChange(
+                          'setAsDefaultBilling',
+                          e.target.checked
+                        )
+                      }
+                    />
+                  }
+                  label='Set as my default billing address'
                 />
               </Grid>
             </Grid>
@@ -1109,6 +1249,12 @@ const UserCheckoutPage: React.FC = () => {
                 onClick={handlePlaceOrder}
                 disabled={isProcessing || !isStepValid(activeStep)}
                 size='large'
+                sx={{ position: 'relative' }}
+                title={
+                  !isStepValid(activeStep) && !isProcessing
+                    ? getStepValidationMessage(activeStep)
+                    : ''
+                }
               >
                 {isProcessing ? 'Processing...' : 'Place Order'}
               </Button>
@@ -1117,6 +1263,12 @@ const UserCheckoutPage: React.FC = () => {
                 variant='contained'
                 onClick={handleNext}
                 disabled={!isStepValid(activeStep)}
+                sx={{ position: 'relative' }}
+                title={
+                  !isStepValid(activeStep)
+                    ? getStepValidationMessage(activeStep)
+                    : ''
+                }
               >
                 Next
               </Button>

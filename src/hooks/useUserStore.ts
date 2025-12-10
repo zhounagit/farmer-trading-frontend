@@ -371,7 +371,6 @@ export const useUserStore = (): UseUserStoreReturn => {
   }, [isAuthenticated, user, handleAuthenticationError, navigate]); // Include all dependencies used in fetchStores
 
   const refetchStores = useCallback(async () => {
-    console.log('🔄 Manual store refetch requested');
     await fetchStores();
   }, [fetchStores]);
 
