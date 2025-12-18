@@ -373,7 +373,9 @@ export class GuestService {
     guestId: number,
     cartId?: number,
     shippingAddressId?: number,
-    billingAddressId?: number
+    billingAddressId?: number,
+    paymentMethod?: string,
+    fulfillmentMethod?: string
   ): Promise<{ isValid: boolean; errors: string[] }> {
     const params = new URLSearchParams();
     if (cartId) params.append('cartId', cartId.toString());
@@ -381,6 +383,9 @@ export class GuestService {
       params.append('shippingAddressId', shippingAddressId.toString());
     if (billingAddressId)
       params.append('billingAddressId', billingAddressId.toString());
+    if (paymentMethod) params.append('paymentMethod', paymentMethod);
+    if (fulfillmentMethod)
+      params.append('fulfillmentMethod', fulfillmentMethod);
 
     let response;
     try {

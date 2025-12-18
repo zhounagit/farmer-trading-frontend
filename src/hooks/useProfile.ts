@@ -20,7 +20,7 @@ interface UseProfileReturn {
   getProfile: (userId: string) => ProfileData | undefined;
 
   // Profile operations
-  loadProfile: (userId: string) => Promise<void>;
+  loadProfile: (userId: string) => Promise<ProfileData | undefined>;
   uploadProfilePicture: (
     userId: string,
     file: File,
@@ -54,7 +54,10 @@ export const useProfile = (): UseProfileReturn => {
   );
 
   const loadProfile = useCallback(
-    async (userId: string, forceRefresh = false): Promise<void> => {
+    async (
+      userId: string,
+      forceRefresh = false
+    ): Promise<ProfileData | undefined> => {
       // Profile loading initiated for user ${userId}
 
       // If this is not a force refresh and we're currently loading this profile, skip
@@ -93,48 +96,48 @@ export const useProfile = (): UseProfileReturn => {
         loadingProfiles.current.delete(userId);
 
         // Always create a profile entry to prevent future reloads
-        setState((prev) => {
-          // Always set a profile to prevent re-fetching
-          const newProfile = {
-            userId,
-            profilePictureUrl: profileData?.profilePictureUrl || undefined,
-            hasProfilePicture: profileData?.hasProfilePicture || false,
-          };
+        const newProfile = {
+          userId,
+          profilePictureUrl: profileData?.profilePictureUrl || undefined,
+          hasProfilePicture: profileData?.hasProfilePicture || false,
+        };
 
-          // Update localStorage if we have a profile picture URL
-          if (profileData?.profilePictureUrl) {
-            try {
-              const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-              if (userData) {
-                const user = JSON.parse(userData);
-                const updatedUser = {
-                  ...user,
-                  profilePictureUrl: profileData.profilePictureUrl,
-                };
-                localStorage.setItem(
-                  STORAGE_KEYS.USER_DATA,
-                  JSON.stringify(updatedUser)
-                );
-              }
-            } catch (error) {
-              console.error(
-                'Failed to update localStorage with loaded profile picture:',
-                error
+        // Update localStorage if we have a profile picture URL
+        if (profileData?.profilePictureUrl) {
+          try {
+            const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+            if (userData) {
+              const user = JSON.parse(userData);
+              const updatedUser = {
+                ...user,
+                profilePictureUrl: profileData.profilePictureUrl,
+              };
+              localStorage.setItem(
+                STORAGE_KEYS.USER_DATA,
+                JSON.stringify(updatedUser)
               );
             }
+          } catch (error) {
+            console.error(
+              'Failed to update localStorage with loaded profile picture:',
+              error
+            );
           }
+        }
 
-          return {
-            ...prev,
-            profiles: {
-              ...prev.profiles,
-              [userId]: newProfile,
-            },
-            isLoading: false,
-          };
-        });
+        setState((prev) => ({
+          ...prev,
+          profiles: {
+            ...prev.profiles,
+            [userId]: newProfile,
+          },
+          isLoading: false,
+        }));
+
+        // Return the profile data
+        return newProfile;
       } catch (error) {
-        console.warn(
+        console.error(
           `useProfile: Failed to load profile for user ${userId}:`,
           error
         );
@@ -144,20 +147,24 @@ export const useProfile = (): UseProfileReturn => {
         loadingProfiles.current.delete(userId);
 
         // Even on error, create an empty profile to prevent infinite retries
+        const emptyProfile = {
+          userId,
+          profilePictureUrl: undefined,
+          hasProfilePicture: false,
+        };
+
         setState((prev) => ({
           ...prev,
           profiles: {
             ...prev.profiles,
-            [userId]: {
-              userId,
-              profilePictureUrl: undefined,
-              hasProfilePicture: false,
-            },
+            [userId]: emptyProfile,
           },
           error:
             error instanceof Error ? error.message : 'Failed to load profile',
           isLoading: false,
         }));
+
+        return emptyProfile;
       } finally {
         // Always clean up loading state in case of unexpected errors
         loadingProfiles.current.delete(userId);

@@ -26,12 +26,14 @@ import {
   TrendingUp,
   AccountBalanceWallet,
   CheckCircle,
+  LocalShipping,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import ReferralProgramPage from '../../referral/components/ReferralProgramPage';
 import MyPurchases from './MyPurchases';
+import StoreOrders from './StoreOrders';
 import BrandingVisualsSection from './sections/BrandingVisualsSection';
 import { useUserStore } from '@/hooks/useUserStore';
 import { useComprehensiveStore } from '@/hooks/useComprehensiveStore';
@@ -112,6 +114,7 @@ const UserDashboard: React.FC = () => {
         { key: 'overview', label: 'Overview', icon: <Dashboard /> },
         { key: 'store', label: 'Store Overview', icon: <Store /> },
         { key: 'branding', label: 'Branding & Visuals', icon: <Palette /> },
+        { key: 'store-orders', label: 'Store Orders', icon: <LocalShipping /> },
         { key: 'orders', label: 'My Purchases', icon: <ShoppingCart /> },
         { key: 'referral', label: 'Referral Program', icon: <CardGiftcard /> },
       ];
@@ -832,6 +835,13 @@ const UserDashboard: React.FC = () => {
                 </Box>
               )}
 
+              {tabValue === index && tab.key === 'store-orders' && (
+                <StoreOrders
+                  storeId={primaryStore?.storeId}
+                  userId={user?.userId ? parseInt(user.userId) : undefined}
+                />
+              )}
+
               {tabValue === index && tab.key === 'orders' && (
                 <MyPurchases
                   userId={user?.userId ? parseInt(user.userId) : undefined}
@@ -839,9 +849,7 @@ const UserDashboard: React.FC = () => {
               )}
 
               {tabValue === index && tab.key === 'referral' && (
-                <Box sx={{ p: 0 }}>
-                  <ReferralProgramPage />
-                </Box>
+                <ReferralProgramPage />
               )}
             </TabPanel>
           ))}

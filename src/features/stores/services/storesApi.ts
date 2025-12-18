@@ -524,10 +524,18 @@ export class StoresApiService {
 
   // Store Configuration
   static async getStoreSellingMethods(storeId: number): Promise<string[]> {
-    const response = await apiClient.get<string[]>(
+    interface StoreSellingMethodsResponse {
+      storeId: number;
+      storeName: string;
+      offersDelivery: boolean;
+      offersPickup: boolean;
+      supportedMethods: string[];
+    }
+
+    const response = await apiClient.get<StoreSellingMethodsResponse>(
       `${this.BASE_PATH}/${storeId}/selling-methods`
     );
-    return response;
+    return response.supportedMethods;
   }
 
   static async updateStoreSellingMethods(
