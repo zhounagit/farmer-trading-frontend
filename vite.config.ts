@@ -122,7 +122,7 @@ export default defineConfig(({ command, mode }) => {
               '@tanstack/react-query',
               '@tanstack/react-query-devtools',
             ],
-            'state-management': ['zustand', 'immer'],
+            'state-management': ['immer'],
 
             // Forms and validation
             forms: ['react-hook-form', '@hookform/resolvers', 'yup'],
@@ -240,7 +240,6 @@ export default defineConfig(({ command, mode }) => {
         '@emotion/react',
         '@emotion/styled',
         '@tanstack/react-query',
-        'zustand',
         'axios',
         'react-hook-form',
         'yup',

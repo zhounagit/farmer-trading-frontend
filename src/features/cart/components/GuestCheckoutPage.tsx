@@ -16,15 +16,21 @@ import {
   FormControlLabel,
   Checkbox,
   Chip,
+  Radio,
+  RadioGroup,
+  FormControl,
 } from '@mui/material';
 import { Grid } from '../../../shared/components/layout/Grid';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from '@mui/icons-material';
 import { useCart } from '../../../hooks/useCart';
+import { useCartFulfillment } from '../../../hooks/useCartFulfillment';
 import Header from '../../../components/layout/Header';
 import { checkoutService } from '../services/checkoutService';
 import { guestService } from '../services/guestService';
 import { GuestCartService } from '../services/guestCartStorageService';
+import { StoreAddressService } from '../services/storeAddressService';
+import type { CartStoreAddresses } from '../services/storeAddressService';
 import type {
   CheckoutRequest,
   CheckoutTotals,
@@ -57,6 +63,13 @@ const GuestCheckoutPage: React.FC = () => {
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<
     number | null
   >(null);
+  const [fulfillmentMethod, setFulfillmentMethod] =
+    useState<string>('delivery');
+
+  // Store pickup addresses for pickup fulfillment
+  const [storeAddresses, setStoreAddresses] =
+    useState<CartStoreAddresses | null>(null);
+  const [loadingStoreAddresses, setLoadingStoreAddresses] = useState(false);
 
   const [formData, setFormData] = useState({
     // Contact Information
@@ -83,6 +96,9 @@ const GuestCheckoutPage: React.FC = () => {
     billingCountry: 'United States',
     usePrimaryAddress: false,
 
+    // Fulfillment Method
+    fulfillmentMethod: 'delivery',
+
     // Payment Information
     cardNumber: '4242 4242 4242 4242',
     expiryDate: '12/26',
@@ -91,6 +107,26 @@ const GuestCheckoutPage: React.FC = () => {
   });
 
   const steps = ['Contact Info', 'Shipping', 'Payment', 'Review'];
+
+  // Initialize cart fulfillment hook
+  const {
+    isLoading: fulfillmentLoading,
+    availableFulfillmentMethods,
+    recommendedFulfillmentMethod,
+    error: fulfillmentError,
+    showDeliveryAddress,
+  } = useCartFulfillment();
+
+  // Set initial fulfillment method based on recommendations
+  useEffect(() => {
+    if (recommendedFulfillmentMethod && !fulfillmentLoading) {
+      setFulfillmentMethod(recommendedFulfillmentMethod);
+      setFormData((prev) => ({
+        ...prev,
+        fulfillmentMethod: recommendedFulfillmentMethod,
+      }));
+    }
+  }, [recommendedFulfillmentMethod, fulfillmentLoading]);
 
   // Initialize guest session on component mount
   useEffect(() => {
@@ -166,6 +202,30 @@ const GuestCheckoutPage: React.FC = () => {
     loadGuestAddresses();
   }, [guestSession, guestCart]);
 
+  // Load store addresses when fulfillment method is pickup
+  useEffect(() => {
+    const loadStoreAddresses = async () => {
+      if (fulfillmentMethod === 'pickup' && guestCart?.items?.length) {
+        setLoadingStoreAddresses(true);
+        try {
+          const addresses = await StoreAddressService.getCartStoreAddresses(
+            guestCart.items
+          );
+          setStoreAddresses(addresses);
+        } catch (error) {
+          console.error('Failed to load store pickup addresses:', error);
+          toast.error('Failed to load pickup locations');
+        } finally {
+          setLoadingStoreAddresses(false);
+        }
+      } else {
+        setStoreAddresses(null);
+      }
+    };
+
+    loadStoreAddresses();
+  }, [fulfillmentMethod, guestCart?.items]);
+
   // Calculate order totals
   const orderTotal = useMemo(
     () =>
@@ -206,7 +266,7 @@ const GuestCheckoutPage: React.FC = () => {
 
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals>({
     subtotal: orderTotal,
-    taxAmount: 0, // Tax will be calculated when zip code is provided
+    taxAmount: 0, // Tax will be calculated when address is provided
     shippingCost: 5.99, // Default shipping
     discountAmount: 0,
     total: orderTotal + 5.99, // Initial total without tax
@@ -215,48 +275,98 @@ const GuestCheckoutPage: React.FC = () => {
   // Initialize guest session and calculate real totals
   useEffect(() => {
     const initializeGuestAndTotals = async () => {
-      if (!guestCart) return;
+      if (!guestCart || !guestSession) return;
 
       try {
-        // Guest session is already initialized on component mount
+        // Calculate totals using checkout service API
+        if (guestCartId) {
+          const totals = await checkoutService.getCheckoutTotals(
+            guestCartId,
+            selectedShippingAddressId || undefined,
+            selectedBillingAddressId || undefined,
+            undefined, // customerId (not needed for guest)
+            guestSession.guestId
+          );
+          setCheckoutTotals(totals);
+        } else {
+          // Fallback calculation when cart ID not available
+          const calculatedShipping = fulfillmentMethod === 'pickup' ? 0 : 5.99;
+          const calculatedTax = 0; // Will be calculated properly once addresses are created
 
-        // Calculate totals with guest session
-        const calculatedShipping = 5.99;
-
-        // Only calculate tax if zip code is provided
-        const calculatedTax = formData.zipCode ? orderTotal * 0.08 : 0;
-
-        setCheckoutTotals({
-          subtotal: orderTotal,
-          taxAmount: calculatedTax,
-          shippingCost: calculatedShipping,
-          discountAmount: 0,
-          total: orderTotal + calculatedShipping + calculatedTax,
-        });
-
-        // If zip code is provided, we could make additional API calls
-        // for more accurate tax/shipping calculations
-        if (formData.zipCode) {
-          // In a real implementation, we would call:
-          // const totals = await checkoutService.getCheckoutTotals(
-          //   undefined, // cartId for guest
-          //   undefined, // shippingAddressId
-          //   undefined, // billingAddressId
-          //   undefined, // customerId for guest
-          //   guestSession?.guestId // guestId
-          // );
-          // setCheckoutTotals(totals);
+          setCheckoutTotals({
+            subtotal: orderTotal,
+            taxAmount: calculatedTax,
+            shippingCost: calculatedShipping,
+            discountAmount: 0,
+            total: orderTotal + calculatedShipping + calculatedTax,
+          });
         }
       } catch (error) {
-        console.error('Error calculating totals:', error);
+        console.error('Failed to calculate checkout totals:', error);
+        // Fallback to basic calculation
+        const calculatedShipping = fulfillmentMethod === 'pickup' ? 0 : 5.99;
+        setCheckoutTotals({
+          subtotal: orderTotal,
+          taxAmount: 0,
+          shippingCost: calculatedShipping,
+          discountAmount: 0,
+          total: orderTotal + calculatedShipping,
+        });
       }
     };
 
-    // Handle promise rejection
-    initializeGuestAndTotals().catch((error) => {
-      console.error('Failed to initialize guest and totals:', error);
-    });
-  }, [orderTotal, formData.zipCode, guestCart, guestCart?.items]);
+    initializeGuestAndTotals();
+  }, [
+    orderTotal,
+    guestCart,
+    guestSession,
+    guestCartId,
+    selectedShippingAddressId,
+    selectedBillingAddressId,
+    fulfillmentMethod,
+  ]);
+
+  // Recalculate totals when form data changes (address info for tax calculation)
+  useEffect(() => {
+    const recalculateTotalsOnFormChange = async () => {
+      if (!guestSession || !guestCartId || !formData.zipCode) return;
+
+      try {
+        // If we have form data but no address IDs yet, we can still get tax preview
+        if (!selectedBillingAddressId && formData.billingZipCode) {
+          // Use tax preview API for real-time calculation
+          const taxPreview = await checkoutService.getTaxPreview(
+            guestCartId,
+            selectedShippingAddressId || undefined,
+            undefined, // no billing address ID yet
+            undefined, // no customerId for guest
+            guestSession.guestId
+          );
+
+          setCheckoutTotals((prev) => ({
+            ...prev,
+            taxAmount: taxPreview.taxAmount,
+            total:
+              prev.subtotal +
+              prev.shippingCost +
+              taxPreview.taxAmount -
+              prev.discountAmount,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to recalculate tax on form change:', error);
+      }
+    };
+
+    recalculateTotalsOnFormChange();
+  }, [
+    formData.zipCode,
+    formData.billingZipCode,
+    guestSession,
+    guestCartId,
+    selectedShippingAddressId,
+    selectedBillingAddressId,
+  ]);
 
   const handleNext = () => {
     // Validate primary address when moving from shipping step
@@ -408,50 +518,60 @@ const GuestCheckoutPage: React.FC = () => {
     setIsProcessing(true);
     try {
       // Use existing addresses or create new ones
-      let shippingAddressId: number;
+      let shippingAddressId: number | undefined = undefined;
       let billingAddressId: number;
 
-      if (formData.usePrimaryAddress && selectedShippingAddressId) {
-        // Use existing primary address for shipping
-        shippingAddressId = selectedShippingAddressId;
-      } else {
-        // Create new shipping address
-        const shippingAddressData: GuestAddressRequest = {
-          addressType: 'shipping',
-          streetAddress: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: normalizeCountry(formData.country),
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          isPrimary: true, // First address or new address becomes primary
-        };
+      // Only create/use shipping address for delivery fulfillment
+      if (fulfillmentMethod === 'delivery') {
+        if (formData.usePrimaryAddress && selectedShippingAddressId) {
+          // Use existing primary address for shipping
+          shippingAddressId = selectedShippingAddressId;
+        } else {
+          // Create new shipping address for delivery
+          const shippingAddressData: GuestAddressRequest = {
+            addressType: 'shipping',
+            streetAddress: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zipCode: formData.zipCode,
+            country: normalizeCountry(formData.country),
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            isPrimary: true, // First address or new address becomes primary
+          };
 
-        const shippingAddressResult = await guestService.createAddress(
-          guestSession.guestId,
-          shippingAddressData
-        );
-        shippingAddressId = shippingAddressResult.addressId;
+          const shippingAddressResult = await guestService.createAddress(
+            guestSession.guestId,
+            shippingAddressData
+          );
+          shippingAddressId = shippingAddressResult.addressId;
+        }
       }
 
-      if (formData.sameAsShipping) {
-        // Use the same address for billing
+      // Handle billing address creation based on fulfillment method
+      if (
+        fulfillmentMethod === 'delivery' &&
+        formData.sameAsShipping &&
+        shippingAddressId
+      ) {
+        // For delivery: use the same address for billing when sameAsShipping is checked
         billingAddressId = shippingAddressId;
       } else if (formData.usePrimaryAddress && selectedBillingAddressId) {
         // Use existing address for billing
         billingAddressId = selectedBillingAddressId;
       } else {
-        // Create separate billing address
+        // Create separate billing address (always for pickup, or when different from shipping for delivery)
         const billingAddressData: GuestAddressRequest = {
           addressType: 'billing',
-          streetAddress: formData.billingAddress,
-          city: formData.billingCity,
-          state: formData.billingState,
-          zipCode: formData.billingZipCode,
-          country: normalizeCountry(formData.billingCountry),
-          firstName: formData.billingFirstName,
-          lastName: formData.billingLastName,
+          streetAddress: formData.billingAddress || formData.address,
+          city: formData.billingCity || formData.city,
+          state: formData.billingState || formData.state,
+          zipCode: formData.billingZipCode || formData.zipCode,
+          country: normalizeCountry(
+            formData.billingCountry || formData.country
+          ),
+          firstName: formData.billingFirstName || formData.firstName,
+          lastName: formData.billingLastName || formData.lastName,
           isPrimary: false, // Billing address is not primary
         };
 
@@ -460,6 +580,22 @@ const GuestCheckoutPage: React.FC = () => {
           billingAddressData
         );
         billingAddressId = billingAddressResult.addressId;
+      }
+
+      // Recalculate totals with final addresses before checkout
+      if (guestCartId) {
+        try {
+          const finalTotals = await checkoutService.getCheckoutTotals(
+            guestCartId,
+            shippingAddressId || billingAddressId,
+            billingAddressId,
+            undefined,
+            guestSession.guestId
+          );
+          setCheckoutTotals(finalTotals);
+        } catch (error) {
+          console.error('Failed to get final totals:', error);
+        }
       }
 
       // Update guest contact information if provided
@@ -507,10 +643,10 @@ const GuestCheckoutPage: React.FC = () => {
       const checkoutRequest: CheckoutRequest = {
         guestId: guestSession.guestId,
         cartId: finalCartId,
-        shippingAddressId: shippingAddressId,
+        shippingAddressId: shippingAddressId ?? billingAddressId, // Use billing address for pickup when no shipping address
         billingAddressId: billingAddressId,
         paymentMethod: 'credit_card',
-        fulfillmentMethod: 'delivery',
+        fulfillmentMethod: fulfillmentMethod,
         customerNote: '',
         isTaxExempt: false,
 
@@ -523,7 +659,7 @@ const GuestCheckoutPage: React.FC = () => {
           customerEmail: formData.email,
           customerPhone: formData.phone,
         },
-        deliveryInstructions: formData.address,
+        deliveryInstructions: '',
       };
 
       // Validate checkout prerequisites before processing
@@ -631,40 +767,212 @@ const GuestCheckoutPage: React.FC = () => {
   const renderShippingStep = () => (
     <Box sx={{ mb: 4 }}>
       <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-        Shipping Address
+        Shipping & Fulfillment
       </Typography>
 
-      {/* Address Selection */}
-      {guestAddresses.length > 0 && (
+      {/* Error display for fulfillment loading */}
+      {fulfillmentError && (
+        <Alert severity='error' sx={{ mb: 3 }}>
+          <Typography variant='body1' gutterBottom>
+            Unable to load store fulfillment options
+          </Typography>
+          <Typography variant='body2'>
+            {fulfillmentError}. Please try refreshing the page or contact
+            support if the issue persists.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Fulfillment Method Selection */}
+      {availableFulfillmentMethods.length > 0 ? (
         <Paper sx={{ p: 3, mb: 3, backgroundColor: 'grey.50' }}>
           <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-            Select Existing Address
+            How would you like to receive your order?
           </Typography>
 
-          {/* Primary Address Warning */}
-          {!guestAddresses.some((addr) => addr.isPrimary) &&
-            guestAddresses.length > 0 && (
-              <Alert severity='warning' sx={{ mb: 2 }}>
-                <Typography variant='body2'>
-                  <strong>No primary address set.</strong> Please select a
-                  primary address before proceeding to payment.
-                </Typography>
-              </Alert>
-            )}
+          {fulfillmentLoading ? (
+            <Typography variant='body2' color='text.secondary'>
+              Loading fulfillment options...
+            </Typography>
+          ) : (
+            <FormControl component='fieldset'>
+              <RadioGroup
+                value={fulfillmentMethod}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setFulfillmentMethod(e.target.value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    fulfillmentMethod: e.target.value,
+                  }));
+                }}
+              >
+                {availableFulfillmentMethods.includes('delivery') && (
+                  <FormControlLabel
+                    value='delivery'
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant='body1' fontWeight={500}>
+                          Delivery
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary'>
+                          Items will be delivered to your address
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                )}
+                {availableFulfillmentMethods.includes('pickup') && (
+                  <FormControlLabel
+                    value='pickup'
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant='body1' fontWeight={500}>
+                          Store Pickup
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary'>
+                          Pick up items directly from the store
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                )}
+              </RadioGroup>
+            </FormControl>
+          )}
 
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={formData.usePrimaryAddress}
-                onChange={handleCheckboxChange('usePrimaryAddress')}
-                color='primary'
+          {fulfillmentMethod === 'pickup' && (
+            <Alert severity='info' sx={{ mt: 2 }}>
+              <Typography variant='body2'>
+                You'll receive pickup instructions after your order is
+                confirmed.
+              </Typography>
+            </Alert>
+          )}
+        </Paper>
+      ) : !fulfillmentLoading && !fulfillmentError ? (
+        <Alert severity='warning' sx={{ mb: 3 }}>
+          <Typography variant='body1' gutterBottom>
+            No fulfillment options available
+          </Typography>
+          <Typography variant='body2'>
+            The stores in your cart don't have any common fulfillment methods.
+            This might be because stores have different delivery/pickup
+            capabilities. Please try removing items or contact the stores
+            directly.
+          </Typography>
+        </Alert>
+      ) : null}
+
+      {/* Name Fields - Always show for both pickup and delivery */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+          Contact Information
+        </Typography>
+        <Paper sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                required
+                fullWidth
+                label='First Name'
+                value={formData.firstName}
+                onChange={handleInputChange('firstName')}
               />
-            }
-            label='Use existing address'
-          />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                required
+                fullWidth
+                label='Last Name'
+                value={formData.lastName}
+                onChange={handleInputChange('lastName')}
+              />
+            </Grid>
+          </Grid>
+        </Paper>
+      </Box>
 
-          {formData.usePrimaryAddress && (
-            <Box sx={{ mt: 2 }}>
+      {/* Shipping Address Section */}
+      {showDeliveryAddress(fulfillmentMethod) && (
+        <>
+          <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            Shipping Address
+          </Typography>
+
+          {/* New Address Form */}
+          {(!formData.usePrimaryAddress || guestAddresses.length === 0) && (
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                {guestAddresses.length > 0
+                  ? 'Enter New Shipping Address'
+                  : 'Shipping Address'}
+              </Typography>
+
+              {guestAddresses.length === 0 && (
+                <Alert severity='info' sx={{ mb: 2 }}>
+                  <Typography variant='body2'>
+                    <strong>This address will be set as primary</strong> since
+                    no primary address exists yet.
+                  </Typography>
+                </Alert>
+              )}
+
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    label='Street Address'
+                    value={formData.address}
+                    onChange={handleInputChange('address')}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    label='City'
+                    value={formData.city}
+                    onChange={handleInputChange('city')}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    required
+                    fullWidth
+                    label='State'
+                    value={formData.state}
+                    onChange={handleInputChange('state')}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    required
+                    fullWidth
+                    label='ZIP Code'
+                    value={formData.zipCode}
+                    onChange={handleInputChange('zipCode')}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    label='Country'
+                    value={formData.country}
+                    onChange={handleInputChange('country')}
+                    placeholder='United States'
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
+
+          {/* Saved Addresses */}
+          {guestAddresses.length > 0 && (
+            <Box sx={{ mb: 3 }}>
               <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                 Select from your saved addresses:
               </Typography>
@@ -674,12 +982,8 @@ const GuestCheckoutPage: React.FC = () => {
                   sx={{
                     mb: 2,
                     p: 2,
-                    border:
-                      selectedShippingAddressId === address.addressId ? 2 : 1,
-                    borderColor:
-                      selectedShippingAddressId === address.addressId
-                        ? 'primary.main'
-                        : 'grey.300',
+                    border: 1,
+                    borderColor: 'grey.300',
                     cursor: 'pointer',
                   }}
                   onClick={() =>
@@ -731,195 +1035,31 @@ const GuestCheckoutPage: React.FC = () => {
               ))}
             </Box>
           )}
-        </Paper>
+        </>
       )}
 
-      {/* New Address Form */}
-      <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-        {guestAddresses.length > 0
-          ? 'Or Enter New Address'
-          : 'Enter Shipping Address'}
+      {/* Billing Address Section - Always show for payment processing */}
+      <Divider sx={{ my: 4 }} />
+      <Typography variant='h6' gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+        Billing Address
       </Typography>
 
-      {/* Primary Address Requirement Info */}
-      {guestAddresses.length === 0 && (
-        <Alert severity='info' sx={{ mb: 3 }}>
-          <Typography variant='body2'>
-            <strong>This address will be set as your primary address.</strong>{' '}
-            It will be your default address for future orders.
-          </Typography>
-        </Alert>
+      {/* Only show "Same as shipping" option for delivery */}
+      {fulfillmentMethod === 'delivery' && (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.sameAsShipping}
+              onChange={handleCheckboxChange('sameAsShipping')}
+            />
+          }
+          label='Same as shipping address'
+        />
       )}
-      {guestAddresses.length > 0 &&
-        !guestAddresses.some((addr) => addr.isPrimary) && (
-          <Alert severity='info' sx={{ mb: 3 }}>
-            <Typography variant='body2'>
-              <strong>This address will be set as primary</strong> since no
-              primary address exists yet.
-            </Typography>
-          </Alert>
-        )}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            required
-            fullWidth
-            label='First Name'
-            value={formData.firstName}
-            onChange={handleInputChange('firstName')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            required
-            fullWidth
-            label='Last Name'
-            value={formData.lastName}
-            onChange={handleInputChange('lastName')}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            required
-            fullWidth
-            label='Street Address'
-            value={formData.address}
-            onChange={handleInputChange('address')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            required
-            fullWidth
-            label='City'
-            value={formData.city}
-            onChange={handleInputChange('city')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <TextField
-            required
-            fullWidth
-            label='State'
-            value={formData.state}
-            onChange={handleInputChange('state')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <TextField
-            required
-            fullWidth
-            label='ZIP Code'
-            value={formData.zipCode}
-            onChange={handleInputChange('zipCode')}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            required
-            fullWidth
-            label='Country'
-            value={formData.country}
-            onChange={handleInputChange('country')}
-            placeholder='United States'
-          />
-        </Grid>
-      </Grid>
-
-      {/* Billing Address Section */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-          Billing Address
-        </Typography>
-
-        {/* Billing Address Selection */}
-        {!formData.sameAsShipping && guestAddresses.length > 0 && (
-          <Paper sx={{ p: 3, mb: 3, backgroundColor: 'grey.50' }}>
-            <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-              Select Billing Address
-            </Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-              Select from your saved addresses:
-            </Typography>
-            {guestAddresses.map((address) => (
-              <Card
-                key={address.addressId}
-                sx={{
-                  mb: 2,
-                  p: 2,
-                  border:
-                    selectedBillingAddressId === address.addressId ? 2 : 1,
-                  borderColor:
-                    selectedBillingAddressId === address.addressId
-                      ? 'primary.main'
-                      : 'grey.300',
-                  cursor: 'pointer',
-                }}
-                onClick={() =>
-                  handleAddressSelection(address.addressId, 'billing')
-                }
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <Box>
-                    <Typography variant='body1' sx={{ fontWeight: 600 }}>
-                      {address.streetAddress}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      {address.city}, {address.state} {address.zipCode}
-                    </Typography>
-                    <Typography variant='caption' color='text.secondary'>
-                      {address.addressType} {address.isPrimary && '• Primary'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {address.isPrimary && (
-                      <Chip
-                        label='Primary'
-                        size='small'
-                        color='primary'
-                        variant='outlined'
-                      />
-                    )}
-                    {!address.isPrimary && (
-                      <Button
-                        size='small'
-                        variant='outlined'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSetPrimaryAddress(address.addressId);
-                        }}
-                      >
-                        Set Primary
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              </Card>
-            ))}
-          </Paper>
-        )}
-
-        <Box sx={{ mb: 3 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={formData.sameAsShipping}
-                onChange={handleCheckboxChange('sameAsShipping')}
-                color='primary'
-              />
-            }
-            label='Billing address same as shipping address'
-          />
-        </Box>
-
-        {!formData.sameAsShipping && (
+      {/* Show billing form when: pickup (always) or delivery (when not same as shipping) */}
+      {(fulfillmentMethod === 'pickup' || !formData.sameAsShipping) && (
+        <Box sx={{ mt: 2 }}>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -957,7 +1097,7 @@ const GuestCheckoutPage: React.FC = () => {
                 onChange={handleInputChange('billingCity')}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
@@ -966,7 +1106,7 @@ const GuestCheckoutPage: React.FC = () => {
                 onChange={handleInputChange('billingState')}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
@@ -975,19 +1115,18 @@ const GuestCheckoutPage: React.FC = () => {
                 onChange={handleInputChange('billingZipCode')}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
                 label='Billing Country'
                 value={formData.billingCountry}
                 onChange={handleInputChange('billingCountry')}
-                placeholder='United States'
               />
             </Grid>
           </Grid>
-        )}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 
@@ -1102,21 +1241,80 @@ const GuestCheckoutPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Shipping Information */}
+      {/* Shipping/Pickup Information */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant='h6' gutterBottom>
-            Shipping Address
+            {fulfillmentMethod === 'pickup'
+              ? 'Pickup Location'
+              : 'Shipping Address'}
           </Typography>
-          <Typography variant='body2'>
-            {formData.firstName} {formData.lastName}
-            <br />
-            {formData.address}
-            <br />
-            {formData.city}, {formData.state} {formData.zipCode}
-            <br />
-            {formData.country}
-          </Typography>
+          {fulfillmentMethod === 'pickup' ? (
+            // Show store pickup addresses
+            <>
+              {loadingStoreAddresses ? (
+                <Typography variant='body2' color='text.secondary'>
+                  Loading pickup locations...
+                </Typography>
+              ) : storeAddresses && storeAddresses.hasPickupAddresses ? (
+                <>
+                  {Array.from(storeAddresses.storePickupInfo.values()).map(
+                    (storeInfo) => (
+                      <Box key={storeInfo.storeId} sx={{ mb: 2 }}>
+                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
+                          {storeInfo.storeName || `Store #${storeInfo.storeId}`}
+                        </Typography>
+                        {storeInfo.primaryPickupAddress ? (
+                          <Typography variant='body2'>
+                            {storeInfo.primaryPickupAddress.locationName && (
+                              <>
+                                {storeInfo.primaryPickupAddress.locationName}
+                                <br />
+                              </>
+                            )}
+                            {storeInfo.primaryPickupAddress.streetAddress}
+                            <br />
+                            {storeInfo.primaryPickupAddress.city},{' '}
+                            {storeInfo.primaryPickupAddress.state}{' '}
+                            {storeInfo.primaryPickupAddress.zipCode}
+                            {storeInfo.primaryPickupAddress.contactPhone && (
+                              <>
+                                <br />
+                                Phone:{' '}
+                                {storeInfo.primaryPickupAddress.contactPhone}
+                              </>
+                            )}
+                          </Typography>
+                        ) : (
+                          <Typography variant='body2' color='error'>
+                            No pickup address available
+                          </Typography>
+                        )}
+                      </Box>
+                    )
+                  )}
+                </>
+              ) : (
+                <Alert severity='warning'>
+                  <Typography variant='body2'>
+                    Pickup addresses not available. Please contact the stores
+                    directly.
+                  </Typography>
+                </Alert>
+              )}
+            </>
+          ) : (
+            // Show customer shipping address for delivery
+            <Typography variant='body2'>
+              {formData.firstName} {formData.lastName}
+              <br />
+              {formData.address}
+              <br />
+              {formData.city}, {formData.state} {formData.zipCode}
+              <br />
+              {formData.country}
+            </Typography>
+          )}
         </CardContent>
       </Card>
 
@@ -1127,7 +1325,7 @@ const GuestCheckoutPage: React.FC = () => {
             Billing Address
           </Typography>
           <Typography variant='body2'>
-            {formData.sameAsShipping ? (
+            {formData.sameAsShipping && fulfillmentMethod === 'delivery' ? (
               <>
                 Same as shipping address
                 <br />
@@ -1141,14 +1339,16 @@ const GuestCheckoutPage: React.FC = () => {
               </>
             ) : (
               <>
-                {formData.billingFirstName} {formData.billingLastName}
+                {formData.billingFirstName || formData.firstName}{' '}
+                {formData.billingLastName || formData.lastName}
                 <br />
-                {formData.billingAddress}
+                {formData.billingAddress || formData.address}
                 <br />
-                {formData.billingCity}, {formData.billingState}{' '}
-                {formData.billingZipCode}
+                {formData.billingCity || formData.city},{' '}
+                {formData.billingState || formData.state}{' '}
+                {formData.billingZipCode || formData.zipCode}
                 <br />
-                {formData.billingCountry}
+                {formData.billingCountry || formData.country}
               </>
             )}
           </Typography>
@@ -1198,15 +1398,34 @@ const GuestCheckoutPage: React.FC = () => {
       case 0:
         return formData.email.trim() !== '';
       case 1: {
+        // Always validate name fields for both pickup and delivery
+        const nameValid =
+          formData.firstName.trim() !== '' && formData.lastName.trim() !== '';
+
+        // For pickup fulfillment, only validate name fields (no address needed)
+        if (fulfillmentMethod === 'pickup') {
+          // For pickup, billing address is always required (no sameAsShipping option)
+          const billingValid =
+            formData.billingFirstName.trim() !== '' &&
+            formData.billingLastName.trim() !== '' &&
+            formData.billingAddress.trim() !== '' &&
+            formData.billingCity.trim() !== '' &&
+            formData.billingState.trim() !== '' &&
+            formData.billingZipCode.trim() !== '' &&
+            formData.billingCountry.trim() !== '';
+
+          return nameValid && billingValid;
+        }
+
+        // For delivery fulfillment, validate all address fields
         const shippingValid =
-          formData.firstName.trim() !== '' &&
-          formData.lastName.trim() !== '' &&
           formData.address.trim() !== '' &&
           formData.city.trim() !== '' &&
           formData.state.trim() !== '' &&
           formData.zipCode.trim() !== '' &&
           formData.country.trim() !== '';
 
+        // Billing validation depends on sameAsShipping flag
         const billingValid = formData.sameAsShipping
           ? true
           : formData.billingFirstName.trim() !== '' &&
@@ -1217,7 +1436,7 @@ const GuestCheckoutPage: React.FC = () => {
             formData.billingZipCode.trim() !== '' &&
             formData.billingCountry.trim() !== '';
 
-        return shippingValid && billingValid;
+        return nameValid && shippingValid && billingValid;
       }
       case 2: {
         // Basic validation for payment step - detailed validation happens in handlePlaceOrder
@@ -1322,63 +1541,59 @@ const GuestCheckoutPage: React.FC = () => {
             </Paper>
           </Grid>
 
-          {/* Order Summary */}
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, position: 'sticky', top: 24 }}>
-              <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
-                Order Summary
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                {guestCart?.items?.map((item) => (
-                  <Box
-                    key={item.itemId}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      mb: 1,
-                    }}
-                  >
-                    <Typography variant='body2'>
-                      {item.productName} × {item.quantity}
-                    </Typography>
-                    <Typography variant='body2'>
-                      ${((item.productPrice || 0) * item.quantity).toFixed(2)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant='body2'>Subtotal</Typography>
-                <Typography variant='body2'>${subtotal.toFixed(2)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant='body2'>Shipping</Typography>
-                <Typography variant='body2'>
-                  ${shippingCost.toFixed(2)}
+          {/* Order Summary - Only show in Review step */}
+          {activeStep === 3 && (
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, position: 'sticky', top: 24 }}>
+                <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                  Order Summary
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant='body2'>Tax</Typography>
-                <Typography variant='body2'>${taxAmount.toFixed(2)}</Typography>
-              </Box>
-              {discountAmount > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  {guestCart?.items?.map((item) => (
+                    <Box
+                      key={item.itemId}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        mb: 1,
+                      }}
+                    >
+                      <Typography variant='body2'>
+                        {item.productName} × {item.quantity}
+                      </Typography>
+                      <Typography variant='body2'>
+                        ${((item.productPrice || 0) * item.quantity).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant='body2' color='success.main'>
-                    Discount
-                  </Typography>
-                  <Typography variant='body2' color='success.main'>
-                    -${discountAmount.toFixed(2)}
+                  <Typography variant='body2'>Subtotal</Typography>
+                  <Typography variant='body2'>
+                    ${subtotal.toFixed(2)}
                   </Typography>
                 </Box>
-              )}
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant='h6'>Total</Typography>
-                <Typography variant='h6'>${total.toFixed(2)}</Typography>
-              </Box>
-            </Paper>
-          </Grid>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant='body2'>Shipping</Typography>
+                  <Typography variant='body2'>
+                    ${shippingCost.toFixed(2)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant='body2'>Tax</Typography>
+                  <Typography variant='body2'>
+                    ${taxAmount.toFixed(2)}
+                  </Typography>
+                </Box>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant='h6'>Total</Typography>
+                  <Typography variant='h6'>${total.toFixed(2)}</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          )}
         </Grid>
       </Container>
     </>

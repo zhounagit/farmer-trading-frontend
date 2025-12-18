@@ -12,12 +12,13 @@ import {
   API_ENDPOINTS,
   type UserPreferences,
 } from '../shared/types/api-contracts';
-import type { User, AuthContextType, RegisterData } from '../types/auth';
 import type {
-  LoginRequest,
-  RegisterRequest,
+  User,
+  AuthContextType,
+  RegisterData,
   LoginResponse,
 } from '../types/auth';
+import type { LoginRequest, RegisterRequest } from '../types/auth';
 import { handleAuthError, isAuthError } from '../utils/authErrorHandler';
 import { useProfile } from '../hooks/useProfile';
 import { normalizeToFrontendUserType } from '../utils/typeMapping';
@@ -54,36 +55,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
 
-  // Use the profile hook for profile picture management
+  // Note: useProfile hook is not used during login due to state closure issues
+  // Profile pictures are fetched directly from API during login
+
+  // Sync profile picture from useProfile hook (for non-login scenarios)
   const { loadProfile, getProfile } = useProfile();
 
-  // Controlled profile picture sync - only update user when explicitly needed
   const syncProfilePicture = useCallback(
     async (userId: string): Promise<void> => {
       try {
-        // Force reload the profile to ensure we have the latest data
-        await loadProfile(userId);
+        // Force reload the profile and get the returned data directly
 
-        // Give the profile hook a moment to update
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        const profile = getProfile(userId);
+        const profile = await loadProfile(userId);
 
         if (profile?.profilePictureUrl) {
-          // Only update user if profile picture URL actually changed
+          console.log(
+            `✅ syncProfilePicture: Got profile picture for user ${userId}: ${profile.profilePictureUrl}`
+          );
+
+          // Update user state with the profile picture URL
           setUser((prevUser) => {
             if (!prevUser) {
               return prevUser;
             }
 
-            // Always update when we have a valid profile picture URL
-            // This ensures components get the latest data even if URL appears unchanged
-            // (URLs might be the same but components need refresh)
-
             const updatedUser = {
               ...prevUser,
               profilePictureUrl: profile.profilePictureUrl,
-              profilePictureUpdatedAt: Date.now(), // Add timestamp to force re-renders
+              profilePictureUpdatedAt: Date.now(),
             };
 
             // Update localStorage to persist the change
@@ -96,10 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
         }
       } catch (error) {
-        console.warn('AuthContext: Failed to sync profile picture:', error);
+        console.error('❌ AuthContext: Failed to sync profile picture:', error);
       }
     },
-    [loadProfile, getProfile]
+    [loadProfile]
   );
 
   // Cross-tab login detection
@@ -185,21 +184,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       tokenUtils.clearAllTokens();
       setUser(null);
       setError(null);
+
+      // ✅ CRITICAL FIX: Clear profile picture cache before new user login
+      // This ensures a clean cache for the new user and prevents stale data from previous users
+      profilePictureCache.clearAll();
+
       const loginRequest: LoginRequest = { email, password };
       const data = await apiService.post<LoginResponse>(
         API_ENDPOINTS.AUTH.LOGIN,
         loginRequest
       );
 
+      const loginData = data as LoginResponse;
       const userData: User = {
-        userId: data.userId.toString(),
-        email: data.email,
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        userType: normalizeToFrontendUserType(data.userType),
+        userId: loginData.userId.toString(),
+        email: loginData.email,
+        firstName: loginData.firstName || '',
+        lastName: loginData.lastName || '',
+        userType: normalizeToFrontendUserType(loginData.userType),
         myReferralCode: '', // Will be updated from profile
-        hasStore: data.hasStore || false,
-        profilePictureUrl: data.profilePictureUrl, // Use from login response
+        hasStore: loginData.hasStore || false,
+        profilePictureUrl: loginData.profilePictureUrl, // Use from login response
         isActive: true, // Assume active on login
       };
 
@@ -210,23 +215,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
+      // Note: profilePictureUrl comes from login response
+      // If null/undefined, it will be synced later by syncProfilePicture
+
       setUser(userData);
 
-      // Load profile data and sync profile picture
+      // Sync profile picture after user is set
       try {
-        // Syncing profile picture after login for user ${userData.userId}
+        console.log(
+          `🔄 login: Syncing profile picture for user ${userData.userId}`
+        );
         await syncProfilePicture(userData.userId.toString());
       } catch (error) {
-        console.warn(
-          'AuthContext: Failed to sync profile picture after login:',
+        console.error(
+          '❌ AuthContext: Failed to sync profile picture after login:',
           error
         );
       }
 
-      toast.success('Welcome back!');
-
       // Migrate guest cart to authenticated cart if guest cart exists
       await migrateGuestCartToUserCart(parseInt(userData.userId));
+
+      toast.success('Welcome back!');
 
       return userData;
     } catch (err) {
@@ -234,7 +244,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(errorMessage);
 
       // Don't show toast for rate limit errors - handled by LoginPage UI
-      if ((err as any)?.status !== 429) {
+      if ((err as { status?: number })?.status !== 429) {
         toast.error(errorMessage);
       }
 
@@ -244,45 +254,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (data: RegisterData): Promise<void> => {
+  const register = async (registerData: RegisterData): Promise<User> => {
     setIsLoading(true);
     setError(null);
 
     try {
+      // ✅ CRITICAL FIX: Clear profile picture cache for new user registration
+      // This ensures a clean cache for the newly registered user
+      profilePictureCache.clearAll();
+      console.log('🔄 Profile picture cache cleared for new registration');
+
       const registerRequest: RegisterRequest = {
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        userType: data.userType,
-        referralCode: data.referralCode,
+        email: registerData.email,
+        password: registerData.password,
+        confirmPassword: registerData.confirmPassword,
+        firstName: registerData.firstName,
+        lastName: registerData.lastName,
+        phone: registerData.phone,
+        userType: registerData.userType,
+        referralCode: registerData.referralCode,
       };
       const responseData = await apiService.post<LoginResponse>(
         API_ENDPOINTS.AUTH.REGISTER,
         registerRequest
       );
 
+      const registerData_ = responseData as LoginResponse;
       const userData: User = {
-        userId: responseData.userId.toString(),
-        email: responseData.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        userType: responseData.userType.toLowerCase() as
+        userId: registerData_.userId.toString(),
+        email: registerData_.email,
+        firstName: registerData.firstName,
+        lastName: registerData.lastName,
+        userType: registerData_.userType.toLowerCase() as
           | 'customer'
           | 'store_owner'
           | 'admin',
         myReferralCode: '', // Will be updated from profile
-        hasStore: responseData.hasStore || false,
+        hasStore: registerData_.hasStore || false,
         profilePictureUrl: undefined, // Will be updated from profile
         isActive: true, // Assume active on login
       };
 
       // Store token and user data
-      tokenUtils.setAccessToken(responseData.accessToken);
-      if (responseData.refreshToken) {
-        tokenUtils.setRefreshToken(responseData.refreshToken);
+      tokenUtils.setAccessToken(registerData_.accessToken);
+      if (registerData_.refreshToken) {
+        tokenUtils.setRefreshToken(registerData_.refreshToken);
       }
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
 
@@ -292,6 +308,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await migrateGuestCartToUserCart(parseInt(userData.userId));
 
       toast.success('Account created successfully!');
+
+      return userData;
     } catch (err) {
       const errorMessage = handleApiError(err, 'general');
       setError(errorMessage);
@@ -315,6 +333,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } finally {
+      // ✅ CRITICAL FIX: Clear profile picture cache to prevent stale data when next user logs in
+      // This ensures no cross-user cache pollution from previous sessions
+      profilePictureCache.clearAll();
+      console.log('🔄 Profile picture cache cleared on logout');
+
       // Always clear local state regardless of API call result
       tokenUtils.clearAllTokens();
       setUser(null);
@@ -337,9 +360,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshToken?: string;
       }>(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken: refreshTokenValue });
 
-      tokenUtils.setAccessToken(data.accessToken);
-      if (data.refreshToken) {
-        tokenUtils.setRefreshToken(data.refreshToken);
+      const refreshData = data as {
+        accessToken: string;
+        refreshToken?: string;
+      };
+      tokenUtils.setAccessToken(refreshData.accessToken);
+      if (refreshData.refreshToken) {
+        tokenUtils.setRefreshToken(refreshData.refreshToken);
       }
     } catch (err) {
       // If refresh fails, logout user
@@ -410,7 +437,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         API_ENDPOINTS.USERS.PREFERENCES(parseInt(user.userId))
       );
 
-      setUserPreferences(preferences);
+      setUserPreferences(preferences as UserPreferences);
       setPreferencesError(null);
     } catch {
       setPreferencesError('Failed to load preferences');

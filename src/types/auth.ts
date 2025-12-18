@@ -71,7 +71,7 @@ export interface AuthContextType {
   isLoadingPreferences: boolean;
   preferencesError: string | null;
   login: (email: string, password: string) => Promise<User>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<User>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   error: string | null;

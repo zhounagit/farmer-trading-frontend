@@ -9,6 +9,7 @@ import {
   useTheme,
   Paper,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { Search, Store, LocalOffer, Category } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -16,6 +17,7 @@ import { debounce } from '@/utils/debounce';
 import StorefrontApiService, {
   type SearchSuggestion,
 } from '@/features/search/services/storefront.api';
+import { useCommissionRates } from '@/features/referral/hooks/useCommissionRates';
 
 interface HeroSectionProps {
   onSearch?: (query: string) => void;
@@ -29,6 +31,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [popularTerms, setPopularTerms] = useState<string[]>([]);
+
+  // Fetch commission rates for referral rewards display
+  const { maxRate: maxCommissionRate, isLoading: isLoadingCommissionRates } =
+    useCommissionRates();
 
   const handleSearch = () => {
     if (searchQuery.trim() && onSearch) {
@@ -484,7 +490,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                   color='text.secondary'
                   sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}
                 >
-                  Earn Up to 5%
+                  {isLoadingCommissionRates ? (
+                    <CircularProgress
+                      size={16}
+                      sx={{ verticalAlign: 'middle' }}
+                    />
+                  ) : maxCommissionRate ? (
+                    `Earn Up to ${maxCommissionRate}%`
+                  ) : (
+                    'Earn Referral Rewards'
+                  )}
                 </Typography>
               </Box>
             </div>

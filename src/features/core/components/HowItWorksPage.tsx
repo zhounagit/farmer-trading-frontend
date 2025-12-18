@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../../components/layout/Header';
 import AuthModal from '../../../components/auth/AuthModal';
+import { useCommissionRates } from '@/features/referral/hooks/useCommissionRates';
 
 const MotionBox = motion(Box);
 const MotionCard = motion(Card);
@@ -24,6 +25,13 @@ export const HowItWorksPage: React.FC = () => {
   const navigate = useNavigate();
   const [authModalOpen, setAuthModalOpen] = React.useState(false);
   const [authMode, setAuthMode] = React.useState<'login' | 'register'>('login');
+
+  // Fetch commission rates for referral rewards display
+  const {
+    directRate: directCommissionRate,
+    indirectRate: indirectCommissionRate,
+    isLoading: isLoadingCommissionRates,
+  } = useCommissionRates();
 
   const handleBackToHome = () => {
     navigate('/');
@@ -203,7 +211,11 @@ export const HowItWorksPage: React.FC = () => {
             <Grid container spacing={3} sx={{ maxWidth: '800px', mx: 'auto' }}>
               {[
                 'Commission-based system - no upfront fees',
-                'Two-tier referral rewards up to 5%',
+                isLoadingCommissionRates
+                  ? 'Two-tier referral rewards loading...'
+                  : directCommissionRate && indirectCommissionRate
+                    ? `Two-tier referral rewards up to ${directCommissionRate + indirectCommissionRate}%`
+                    : 'Two-tier referral rewards',
                 'Direct negotiation with sellers',
                 'Multiple fulfillment options',
                 'Secure payment processing',
