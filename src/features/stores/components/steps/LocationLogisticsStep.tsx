@@ -218,30 +218,10 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
             '',
       };
 
-      console.log('=== BILLING ADDRESS DEBUG ===');
-      console.log(
-        'billingSameAsBusinessAddress:',
-        formState.locationLogistics.billingSameAsBusinessAddress
-      );
-      console.log(
-        'Business address data:',
-        formState.locationLogistics.businessAddress
-      );
-      console.log(
-        'Billing address data:',
-        formState.locationLogistics.billingAddress
-      );
-      console.log(
-        'Final billing address payload:',
-        JSON.stringify(billingAddressData, null, 2)
-      );
-
-      const billingResponse = await StoreApiService.createStoreAddress(
+      await StoreApiService.createStoreAddress(
         formState.storeId,
         billingAddressData
       );
-      console.log('Billing address creation response:', billingResponse);
-
       // Save pickup address if pickup is selected
       const sellingMethods = formState.locationLogistics.sellingMethods;
       if (sellingMethods.includes('pickup')) {
@@ -291,24 +271,64 @@ const LocationLogisticsStep: React.FC<StepProps> = ({
           formState.storeId,
           pickupAddressData
         );
-        console.log('Pickup address creation response:', pickupAddressData);
       }
 
-      // Update store with delivery radius if local delivery is selected
+      // Update store with delivery radius and business address contact info if local delivery is selected
       if (sellingMethods.includes('local-delivery')) {
-        await StoreApiService.updateStore(formState.storeId, {
+        // Fetch existing store data to ensure we have all required fields for the update
+        const existingStore = await StoreApiService.getStore(
+          formState.storeId,
+          false
+        );
+
+        // Build update payload with only UpdateStoreRequest fields
+        const updatePayload = {
+          storeName: existingStore.storeName,
+          description: existingStore.description,
+          contactPhone: businessAddressData.ContactPhone,
+          contactEmail: businessAddressData.ContactEmail,
           deliveryRadiusMi: formState.locationLogistics.deliveryRadiusMi,
-        });
+          partnershipRadiusMi: existingStore.partnershipRadiusMi,
+          autoAcceptPartnerships: existingStore.autoAcceptPartnerships,
+          partnershipPreferences: existingStore.partnershipPreferences,
+          logoUrl: existingStore.logoUrl,
+          bannerUrl: existingStore.bannerUrl,
+          featuredImages: existingStore.featuredImages,
+          storeType: existingStore.storeType,
+          canProduce: existingStore.canProduce,
+          canProcess: existingStore.canProcess,
+          canRetail: existingStore.canRetail,
+          needPartnership: existingStore.needPartnership,
+        };
+
+        // Send store update with business address contact info and delivery radius
+        await StoreApiService.updateStore(formState.storeId, updatePayload);
       }
 
       toast.success('Location & logistics saved successfully!');
       onNext();
-    } catch (error) {
-      console.error('❌ Failed to save location logistics:', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to save location logistics. Please try again.';
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to save location logistics. Please try again.';
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const errorObj = error as Record<string, unknown>;
+        if (errorObj.message) {
+          errorMessage = String(errorObj.message);
+        } else if (errorObj.details && typeof errorObj.details === 'object') {
+          // If there are validation errors in details
+          const detailsStr = Object.entries(
+            errorObj.details as Record<string, unknown>
+          )
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ');
+          if (detailsStr) {
+            errorMessage = `Validation error: ${detailsStr}`;
+          }
+        }
+      }
+
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

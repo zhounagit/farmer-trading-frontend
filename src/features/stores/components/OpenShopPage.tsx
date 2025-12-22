@@ -543,6 +543,22 @@ const OpenShopPage: React.FC = () => {
         return category.name || '';
       });
 
+      // Extract delivery radius from store data
+      const storeDataTyped = storeData as unknown as {
+        deliveryRadiusMi?: number;
+        operations?: { deliveryRadiusMiles?: number };
+      };
+      const deliveryRadiusMiles =
+        storeDataTyped.operations?.deliveryRadiusMiles;
+      const deliveryRadiusMiValue = storeDataTyped.deliveryRadiusMi;
+      const finalDeliveryRadius =
+        deliveryRadiusMiles || deliveryRadiusMiValue || 5;
+
+      const hasDeliveryRadius =
+        finalDeliveryRadius !== null &&
+        finalDeliveryRadius !== undefined &&
+        Number(finalDeliveryRadius) > 0;
+
       setFormState({
         currentStep: 0,
         storeBasics: {
@@ -586,13 +602,14 @@ const OpenShopPage: React.FC = () => {
               methods.push('pickup');
             }
 
-            if (storeData.deliveryRadiusMi && storeData.deliveryRadiusMi > 0) {
+            // Check if store has a delivery radius configured
+            if (hasDeliveryRadius) {
               methods.push('local-delivery');
             }
 
             return methods;
           })(),
-          deliveryRadiusMi: storeData.deliveryRadiusMi || 5,
+          deliveryRadiusMi: finalDeliveryRadius,
           pickupPointAddress: (() => {
             const pickupAddr = Array.isArray(addresses)
               ? addresses.find(

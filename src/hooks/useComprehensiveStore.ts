@@ -4,7 +4,12 @@ import { ApiMapper } from '../services/api-mapper';
 import OpenShopApiService from '../features/stores/services/open-shop.api';
 import { StoresApiService } from '../shared/services';
 import type { EnhancedStoreDto } from '../features/stores/services/open-shop.types';
-import type { StoreAddress, StoreAddressRequest } from '../shared/types/store';
+import type {
+  StoreAddress,
+  StoreAddressRequest,
+  UpdateStoreRequest,
+  StoreType,
+} from '../shared/types/store';
 import toast from 'react-hot-toast';
 
 interface UseComprehensiveStoreOptions {
@@ -143,7 +148,12 @@ export const useComprehensiveStore = (
       setError(null);
 
       try {
-        await StoresApiService.updateStore(storeData.storeId, updateData);
+        // Cast updateData to UpdateStoreRequest, ensuring storeType is properly typed
+        const updatePayload: Partial<UpdateStoreRequest> = {
+          ...updateData,
+          storeType: updateData.storeType as StoreType | undefined,
+        };
+        await StoresApiService.updateStore(storeData.storeId, updatePayload);
 
         // Update local state optimistically
         setStoreData((prev: EnhancedStoreDto | null) =>
