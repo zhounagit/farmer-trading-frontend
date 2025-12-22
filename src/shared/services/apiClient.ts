@@ -221,15 +221,34 @@ class ApiClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.put<ApiResponse<T>>(url, data, config);
-    if (!response.data.success) {
-      throw this.createApiError({
-        response: {
-          status: 400,
-          data: response.data,
-        },
-      });
+
+    // Handle HTTP 204 No Content - successful response with no body
+    if (response.status === 204) {
+      return {} as T;
     }
-    return response.data.data as T;
+
+    // Handle HTTP 200 OK with JSON response body
+    if (response.status === 200) {
+      if (response.data?.success === false) {
+        throw this.createApiError({
+          response: {
+            status: 400,
+            data: response.data,
+          },
+        });
+      }
+      // Return the data if present, otherwise return empty object
+      const result = response.data?.data || response.data;
+      return result as T;
+    }
+
+    // Handle other status codes
+    throw this.createApiError({
+      response: {
+        status: response.status,
+        data: response.data,
+      },
+    });
   }
 
   async patch<T>(
@@ -238,7 +257,27 @@ class ApiClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.patch<ApiResponse<T>>(url, data, config);
-    if (!response.data.success) {
+
+    // Handle 204 No Content as successful
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    // Handle 200 OK as successful
+    if (response.status === 200) {
+      if (response.data?.success === false) {
+        throw this.createApiError({
+          response: {
+            status: 400,
+            data: response.data,
+          },
+        });
+      }
+      return (response.data?.data || response.data) as T;
+    }
+
+    // Handle other responses
+    if (!response.data?.success) {
       throw this.createApiError({
         response: {
           status: 400,
@@ -251,7 +290,27 @@ class ApiClient {
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<ApiResponse<T>>(url, config);
-    if (!response.data.success) {
+
+    // Handle 204 No Content as successful
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    // Handle 200 OK as successful
+    if (response.status === 200) {
+      if (response.data?.success === false) {
+        throw this.createApiError({
+          response: {
+            status: 400,
+            data: response.data,
+          },
+        });
+      }
+      return (response.data?.data || response.data) as T;
+    }
+
+    // Handle other responses
+    if (!response.data || !response.data.success) {
       throw this.createApiError({
         response: {
           status: 400,

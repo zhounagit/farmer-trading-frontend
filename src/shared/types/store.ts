@@ -46,6 +46,7 @@ export interface BaseStoreData {
   partnershipRadiusMi: number;
   autoAcceptPartnerships: boolean;
   partnershipPreferences?: string;
+  needPartnership?: string;
 }
 
 // Store Address
@@ -200,6 +201,11 @@ export interface UpdateStoreRequest {
   logoUrl?: string;
   bannerUrl?: string;
   featuredImages?: string[];
+  storeType?: StoreType;
+  canProduce?: boolean;
+  canProcess?: boolean;
+  canRetail?: boolean;
+  needPartnership?: string;
 }
 
 export interface StoreAddressRequest {
